@@ -1,0 +1,111 @@
+================================================================
+LuminaKeys Octave Module PCB - Net Connection Reference
+================================================================
+Identical board, fabricated 5 times. Daisy-chained left-to-right.
+12 LEDs per board, 60 LEDs total.
+
+----------------------------------------------------------------
+POWER NETS
+----------------------------------------------------------------
++5V   Power rail (in via J1 pin 1, out via J2 pin 1)
+GND   Common ground (in via J1 pin 2, out via J2 pin 2)
+
+----------------------------------------------------------------
+DATA NETS
+----------------------------------------------------------------
+DIN_IN     Data input from previous board (J1 pin 3)
+DOUT_OUT   Data output to next board (J2 pin 3) - the chain end of
+           this board's 12-LED string
+DIN_PASS   Passthrough/diagnostics line (J1 pin 4 -> J2 pin 4)
+           Optional. If you don't need it, omit and use 3-pin
+           connectors instead.
+
+----------------------------------------------------------------
+CONNECTORS
+----------------------------------------------------------------
+J1 (left edge, INPUT side)  -- JST SH 4P
+  Pin 1   +5V
+  Pin 2   GND
+  Pin 3   DIN_IN  -> D1 DIN
+  Pin 4   DIN_PASS (passthrough to J2 pin 4)
+
+J2 (right edge, OUTPUT side)  -- JST SH 4P
+  Pin 1   +5V
+  Pin 2   GND
+  Pin 3   DOUT_OUT  <- D12 DOUT
+  Pin 4   DIN_PASS (passthrough from J1 pin 4)
+
+----------------------------------------------------------------
+LED CHAIN (12x WS2812B-2020, designators D1..D12)
+----------------------------------------------------------------
+Each WS2812B has 4 pins:
+  VDD    -> +5V
+  GND    -> GND
+  DIN    -> data input (from previous LED's DOUT, or from J1 for D1)
+  DOUT   -> data output (to next LED's DIN, or to J2 for D12)
+
+  D1  (note C):   DIN <- J1 pin 3,    DOUT -> D2 DIN
+  D2  (note C#):  DIN <- D1 DOUT,     DOUT -> D3 DIN
+  D3  (note D):   DIN <- D2 DOUT,     DOUT -> D4 DIN
+  D4  (note D#):  DIN <- D3 DOUT,     DOUT -> D5 DIN
+  D5  (note E):   DIN <- D4 DOUT,     DOUT -> D6 DIN
+  D6  (note F):   DIN <- D5 DOUT,     DOUT -> D7 DIN
+  D7  (note F#):  DIN <- D6 DOUT,     DOUT -> D8 DIN
+  D8  (note G):   DIN <- D7 DOUT,     DOUT -> D9 DIN
+  D9  (note G#):  DIN <- D8 DOUT,     DOUT -> D10 DIN
+  D10 (note A):   DIN <- D9 DOUT,     DOUT -> D11 DIN
+  D11 (note A#):  DIN <- D10 DOUT,    DOUT -> D12 DIN
+  D12 (note B):   DIN <- D11 DOUT,    DOUT -> J2 pin 3
+
+----------------------------------------------------------------
+DECOUPLING (datasheet-required)
+----------------------------------------------------------------
+C1..C12   0.1uF X7R 0603, one per LED, +5V to GND, placed within
+          3mm of each LED's VDD pin.
+
+NOTE: The 470uF bulk cap formerly here (C13) has been moved to
+the controller PCB to keep the LED strip thickness under 3mm.
+A single bulk cap on the controller handles inrush for the
+entire 60-LED chain.
+
+----------------------------------------------------------------
+LED PHYSICAL POSITIONS (X coordinate, mm from left board edge)
+----------------------------------------------------------------
+See octave-led-positions.csv for full data. Summary:
+
+  D1  (C)   x = 11.75
+  D2  (C#)  x = 23.50
+  D3  (D)   x = 35.25
+  D4  (D#)  x = 47.00
+  D5  (E)   x = 58.75
+  D6  (F)   x = 82.25
+  D7  (F#)  x = 94.00
+  D8  (G)   x = 105.75
+  D9  (G#)  x = 117.50
+  D10 (A)   x = 129.25
+  D11 (A#)  x = 141.00
+  D12 (B)   x = 152.75
+
+All LEDs on the same Y coordinate (~5mm from top edge of board).
+Board outline: 164.5mm wide x ~25mm tall.
+
+================================================================
+PCB LAYOUT NOTES
+================================================================
+1. Power traces: route +5V and GND as wide traces (>=1mm) along
+   the full board length. Use a copper pour for GND on the bottom
+   layer.
+2. Data trace: route DIN/DOUT links as short, direct hops between
+   adjacent LEDs. No need for impedance control at WS2812B speeds
+   (800 kHz).
+3. Mechanical alignment: the X coordinate of each LED is critical.
+   Use KiCad's "Position relative to anchor" (Edit > Position Relative)
+   with the board origin at the left edge to place each LED precisely.
+4. Edge connectors: J1 must sit at the LEFT edge, J2 at the RIGHT
+   edge. When two boards butt together, J2 of board N feeds J1 of
+   board N+1 via a short flex cable (or a direct board-to-board if
+   you switch to that connector type).
+5. Silkscreen: label each LED position with its note (C, C#, D, ...)
+   on the silkscreen. This makes assembly debugging trivial.
+6. Mounting holes: add 4x M2 mounting holes (one near each corner)
+   for screwing the PCB to your rail. Keep them clear of traces.

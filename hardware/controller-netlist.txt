@@ -1,0 +1,168 @@
+================================================================
+LuminaKeys Controller PCB - Net Connection Reference
+================================================================
+Use this as a checklist while drawing the schematic in KiCad.
+Every line below = one wire / net. ERC should pass with these
+nets defined and all power ports placed.
+
+----------------------------------------------------------------
+POWER NETS
+----------------------------------------------------------------
++5V       VBUS rail (post-fuse, post-TVS)
++3V3      Output of U4 (AMS1117-3.3 regulator) - powers the ESP32 module
+GND       Common ground
+
+----------------------------------------------------------------
+USB-C (J1)  -- pin numbers per Connector_USB:USB_C_Receptacle_USB2.0
+----------------------------------------------------------------
+A1, B12 (GND)        -> GND
+A4, B9  (VBUS)       -> F1 input (polyfuse)
+                        F1 output -> +5V (also feeds D1 TVS cathode)
+                        D1 anode   -> GND
+A5  (CC1)            -> R1 (5.1k) -> GND
+B5  (CC2)            -> R2 (5.1k) -> GND
+A6  (D+)             -> CH340C UD+ (pin 6)
+A7  (D-)             -> CH340C UD- (pin 5)
+A8, B8 (SBU1/SBU2)   -> NC
+A9, B4 (VBUS dup)    -> +5V (parallel with A4/B9)
+A12, B1 (GND dup)    -> GND
+SHIELD               -> GND (or via a 1M resistor + 4.7nF cap if EMC concerns)
+
+----------------------------------------------------------------
+3V3 REGULATOR (U4 - AMS1117-3.3)
+----------------------------------------------------------------
+U4 pin 3 (VIN)   -> +5V
+U4 pin 1 (GND)   -> GND
+U4 pin 2 (VOUT)  -> +3V3
+C2  (10uF)        +5V  to GND, near U4 input
+C15 (22uF)        +3V3 to GND, near U4 output (REQUIRED for AMS1117 stability)
+
+----------------------------------------------------------------
+BULK + DECOUPLING
+----------------------------------------------------------------
+C1 (100uF aluminum)  +5V to GND, near USB-C
+C3 (0.1uF)           +5V to GND, near U2 (74AHCT125) pin 14
+C4 (0.1uF)           +3V3 to GND, near ESP32 module pin 2 (3V3)
+
+----------------------------------------------------------------
+ESP32-WROOM-32E (U1)  -- pin numbers per Espressif datasheet
+----------------------------------------------------------------
+Pin 1   GND          -> GND
+Pin 2   3V3          -> +3V3 (also output for board, decoupled by C4)
+Pin 3   EN           -> R3 (10k) to +3V3, C13 (1uF) to GND, SW1 (RESET) to GND
+Pin 4   SENSOR_VP    -> NC
+Pin 5   SENSOR_VN    -> NC
+Pin 6   IO34         -> NC (reserved for future MIDI input)
+Pin 7   IO35         -> NC
+Pin 8   IO32         -> NC
+Pin 9   IO33         -> NC
+Pin 10  IO25         -> NC
+Pin 11  IO26         -> NC
+Pin 12  IO27         -> NC
+Pin 13  IO14         -> NC
+Pin 14  IO12         -> NC (must be LOW at boot - leave floating, internal pulldown)
+Pin 15  GND          -> GND
+Pin 16  IO13         -> R4 (1k) -> D2 anode (status LED); D2 cathode -> GND
+Pin 17  SD2          -> NC (flash internal)
+Pin 18  SD3          -> NC (flash internal)
+Pin 19  CMD          -> NC (flash internal)
+Pin 20  CLK          -> NC (flash internal)
+Pin 21  SD0          -> NC (flash internal)
+Pin 22  SD1          -> NC (flash internal)
+Pin 23  IO15         -> NC
+Pin 24  IO2          -> NC (must NOT be pulled high at boot)
+Pin 25  IO0          -> SW2 (BOOT button) to GND; also Q2 collector (auto-reset)
+Pin 26  IO4          -> NC
+Pin 27  IO16 (RX2)   -> NC
+Pin 28  IO17 (TX2)   -> NC
+Pin 29  IO5          -> NC
+Pin 30  IO18         -> NC
+Pin 31  IO19         -> NC
+Pin 32  NC           -> NC
+Pin 33  IO21         -> NC
+Pin 34  RXD0         -> CH340C TXD (pin 2)
+Pin 35  TXD0         -> CH340C RXD (pin 3)
+Pin 36  IO22         -> NC
+Pin 37  IO23         -> NC
+Pin 38  GND          -> GND
+Pin 39  GND (pad)    -> GND (large thermal pad)
+
+DESIGNATED LED OUTPUT GPIO:
+Use IO5 (Pin 29) for LED data. Reason: not a strapping pin, has no
+boot-time constraints, RMT/I2S peripherals can drive it, and it's
+the GPIO most FastLED examples assume on ESP32.
+        IO5 -> U2 input (74AHCT125 pin 2, 1A)
+
+----------------------------------------------------------------
+74AHCT125 LEVEL SHIFTER (U2)  -- SOIC-14, only one gate used
+----------------------------------------------------------------
+Pin 1   1OE   -> GND   (always enabled)
+Pin 2   1A    -> ESP32 IO5 (3.3V data in)
+Pin 3   1Y    -> R7 (470 ohm) -> J2 pin 3 (Din to first octave module)
+Pin 4   2OE   -> +5V   (disable unused gate by tying OE high)
+Pin 5   2A    -> GND   (input low so unused gate is benign)
+Pin 6   2Y    -> NC
+Pin 7   GND   -> GND
+Pin 8   3Y    -> NC
+Pin 9   3A    -> GND
+Pin 10  3OE   -> +5V   (disable)
+Pin 11  4Y    -> NC
+Pin 12  4A    -> GND
+Pin 13  4OE   -> +5V   (disable)
+Pin 14  VCC   -> +5V   (decoupled by C3)
+
+----------------------------------------------------------------
+CH340C USB-SERIAL (U3)  -- SOIC-16
+----------------------------------------------------------------
+Pin 1   GND      -> GND
+Pin 2   TXD      -> ESP32 RXD0 (pin 34)
+Pin 3   RXD      -> ESP32 TXD0 (pin 35)
+Pin 4   V3       -> 0.1uF decoupling cap to GND (internal regulator output)
+Pin 5   UD-      -> USB-C D-
+Pin 6   UD+      -> USB-C D+
+Pin 7   XI       -> NC (CH340C has internal oscillator, no crystal needed)
+Pin 8   XO       -> NC
+Pin 9   CTS#     -> NC
+Pin 10  DSR#     -> NC
+Pin 11  RI#      -> NC
+Pin 12  DCD#     -> NC
+Pin 13  DTR#     -> NC (auto-reset circuit omitted - manual BOOT+RESET)
+Pin 14  RTS#     -> NC (auto-reset circuit omitted - manual BOOT+RESET)
+Pin 15  R232     -> NC (UART mode default)
+Pin 16  VCC      -> +5V (decoupled by 0.1uF)
+
+NOTE: Auto-reset circuit (Q1, Q2 transistors) was omitted by design
+choice. To flash firmware: hold BOOT, tap RESET, release BOOT, then
+upload. Q1/Q2/R5/R6 are no longer part of this design.
+
+----------------------------------------------------------------
+OUTPUT CONNECTOR (J2)  -- 4-pin JST SH to first octave module
+----------------------------------------------------------------
+Pin 1   +5V        (carries LED current up to 3A peak - widen this trace!)
+Pin 2   GND
+Pin 3   Din        (level-shifted 5V data from U2 pin 3 via R7)
+Pin 4   Dout-rtn   (passthrough from chain end - optional, can leave NC)
+
+----------------------------------------------------------------
+USER BUTTONS
+----------------------------------------------------------------
+SW1 RESET   -> ESP32 EN (pin 3) and GND   (momentary close to GND)
+SW2 BOOT    -> ESP32 IO0 (pin 25) and GND (momentary close to GND)
+Both buttons should have 100nF debounce caps to GND if you experience
+spurious resets.
+
+================================================================
+PCB LAYOUT NOTES
+================================================================
+1. ESP32 antenna keepout: NO ground pour, NO traces under the
+   antenna section (pins 36-39 area, the small PCB stub at the
+   end of the module). KiCad has a keepout zone you can place.
+2. USB-C placement: at board edge, oriented so the cable doesn't
+   foul the piano.
+3. Decoupling caps: every IC's VCC pin needs a 0.1uF within 3mm.
+4. 5V rail: route as a wide trace (>=1mm) or copper pour - this
+   feeds 3A of LED current.
+5. GND: solid ground plane on the bottom layer.
+6. Test points: add labeled pads for +5V, +3V3, GND, IO5 (LED data
+   pre-shifter), and J2 Din (post-shifter). Saves time during
+   bring-up.

@@ -1,0 +1,32 @@
+# Android / Gradle
+**/build/
+.gradle/
+local.properties
+*.iml
+.idea/
+captures/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Keystores
+*.jks
+*.keystore
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+*.swp
+*~
+
+# Claude Code
+.claude/
+
+# KiCad VS Code history sidecar (its own git repos)
+**/.history/

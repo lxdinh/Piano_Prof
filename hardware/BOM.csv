@@ -1,0 +1,25 @@
+Board,Designator,Qty,Value,Package,Manufacturer,MPN,LCSC,Notes
+controller,U1,1,ESP32-C3-MINI-1,SMD-Module,Espressif,ESP32-C3-MINI-1-N4,C3013785,BLE 5.0 module with NATIVE USB (no CH340C needed). Requires external 3V3. Verify LCSC stock when ordering.
+controller,U4,1,AMS1117-3.3,SOT-223,Advanced Monolithic,AMS1117-3.3,C6186,5V-to-3.3V LDO regulator for ESP32; needs 10uF in / 22uF out
+controller,C15,1,22uF 16V,0805,Samsung,CL21A226MAYNNNE,C45783,Output stability cap for AMS1117 regulator
+controller,U2,1,74AHCT1G125,SOT-23-5,Texas Instruments,SN74AHCT1G125DBVR,verify-on-lcsc,Single-gate 3V3-to-5V level shifter for WS2812B data line. MUST be the AHCT (T) version. Search SN74AHCT1G125DBVR on lcsc.com for the part number.
+controller,J1,1,USB-C 2.0 16P,SMD,GCT,USB4105-GF-A,C168687,16-pin USB-C receptacle (power + native USB to ESP32-C3 GPIO18/19)
+controller,J2,1,JST SH 4P,SMD,JST,SM04B-SRSS-TB,C160403,4-pin output to first octave module
+controller,F1,1,3A polyfuse,1812,Bourns,MF-MSMF300/16-2,C190053,Resettable fuse on VBUS
+controller,D1,1,SMAJ5.0CA,SMA,Littelfuse,SMAJ5.0CA,C202221,Bidirectional TVS diode 5V working / 9.2V clamp on VBUS (matches bidirectional KiCad symbol; protects against both polarities of ESD)
+controller,D2,1,LED green,0603,Everlight,19-217/GHC-YR1S2/3T,C72043,Status LED
+controller,SW1-SW2,2,Tactile switch,SMD 6x6,C&K,PTS645SH50SMTR92LFS,C318884,BOOT and RESET buttons
+controller,C1,1,100uF 6.3V,Aluminum SMD 6.3x5.4,Panasonic,EEEFK0J101P,C44638,Bulk cap on 5V rail
+controller,C2,1,10uF 16V,0805,Samsung,CL21A106KAYNNNE,C15850,Bulk ceramic on 5V rail
+controller,C3-C6,4,0.1uF 50V,0603,Yageo,CC0603KRX7R9BB104,C14663,Decoupling: ESP32-C3 3V3, 74AHCT125 VCC, 5V rail, spare
+controller,C13,1,1uF 16V,0603,Samsung,CL10A105KB8NNNC,C15849,EN pull-up RC delay
+controller,R1-R2,2,5.1k 1%,0603,Yageo,RC0603FR-075K1L,C23186,USB-C CC1/CC2 pull-downs (REQUIRED for power negotiation)
+controller,R3,1,10k 1%,0603,Yageo,RC0603FR-0710KL,C25804,EN pull-up
+controller,R4,1,1k 1%,0603,Yageo,RC0603FR-071KL,C21190,Status LED series resistor
+controller,R7,1,470R 1%,0603,Yageo,RC0603FR-07470RL,C23179,WS2812B data series resistor (after level shifter)
+octave,D1-D12,12,WS2812B-2020,2020,Worldsemi,WS2812B-2020,C2761795,Addressable RGB LED. Qty is PER BOARD - build 5 octave boards = 60 LEDs total.
+octave,C1-C12,12,0.1uF 50V,0603,Yageo,CC0603KRX7R9BB104,C14663,Per-LED decoupling. Qty PER BOARD - 60 total across 5 boards.
+octave,J1-J2,2,JST SH 4P,SMD,JST,SM04B-SRSS-TB,C160403,IN (J1) and OUT (J2) connectors. Qty PER BOARD - 10 total across 5 boards.
+controller,C14,1,470uF 6.3V,Aluminum SMD 8x10,Nichicon,UWX0J471MCL1GB,C42599,Bulk cap for 60-LED chain inrush (kept on controller so octave PCBs stay thin)
+power,-,1,USB-C 5V/3A wall adapter,-,any,USB-C PD 5V/3A,-,Phone-style charger; verify 3A capability
+cabling,-,5,JST SH 1.0mm 4-pin double-ended cable ~100mm,-,generic,JST SH 4P both ends,-,Inter-board cables (1x controller-to-octave1 + 4x octave-to-octave). CRITICAL: verify wiring direction (straight vs reversed) with a multimeter before applying power - wrong wiring swaps 5V/GND and destroys the boards.
