@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Piano Professor · App Design</title>
+
+  <!-- Standalone bundle: lift JSX-referenced assets so the bundler can inline them -->
+  <meta name="ext-resource-dependency" content="assets/Mascot-transparent.png" data-resource-id="mascot" />
+
+  <template id="__bundler_thumbnail" data-bg-color="#FBF5E4">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <!-- cream paper background -->
+      <rect width="1200" height="800" fill="#FBF5E4"/>
+      <!-- piano body -->
+      <g transform="translate(360,360)">
+        <rect x="0" y="0" width="480" height="180" rx="12" fill="#1A1410"/>
+        <!-- white keys -->
+        <g>
+          <rect x="14" y="20" width="56" height="150" fill="#FFFAEC" stroke="#1A1410" stroke-width="2"/>
+          <rect x="74" y="20" width="56" height="150" fill="#FFFAEC" stroke="#1A1410" stroke-width="2"/>
+          <rect x="134" y="20" width="56" height="150" fill="#FFFAEC" stroke="#1A1410" stroke-width="2"/>
+          <rect x="194" y="20" width="56" height="150" fill="#58CC02" stroke="#1A1410" stroke-width="2"/>
+          <rect x="254" y="20" width="56" height="150" fill="#FFFAEC" stroke="#1A1410" stroke-width="2"/>
+          <rect x="314" y="20" width="56" height="150" fill="#FFFAEC" stroke="#1A1410" stroke-width="2"/>
+          <rect x="374" y="20" width="56" height="150" fill="#FFFAEC" stroke="#1A1410" stroke-width="2"/>
+        </g>
+        <!-- black keys -->
+        <g fill="#1A1410">
+          <rect x="55" y="20" width="32" height="92"/>
+          <rect x="115" y="20" width="32" height="92"/>
+          <rect x="235" y="20" width="32" height="92"/>
+          <rect x="295" y="20" width="32" height="92"/>
+          <rect x="355" y="20" width="32" height="92"/>
+        </g>
+      </g>
+      <!-- title -->
+      <text x="600" y="240" text-anchor="middle"
+        font-family="Nunito, system-ui, sans-serif"
+        font-size="78" font-weight="900" fill="#2A1D11"
+        letter-spacing="-1">PIANO PROFESSOR</text>
+      <text x="600" y="290" text-anchor="middle"
+        font-family="Nunito, system-ui, sans-serif"
+        font-size="22" font-weight="800" fill="#C2410C"
+        letter-spacing="4">REAL SONGS · 5 MIN/DAY</text>
+      <!-- treble clef -->
+      <text x="600" y="640" text-anchor="middle" font-size="160" fill="#58CC02"
+        font-family='"Bravura Text","Noto Music","Apple Symbols","Segoe UI Symbol","Cambria Math",serif'>𝄞</text>
+    </svg>
+  </template>
+
+  <link rel="stylesheet" href="pp-styles.css">
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; }
+    body { font-family: 'Nunito', system-ui, sans-serif; }
+    #root { height: 100vh; width: 100vw; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + Babel (pinned) -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- Starter components -->
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="android-frame.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+
+  <!-- Piano Professor -->
+  <script type="text/babel" src="pp-mascot.jsx"></script>
+  <script type="text/babel" src="pp-screens-path.jsx"></script>
+  <script type="text/babel" src="pp-screens-lesson.jsx"></script>
+  <script type="text/babel" src="pp-screens-meta.jsx"></script>
+  <script type="text/babel" src="pp-screens-hardware.jsx"></script>
+  <script type="text/babel" src="pp-screens-ipad.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

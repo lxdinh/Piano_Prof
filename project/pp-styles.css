@@ -1,0 +1,180 @@
+/* ── Piano Professor — design tokens ─────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Caveat:wght@700&display=swap');
+
+:root {
+  /* Surfaces – warm cream paper */
+  --cream-50:  #FBF5E4;
+  --cream-100: #F5EAD0;
+  --cream-200: #ECDDB4;
+  --cream-300: #DFCB97;
+
+  /* Ink – warm brown */
+  --ink-900: #2A1D11;
+  --ink-700: #4A3622;
+  --ink-500: #7C6446;
+  --ink-300: #B6A382;
+  --ink-100: rgba(42,29,17,0.10);
+  --ink-line: rgba(42,29,17,0.14);
+
+  /* Brand – Duolingo green */
+  --brand:       #58CC02;
+  --brand-dark:  #46A302;
+  --brand-deep:  #357A00;
+  --brand-soft:  #DCF5BB;
+
+  /* Accents (from mascot palette) */
+  --rust:    #C2410C;
+  --rust-dark:#9A3206;
+  --butter:  #F5B800;
+  --butter-d:#C28C00;
+  --sky:     #5BB8E3;
+  --sky-dark:#3F8FB6;
+  --coral:   #FF7A9C;
+  --coral-d: #D45878;
+  --plum:    #8B5CF6;
+  --plum-d:  #6E40D8;
+  --leaf:    #16A34A;
+
+  /* Piano */
+  --staff:       #4A3622;
+  --staff-soft:  #8A7256;
+  --piano-black: #1A1410;
+  --piano-white: #FFFEFB;
+}
+
+/* ── Reset inside artboards only ──────────────────────────── */
+.pp-art,
+.pp-art *,
+.pp-art *::before,
+.pp-art *::after {
+  box-sizing: border-box;
+}
+.pp-art *,
+.pp-art *::before,
+.pp-art *::after {
+  margin: 0; padding: 0;
+}
+.pp-art {
+  font-family: 'Nunito', system-ui, sans-serif;
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.pp-art h1, .pp-art h2, .pp-art h3, .pp-art h4 {
+  font-family: 'Nunito', system-ui, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+.pp-art .hand { font-family: 'Caveat', cursive; font-weight: 700; }
+
+/* ── Generic chunky button (Duolingo-style with bottom shadow) ── */
+.pp-art .btn-chunk {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px;
+  border: none; cursor: pointer;
+  border-radius: 16px;
+  font-family: inherit;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 14px 22px;
+  font-size: 15px;
+  color: #fff;
+  background: var(--brand);
+  box-shadow: 0 5px 0 var(--brand-dark);
+  transition: transform .08s ease, box-shadow .08s ease;
+  text-decoration: none;
+  user-select: none;
+}
+.pp-art .btn-chunk:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--brand-dark); }
+.pp-art .btn-chunk.ghost {
+  background: transparent;
+  color: var(--ink-500);
+  box-shadow: 0 3px 0 var(--ink-line);
+  border: 2px solid var(--ink-line);
+}
+.pp-art .btn-chunk.rust  { background: var(--rust);   box-shadow: 0 5px 0 var(--rust-dark); }
+.pp-art .btn-chunk.butter{ background: var(--butter); box-shadow: 0 5px 0 var(--butter-d); color: var(--ink-900); }
+.pp-art .btn-chunk.sky   { background: var(--sky);    box-shadow: 0 5px 0 var(--sky-dark); }
+.pp-art .btn-chunk.plum  { background: var(--plum);   box-shadow: 0 5px 0 var(--plum-d); }
+.pp-art .btn-chunk.lg    { padding: 18px 26px; font-size: 17px; border-radius: 20px; }
+
+/* ── Card primitive ─────────────────────────────────────────── */
+.pp-art .pp-card {
+  background: #FFFAEC;
+  border-radius: 22px;
+  border: 1.5px solid var(--ink-line);
+  box-shadow: 0 3px 0 rgba(42,29,17,0.08);
+}
+
+/* ── Paper texture (subtle) ─────────────────────────────────── */
+.pp-paper {
+  background-color: var(--cream-50);
+  background-image:
+    radial-gradient(circle at 25% 30%, rgba(194,65,12,0.04) 0, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(88,204,2,0.05) 0, transparent 45%),
+    repeating-radial-gradient(circle at 50% 50%, rgba(42,29,17,0.012) 0, transparent 2px);
+}
+
+/* ── XP / Streak chips ─────────────────────────────────────── */
+.pp-art .chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #FFFAEC;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--ink-900);
+}
+
+/* ── Hide scrollbars inside frames ─────────────────────────── */
+.pp-art ::-webkit-scrollbar { display: none; }
+.pp-art { scrollbar-width: none; }
+
+/* ── Tap-key pulse for piano (used in lesson) ──────────────── */
+@keyframes ppPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(88,204,2,0.7), 0 0 24px rgba(88,204,2,0.6); }
+  70%  { box-shadow: 0 0 0 14px rgba(88,204,2,0),   0 0 24px rgba(88,204,2,0.4); }
+  100% { box-shadow: 0 0 0 0 rgba(88,204,2,0),     0 0 24px rgba(88,204,2,0.5); }
+}
+@keyframes ppLedBeat {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50%      { transform: scale(1.15); filter: brightness(1.5); }
+}
+.pp-art .lit { animation: ppPulse 1.4s ease-out infinite; }
+.pp-art .led-beat { animation: ppLedBeat 0.9s ease-in-out infinite; }
+
+/* ── Mood pop (when mascot expression changes) ─────────────── */
+@keyframes ppMoodPop {
+  0%   { transform: scale(0.7) rotate(-4deg); opacity: 0; }
+  60%  { transform: scale(1.08) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* ── Mascot animations ─────────────────────────────────────── */
+@keyframes ppCatWander {
+  0%   { transform: translateX(0)    rotate(0deg)   translateY(0); }
+  18%  { transform: translateX(-14px) rotate(-3deg)  translateY(-2px); }
+  35%  { transform: translateX(-14px) rotate(-3deg)  translateY(0); }
+  50%  { transform: translateX(0)    rotate(0deg)   translateY(-3px); }
+  68%  { transform: translateX(14px)  rotate(3deg)   translateY(-2px); }
+  85%  { transform: translateX(14px)  rotate(3deg)   translateY(0); }
+  100% { transform: translateX(0)    rotate(0deg)   translateY(0); }
+}
+@keyframes ppCatPlay {
+  0%, 100% { transform: translateY(0)    rotate(0deg); }
+  25%      { transform: translateY(-3px) rotate(-1.5deg); }
+  50%      { transform: translateY(0)    rotate(0deg); }
+  75%      { transform: translateY(-3px) rotate(1.5deg); }
+}
+@keyframes ppCatBob {
+  0%, 100% { transform: translateY(0)    rotate(0deg); }
+  50%      { transform: translateY(-6px) rotate(0deg); }
+}
+@keyframes ppNoteFloat {
+  0%   { transform: translateY(0)    rotate(0)    scale(0.6); opacity: 0; }
+  15%  { opacity: 0.85; }
+  100% { transform: translateY(-90px) rotate(var(--r, 12deg)) scale(1); opacity: 0; }
+}
