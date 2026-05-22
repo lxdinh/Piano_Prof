@@ -1,0 +1,57 @@
+rules_version = '2';
+
+// Piano Professor — Cloud Storage rules
+// Users own users/{uid}/** ; uploaded sources are read+write, synthesized
+// MusicXML is read-only (written by the OMR Function via Admin SDK). Catalog
+// MusicXML is read-only to signed-in users. See SCHEMA.md §3.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    function isImageOrPdf() {
+      return request.resource.contentType.matches('application/pdf')
+          || request.resource.contentType.matches('image/.*');
+    }
+    function isMusicXml() {
+      // MusicXML is text/xml; compressed .mxl is a zip
+      return request.resource.contentType.matches('application/.*xml')
+          || request.resource.contentType.matches('text/xml')
+          || request.resource.contentType.matches('application/octet-stream');
+    }
+
+    // user-uploaded source documents (PDF / photo) — owner read+write, ≤25MB
+    match /users/{uid}/uploads/{file=**} {
+      allow read: if isOwner(uid);
+      allow write: if isOwner(uid)
+        && request.resource.size < 25 * 1024 * 1024
+        && isImageOrPdf();
+    }
+
+    // OMR-synthesized MusicXML — owner READ only; written by the Function
+    match /users/{uid}/musicxml/{file=**} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
+    // optional custom avatar — owner read+write, ≤5MB image
+    match /users/{uid}/avatar.{ext} {
+      allow read: if isOwner(uid);
+      allow write: if isOwner(uid)
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // catalog MusicXML — any signed-in user may read; admin/Function writes only
+    match /catalog/{file=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

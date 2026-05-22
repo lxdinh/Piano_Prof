@@ -1,0 +1,102 @@
+rules_version = '2';
+
+// Piano Professor — Firestore security rules
+// Model: a signed-in user fully owns users/{uid}/** EXCEPT the `private` subtree
+// (entitlements) which is backend-written and client read-only. Catalog
+// collections are read-only to signed-in users. See SCHEMA.md.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers ---------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    function incomingHasOnly(keys) {
+      return request.resource.data.keys().hasOnly(keys);
+    }
+    // hot counters must stay non-negative ints; clients can update their own
+    // values (client-authoritative gamification for v1 — tighten via Functions later).
+    function validUserDoc() {
+      let d = request.resource.data;
+      return d.streakCount is int && d.streakCount >= 0
+        && d.totalXp is int && d.totalXp >= 0
+        && d.gems is int && d.gems >= 0;
+    }
+
+    // ---- per-user tree ---------------------------------------------------
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && validUserDoc();
+      allow update: if isOwner(uid) && validUserDoc();
+      allow delete: if false; // account deletion handled by a Function
+
+      // entitlement / billing: client may READ, never write.
+      match /private/{docId} {
+        allow read: if isOwner(uid);
+        allow write: if false; // backend (Admin SDK) only
+      }
+
+      // everything else the user owns: progress, activity, quests,
+      // achievements, devices, library.
+      match /lessonProgress/{lessonId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /dailyActivity/{day} {
+        allow read, write: if isOwner(uid);
+      }
+      match /quests/{questId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /achievements/{achievementId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /devices/{deviceId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /library/{itemId} {
+        allow read: if isOwner(uid);
+        // client may create/edit metadata + the original upload pointer, but the
+        // synthesized MusicXML path + final status are set by the OMR Function.
+        allow create: if isOwner(uid)
+          && request.resource.data.musicXmlPath == null
+          && request.resource.data.status in ['uploaded', 'processing'];
+        allow update: if isOwner(uid)
+          && request.resource.data.musicXmlPath == resource.data.musicXmlPath; // can't self-grant output
+        allow delete: if isOwner(uid);
+      }
+    }
+
+    // ---- username uniqueness guard --------------------------------------
+    match /usernames/{username} {
+      allow read: if isSignedIn(); // availability check
+      // may only claim a handle that points to yourself; never overwrite/delete others'
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid
+        && incomingHasOnly(['uid']);
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    // ---- catalog (read-only to clients) ---------------------------------
+    match /lessons/{lessonId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+      match /steps/{stepId} {
+        allow read: if isSignedIn();
+        allow write: if false;
+      }
+    }
+    match /songs/{songId}            { allow read: if isSignedIn(); allow write: if false; }
+    match /achievementsCatalog/{id}  { allow read: if isSignedIn(); allow write: if false; }
+    match /questTemplates/{id}       { allow read: if isSignedIn(); allow write: if false; }
+    match /subscriptionPlans/{id}    { allow read: if isSignedIn(); allow write: if false; }
+
+    // default deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

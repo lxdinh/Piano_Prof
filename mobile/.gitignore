@@ -1,0 +1,25 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+*.iml
+
+# IDE
+.idea/
+.vscode/
+
+# Generated native shells (run `flutter create .` to regenerate — see README)
+android/
+ios/
+web/
+linux/
+macos/
+windows/
+
+# Firebase config (do not commit secrets)
+lib/firebase_options.dart
+google-services.json
+GoogleService-Info.plist
