@@ -38,7 +38,9 @@ dependencies:
   xml: ^6.5.0
 
   # Audio — low-latency polyphonic piano playback (synth tone; .sf2 later).
-  flutter_soloud: ^3.1.0
+  # Pinned to <2.1.1 — flutter_soloud >=2.1.1 requires meta ^1.15.0 which
+  # conflicts with the meta 1.12.0 pin in flutter_test from the SDK.
+  flutter_soloud: ^2.1.0
 
   # Notation rendering (OpenSheetMusicDisplay in a WebView) + OMR networking.
   webview_flutter: ^4.7.0
