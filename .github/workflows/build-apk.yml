@@ -28,7 +28,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.x'   # latest stable ≥ 3.19 (pubspec requirement)
+          flutter-version: '3.27.x'   # 3.24+ uses Kotlin Gradle plugin (fixes groovy.xml.QName error)
           channel: stable
           cache: true
 
