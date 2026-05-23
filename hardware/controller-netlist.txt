@@ -1,0 +1,264 @@
+================================================================
+LuminaKeys Controller PCB v2 - Net Connection Reference
+================================================================
+Use this as a checklist while drawing the schematic in KiCad.
+Every line below = one wire / net. ERC should pass with these
+nets defined and all power ports placed.
+
+CHANGES FROM v1 (this design):
+  - MCU swap: ESP32-C3-MINI-1 -> ESP32-S3-MINI-1-N4R2 (USB Host capable, 4MB flash, 2MB PSRAM)
+    LCSC: C3013941
+  - USB-C swap: GCT USB4105 -> TYPE-C-31-M-12 (JLCPCB Basic part)
+  - Added USB-A host receptacle (J3) for piano USB-MIDI input
+  - Added 3.5mm TRS MIDI IN jack (J4, Type A pinout)
+  - Added TS3USB221A USB mux (U3) to share S3 USB pins
+    between USB-C (programming) and USB-A (host)
+  - Added H11L1 optocoupler (U5) for MIDI input galvanic isolation
+    (logic-output with built-in Schmitt - no external pull-up needed)
+  - Added USBLC6-2SC6 (D3) ESD protection on USB-A
+  - Added 500mA polyfuse (F2) on USB-A VBUS
+
+Pin numbers below use ESP32-S3 GPIO names (IOx). After importing
+the ESP32-S3-MINI-1 symbol via easyeda2kicad, the symbol's pin
+numbers will match the module datasheet automatically.
+
+----------------------------------------------------------------
+POWER NETS
+----------------------------------------------------------------
++5V       VBUS rail (post-F1 fuse, post-D1 TVS) - main bus
++3V3      Output of U4 (AMS1117-3.3 regulator) - powers MCU,
+          opto output, USB mux logic
++5V_USBA  USB-A host VBUS (sourced from +5V via F2 polyfuse)
+GND       Common ground
+
+----------------------------------------------------------------
+USB-C (J1 - TYPE-C-31-M-12) -- power input + programming
+----------------------------------------------------------------
+A1, B12  (GND)        -> GND
+A4, B9   (VBUS)       -> F1 input (3A polyfuse)
+                         F1 output -> +5V (also feeds D1 TVS cathode)
+                         D1 anode  -> GND
+A5  (CC1)             -> R1 (5.1k) -> GND
+B5  (CC2)             -> R2 (5.1k) -> GND
+A6  (D+)              -> U3 (TS3USB221) port A D+ (pin 5)
+A7  (D-)              -> U3 (TS3USB221) port A D- (pin 4)
+A8, B8 (SBU1/SBU2)    -> NC
+A9, B4 (VBUS dup)     -> +5V (parallel with A4/B9)
+A12, B1 (GND dup)     -> GND
+SHIELD                -> GND
+
+----------------------------------------------------------------
+USB-A HOST (J3) -- piano USB-MIDI input
+----------------------------------------------------------------
+Pin 1 (VBUS)  -> F2 (500mA polyfuse) -> +5V_USBA
+                 +5V_USBA also gets C18 (0.1uF) decoupling to GND
+Pin 2 (D-)    -> D3 (USBLC6-2SC6) I/O1 -> U3 port B D- (pin 7)
+Pin 3 (D+)    -> D3 (USBLC6-2SC6) I/O2 -> U3 port B D+ (pin 8)
+Pin 4 (GND)   -> GND
+SHIELD        -> GND
+
+USBLC6-2SC6 (D3) details:
+  Pin 1 (I/O1)  -> J3 D-
+  Pin 2 (GND)   -> GND
+  Pin 3 (I/O2)  -> J3 D+
+  Pin 4 (I/O2)  -> U3 port B D+   (same net as pin 3 - device pair)
+  Pin 5 (VBUS)  -> +5V_USBA
+  Pin 6 (I/O1)  -> U3 port B D-   (same net as pin 1 - device pair)
+
+----------------------------------------------------------------
+USB MUX (U3 - TS3USB221A, SON-10)
+----------------------------------------------------------------
+This chip routes the ESP32-S3's single USB pin pair to either
+the USB-C connector (for programming) or the USB-A connector
+(for host mode reading piano MIDI). Switched by SEL pin.
+
+Pin 1   D-       -> ESP32-S3 IO19 (USB D-) - COMMON port
+Pin 2   D+       -> ESP32-S3 IO20 (USB D+) - COMMON port
+Pin 3   GND      -> GND
+Pin 4   1D-      -> J1 USB-C A7 (D-) - PORT A (programming)
+Pin 5   1D+      -> J1 USB-C A6 (D+) - PORT A (programming)
+Pin 6   OE#      -> GND  (output enable, active low - always on)
+Pin 7   2D-      -> D3 pin 6 -> J3 USB-A D- - PORT B (host)
+Pin 8   2D+      -> D3 pin 4 -> J3 USB-A D+ - PORT B (host)
+Pin 9   SEL      -> ESP32-S3 IO10
+                    R10 (10k) to GND (default LOW = USB-C port A)
+                    Firmware drives HIGH to switch to USB-A
+                    NOTE: IO10 is a non-strapping GPIO. DO NOT
+                    use IO3 here - IO3 is the JTAG-source strap;
+                    pulling it LOW at boot disables USB-JTAG
+                    (defeats the whole reason we kept the mux).
+Pin 10  VCC      -> +3V3 (decoupled by C16, 0.1uF)
+
+----------------------------------------------------------------
+TRS MIDI IN (J4 - 3.5mm stereo jack, Type A MIDI pinout)
+----------------------------------------------------------------
+Per the MMA MIDI 1.0 Electrical Specification and Type A TRS
+adopted in 2018 (used by Korg, Roland Aira, Polyend, etc.):
+
+  The piano (transmitter) sources +5V on its Ring pin and SINKS
+  current on its Tip pin during an active bit. The receiver's
+  opto LED is the load - current flows IN on Ring, OUT on Tip.
+
+Tip (T)     -> R8 (220 ohm) -> U5 (H11L1) pin 2 (LED CATHODE)
+Ring (R)    -> U5 (H11L1) pin 1 (LED ANODE)
+              (optional 2nd 220R in series with Ring for added
+              receiver-side protection - not required by spec)
+Sleeve (S)  -> NC (do NOT connect to controller GND - this
+              preserves the opto isolation barrier; the source
+              side's GND stays on its own side via the cable shield)
+
+OPTIONAL: D4 (1N4148W) in reverse-bias across the opto LED
+(diode cathode to LED anode/H11L1 pin 1, diode anode to LED
+cathode/H11L1 pin 2). Protects against accidental reverse-polarity
+plugs.
+
+NOTE: The 220R in the receiver is optional per the strict MIDI
+1.0 spec (the source side has its own mandatory 220R). Some
+implementations skip the receiver-side resistor entirely. We
+include one for protection in case a non-spec MIDI source
+over-drives the line.
+
+----------------------------------------------------------------
+MIDI OPTOCOUPLER (U5 - H11L1S(TA), SOP-6-2.54mm)
+LCSC: C78589 (EVERLIGHT)
+----------------------------------------------------------------
+H11L1 has a logic-output (Schmitt trigger) instead of the open-
+collector output on 6N137. This means NO external pull-up resistor
+is needed - the output drives the ESP32-S3 UART RX directly. The
+Schmitt trigger also rejects noise on the MIDI input line.
+
+PACKAGE WARNING: SOP-6-2.54mm is NOT the same as standard SOIC-6
+(which has 1.27mm pitch). SOP-6-2.54mm is a wider SMD adaptation
+of DIP-6, with 2.54mm pin pitch and gull-wing leads. Do not use a
+generic SOIC-6 footprint from the KiCad library. Use:
+  easyeda2kicad --full --lcsc_id=C78589
+to fetch the correct symbol and footprint.
+
+Pin 1   ANODE    -> TRS Ring (LED+, receives current from piano)
+Pin 2   CATHODE  -> R8 (220R) -> TRS Tip (LED-, current returns to piano)
+Pin 3   NC       -> NC
+Pin 4   GND      -> GND  (controller side)
+Pin 5   OUTPUT   -> ESP32-S3 IO5 (UART1 RX)
+                    (logic output - H11L1 has internal pull-up,
+                    no external pull-up needed)
+Pin 6   VCC      -> +3V3  (decoupled by C17, 0.1uF)
+
+----------------------------------------------------------------
+3V3 REGULATOR (U4 - AMS1117-3.3) -- unchanged
+----------------------------------------------------------------
+U4 pin 3 (VIN)   -> +5V
+U4 pin 1 (GND)   -> GND
+U4 pin 2 (VOUT)  -> +3V3
+C2  (10uF)        +5V  to GND, near U4 input
+C15 (22uF)        +3V3 to GND, near U4 output (REQUIRED for AMS1117 stability)
+
+----------------------------------------------------------------
+BULK + DECOUPLING
+----------------------------------------------------------------
+C1  (100uF aluminum)  +5V to GND, near USB-C
+C14 (470uF aluminum)  +5V to GND, near J2 (LED chain inrush)
+C3  (0.1uF)           +5V to GND, near U2 (74AHCT125)
+C4  (0.1uF)           +3V3 to GND, near ESP32-S3 module 3V3 pin
+C5  (0.1uF)           +5V to GND, spare / general
+C6  (0.1uF)           +3V3 to GND, spare / general
+C16 (0.1uF)           +3V3 to GND, near U3 (USB mux) VCC
+C17 (0.1uF)           +3V3 to GND, near U5 (H11L1) VCC
+C18 (0.1uF)           +5V_USBA to GND, near J3 USB-A VBUS
+
+----------------------------------------------------------------
+ESP32-S3-MINI-1-N4R2 (U1)
+----------------------------------------------------------------
+GND pins             -> GND  (multiple - check datasheet, all to GND)
+                        Module's bottom thermal pad also -> GND
+3V3 pin              -> +3V3 (decoupled by C4)
+EN                   -> R3 (10k) to +3V3, C13 (1uF) to GND, SW1 (RESET) to GND
+
+STRAPPING PINS (ESP32-S3) - handle carefully:
+  IO0   - boot mode (HIGH=normal, LOW=download). Must be HIGH at boot.
+  IO3   - JTAG signal source. HIGH (default) = USB-JTAG enabled.
+          LEAVE FLOATING or PULL HIGH. Do NOT pull LOW.
+  IO45  - VDD_SPI voltage. Leave at default (do not strap).
+  IO46  - boot config. Must be LOW at boot. Leave floating.
+
+DESIGNATED FUNCTION PINS:
+  IO19 (USB D-)      -> U3 pin 1 (USB mux common D-)
+  IO20 (USB D+)      -> U3 pin 2 (USB mux common D+)
+  IO10               -> U3 pin 9 (SEL); 0 = USB-C, 1 = USB-A
+                        R10 (10k) pull-down to GND (boot default = USB-C)
+                        (Was originally IO3 in early draft - moved to IO10
+                        because IO3 is a strapping pin.)
+  IO5 (UART1 RX)     -> U5 pin 5 (H11L1 logic output - drives directly)
+  IO4                -> U2 (74AHCT1G125) pin 2 (LED data, 3V3 -> 5V level shift)
+  IO9                -> R4 (1k) -> D2 anode (status LED)
+                        D2 cathode -> GND
+  IO0 (BOOT)         -> R11 (10k) pull-up to +3V3 (REQUIRED for reliable boot)
+                        Also -> SW2 (BOOT button) to GND
+                        Tap-to-LOW puts chip in download mode; default HIGH.
+
+UNUSED / RESERVED for future:
+  IO1, IO2, IO6, IO7, IO8, IO11-IO18, IO21, IO35-IO44, IO47, IO48 -> NC
+  Strapping pins (IO0, IO3, IO45, IO46): see notes above.
+
+----------------------------------------------------------------
+74AHCT1G125 LEVEL SHIFTER (U2) -- unchanged
+----------------------------------------------------------------
+Pin 1   1OE   -> GND   (always enabled)
+Pin 2   1A    -> ESP32-S3 IO4 (3.3V data in)
+Pin 3   1Y    -> R7 (470 ohm) -> J2 pin 3 (Din to first octave module)
+Pin 4   VCC   -> +5V   (decoupled by C3)
+Pin 5   GND   -> GND
+
+----------------------------------------------------------------
+OUTPUT CONNECTOR (J2) -- 4-pin JST SH to first octave module -- unchanged
+----------------------------------------------------------------
+Pin 1   +5V        (carries LED current up to 3A peak - widen this trace!)
+Pin 2   GND
+Pin 3   Din        (level-shifted 5V data from U2 pin 3 via R7)
+Pin 4   Dout-rtn   (passthrough from chain end - optional, can leave NC)
+
+----------------------------------------------------------------
+USER BUTTONS
+----------------------------------------------------------------
+SW1 RESET   -> ESP32-S3 EN and GND   (momentary close to GND)
+              EN already has R3 (10k) pull-up + C13 (1uF) RC delay.
+SW2 BOOT    -> ESP32-S3 IO0 and GND  (momentary close to GND)
+              IO0 has R11 (10k) pull-up to +3V3 (REQUIRED, see ESP32 pins above).
+
+================================================================
+PCB LAYOUT NOTES
+================================================================
+1. Board outline grows from ~50x40 mm to ~60x45 mm to fit USB-A
+   (~12x14 mm) and TRS jack (~6x11 mm).
+
+2. ESP32-S3 antenna keepout: same shape as C3 - NO ground pour,
+   NO traces under the antenna section. KiCad keepout zone.
+
+3. Connector edge: place J1 (USB-C), J3 (USB-A), and J4 (TRS) along
+   the same edge as J2 (LED out) for clean cable routing toward
+   the piano area.
+
+4. USB D+/D- pairs: keep short.
+   - USB-C D+/D- to U3 port A
+   - U3 common D+/D- to ESP32-S3 IO19/IO20
+   - U3 port B to D3 (USBLC6) to USB-A
+   Target 90 ohm differential impedance for the longest runs;
+   short runs (<25mm) are forgiving at USB Full Speed (12 Mbit/s).
+   Match pair lengths within 5 mm where practical.
+
+5. USBLC6 (D3): place CLOSE to the USB-A receptacle (D3 must
+   sit between J3 and U3, not the other way around).
+
+6. MIDI opto isolation: keep the J4 TRS Tip-to-U5 LED loop
+   physically isolated from controller GND - avoid GND pour
+   under that little area. The whole point of the opto is to
+   keep noise out of the audio system.
+
+7. Decoupling: every IC VCC needs 0.1uF within 3mm.
+
+8. 5V power rail: route as wide trace (>=1mm) or copper pour -
+   feeds 3A of LED current.
+
+9. GND: solid ground plane on the bottom layer.
+
+10. Test points: +5V, +3V3, GND, IO4 (LED data pre-shifter),
+    J2 Din (post-shifter), IO5 (MIDI RX), IO3 (USB mux select).

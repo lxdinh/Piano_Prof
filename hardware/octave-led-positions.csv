@@ -1,0 +1,35 @@
+led_index,note,key_color,x_mm_from_octave_left,y_mm_from_top_edge,notes
+1,C,white,11.75,5.0,White key center
+2,C#,black,21.22,5.0,Geometric center per standard piano (164.5mm octave / 13.7mm black key)
+3,D,white,35.25,5.0,White key center
+4,D#,black,49.28,5.0,Geometric center per standard piano
+5,E,white,58.75,5.0,White key center
+6,F,white,82.25,5.0,White key center; gap from E=23.5mm (no black key)
+7,F#,black,90.58,5.0,Geometric center per standard piano (3-black group)
+8,G,white,105.75,5.0,White key center
+9,G#,black,117.50,5.0,Geometric center per standard piano
+10,A,white,129.25,5.0,White key center
+11,A#,black,144.43,5.0,Geometric center per standard piano
+12,B,white,152.75,5.0,White key center
+,,,,,
+,Standard piano dimensions used,,,,
+,Octave width,,164.50,,DIN 8996 / industry consensus
+,White key pitch,,23.50,,164.5 / 7
+,Black key width,,13.70,,Standard concert/upright piano
+,C-D-E group white-back portion,,14.37,,(70.5 - 2*13.7) / 3
+,F-G-A-B group white-back portion,,13.23,,(94 - 3*13.7) / 4
+,,,,,
+,Board outline,,,,
+,left edge,,0.00,0.0,
+,right edge,,164.50,0.0,Octave PCB length = 7 white keys x 23.5mm
+,top edge,,0.00,0.0,
+,bottom edge,,0.00,25.0,Suggested PCB height; tune to fit your mounting rail
+,,,,,
+,Connectors,,,,
+,J1 (input),,2.5,12.5,JST SH 4-pin near left edge; pinout L-R: +5V GND Din Dout-passthrough
+,J2 (output),,162.0,12.5,JST SH 4-pin near right edge; pinout L-R: +5V GND Dout Din-passthrough
+,,,,,
+,Verification,,,,
+,Module 1 chain start,,,,Din from J1 -> D1 (C of octave 1)
+,Module 1 chain end,,,,Dout of D12 (B of octave 1) -> J2 -> J1 of module 2
+,Total chain,,,,60 LEDs across 5 modules; verify with FastLED RGBCalibrate sketch

@@ -1,0 +1,61 @@
+name: piano_professor
+description: "Piano Professor — gamified piano lessons with real-time LED guidance over BLE."
+publish_to: "none"
+version: 0.6.0+7
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # State management — lightweight ChangeNotifier provider (mirrors the
+  # StateFlow + sealed-state pattern from the prior native app).
+  provider: ^6.1.0
+
+  # BLE — native (iOS/Android) transport.
+  flutter_blue_plus: ^1.32.0
+  # BLE — web transport (Web Bluetooth API). Used only in the web build via
+  # a conditional import; never pulled into native builds.
+  flutter_web_bluetooth: ^1.1.0
+  # Runtime permission requests (BLUETOOTH_SCAN/CONNECT, location on ≤ SDK 30).
+  permission_handler: ^11.3.0
+
+  # Backend — Firebase (Auth + Firestore + Storage). See backend/firebase.
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  firebase_storage: ^12.3.4
+
+  # OMR upload (Tab 1): pick PDF/photo, snap a picture.
+  file_picker: ^8.1.0
+  image_picker: ^1.1.0
+
+  # MusicXML parsing (OMR output → playable score).
+  xml: ^6.5.0
+
+  # Audio — low-latency polyphonic piano playback (synth tone; .sf2 later).
+  flutter_soloud: ^3.1.0
+
+  # Notation rendering (OpenSheetMusicDisplay in a WebView) + OMR networking.
+  webview_flutter: ^4.7.0
+  http: ^1.2.0
+  shared_preferences: ^2.3.0
+
+  # Design system.
+  google_fonts: ^6.2.0      # Nunito (matches the design prototype)
+  flutter_svg: ^2.0.10      # vector icons / LED-strip art
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/mascots/
+    - assets/songs/
