@@ -36,6 +36,7 @@ class AppColors {
   static const skyDark = Color(0xFF3F8FB6);
   static const coral = Color(0xFFFF7A9C);
   static const plum = Color(0xFF8B5CF6);
+  static const plumD = Color(0xFF6E40D8);
 
   // Piano
   static const pianoBlack = Color(0xFF1A1410);

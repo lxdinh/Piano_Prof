@@ -4,22 +4,24 @@
 build/
 .flutter-plugins
 .flutter-plugins-dependencies
-pubspec.lock
 *.iml
 
 # IDE
 .idea/
 .vscode/
 
-# Generated native shells (run `flutter create .` to regenerate — see README)
-android/
+# Platforms we don't currently target (regenerate with `flutter create .`)
 ios/
-web/
 linux/
 macos/
 windows/
 
 # Firebase config (do not commit secrets)
 lib/firebase_options.dart
-google-services.json
-GoogleService-Info.plist
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# NOTE: android/ and web/ ARE committed (they hold required config:
+# permissions, compileSdk 36, build-dir workaround). pubspec.lock is committed
+# for reproducible cloud builds. android/.gitignore still excludes its build
+# outputs + local.properties.

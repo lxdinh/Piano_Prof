@@ -1,8 +1,8 @@
 # Piano Professor — Flutter app (`mobile/`)
 
-Cross-platform (iOS / Android / Web) Flutter app. This first turn ships the **BLE pairing screen** + controller
-that scans for and pairs with the ESP32 "Piano-Prof" LED module, styled to the design prototype. Other screens,
-Firebase wiring, MIDI/mic input, and OMR come later.
+Cross-platform (iOS / Android / Web) Flutter app. This ships the full **3-step BLE pairing flow** (discover →
+calibrate → connected) for the ESP32 "Piano-Prof" LED module, plus **Firebase init + anonymous auth + a Firestore
+data layer** that persists the paired device. Other screens, MIDI/mic input, and OMR come later.
 
 ```
 mobile/
@@ -10,17 +10,32 @@ mobile/
 ├─ analysis_options.yaml
 ├─ assets/mascots/            # Maestro Penguini stickers (copied from the design)
 └─ lib/
-   ├─ main.dart               # launches BleConnectScreen
+   ├─ main.dart               # Firebase init + anon sign-in + providers; home = pairing flow
    ├─ theme/app_theme.dart    # design tokens (cream/ink/brand…) + Nunito
    ├─ widgets/                # ChunkyButton, PpCard, StatPill, MascotImage, LedStripArt
+   ├─ services/
+   │  ├─ firebase_bootstrap.dart     # graceful Firebase.initializeApp()
+   │  └─ auth_service.dart           # anonymous sign-in (guarded if unconfigured)
+   ├─ data/
+   │  ├─ firestore_refs.dart         # central collection paths (match SCHEMA.md)
+   │  ├─ models/user_profile.dart    # users/{uid} mapping
+   │  ├─ models/paired_device.dart   # users/{uid}/devices/{id} mapping
+   │  └─ user_repository.dart        # ensureProfile / watchProfile / savePairedDevice
    ├─ ble/
    │  ├─ piano_professor_gatt.dart   # the app↔ESP32 GATT contract (UUIDs + frame codecs)
    │  ├─ ble_transport.dart          # abstract transport + platform factory
    │  ├─ ble_transport_io.dart       # native impl (flutter_blue_plus)
    │  ├─ ble_transport_web.dart      # web impl (flutter_web_bluetooth / Web Bluetooth)
    │  └─ ble_controller.dart         # sealed BleState + ChangeNotifier
-   └─ screens/ble_connect_screen.dart
+   └─ screens/
+      ├─ ble_connect_screen.dart     # step 1 · discover + pair (persists device on connect)
+      ├─ calibration_screen.dart     # step 2 · light keys + detect note events
+      └─ connected_screen.dart       # step 3 · "your piano just woke up"
 ```
+
+The flow: **discover** auto-scans (native) / shows a chooser (web); on PAIR the controller connects, the device is
+written to `users/{uid}/devices`, and the app pushes **calibration** (lights LEDs via the LED-Command
+characteristic, advances on Note-Event notifications), then **connected**.
 
 ## 1. Prerequisites
 Flutter is **not installed on this machine** — install it first:
@@ -65,6 +80,18 @@ No permission entries are needed, but note: **Web Bluetooth requires HTTPS (or `
 and is supported in **Chrome/Edge** (not Firefox/Safari). On web the app cannot list devices silently — the PAIR
 flow opens the browser's device chooser (`requestDevice`) filtered to `Piano-Prof-…`; this is handled by
 `ble_transport_web.dart` and surfaced as a "Choose device" button.
+
+## 3b. Firebase setup (optional — the app runs without it)
+The BLE flow works even if Firebase isn't configured (`initializeFirebase()` fails gracefully and the data layer
+no-ops). To enable anonymous auth + Firestore persistence of the paired device:
+```bash
+dart pub global activate flutterfire_cli
+flutterfire configure        # generates lib/firebase_options.dart + native config
+```
+Then switch `lib/services/firebase_bootstrap.dart` to
+`Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)`, enable **Anonymous** sign-in in the
+Firebase console, and deploy the rules from `backend/firebase/`
+(`firebase deploy --only firestore:rules,storage`).
 
 ## 4. Run
 ```bash

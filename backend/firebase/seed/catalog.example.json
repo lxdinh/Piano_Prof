@@ -1,54 +1,86 @@
 {
-  "_comment": "Illustrative catalog seed for the Firestore emulator. Keyed by collection -> docId -> data. Lesson titles/sections mirror App/.../LessonData.kt grouped into the design's path sections. Prices show Duolingo-style regional brackets. Load with a small script (see README) or the emulator UI.",
+  "_comment": "Illustrative catalog seed for the Firestore emulator. Keyed by collection -> docId -> data. Lessons follow the 6-level pathway (Kindergarten -> Master); ids and content match mobile/lib/lessons/. Representative subset shown. Prices show Duolingo-style regional brackets. Load with a small Admin-SDK script or the emulator UI.",
 
   "lessons": {
-    "grade-01": {
-      "order": 1, "section": "Foundations", "grade": 1,
-      "title": "Grade 1: Piano Layout & 1-3-5 Chords",
+    "l1-geography": {
+      "level": "kindergarten", "order": 2, "kind": "concept",
+      "title": "Keyboard Geography & Landmarks",
       "xpReward": 50, "estMinutes": 5, "isPremium": false,
-      "completeMessage": "Amazing work! You understand the piano layout and the 1-3-5 chord pattern. 50 XP earned!"
+      "completeMessage": "You can read the keyboard map now. C and F are your anchors. 50 XP!"
     },
-    "grade-02": {
-      "order": 2, "section": "Foundations", "grade": 2,
-      "title": "Grade 2: Landmarks & Navigation",
+    "l1-mary": {
+      "level": "kindergarten", "order": 5, "kind": "song",
+      "title": "Mary Had a Little Lamb",
+      "xpReward": 50, "estMinutes": 4, "isPremium": false,
+      "completeMessage": "Your first song! Right hand, five fingers. 50 XP!"
+    },
+    "l2-rhythm": {
+      "level": "elementary", "order": 1, "kind": "concept",
+      "title": "Note Values & Rhythm",
+      "xpReward": 50, "estMinutes": 6, "isPremium": false,
+      "completeMessage": "Whole, half, quarter, eighth - rhythm is the skeleton of music. 50 XP!"
+    },
+    "l2-twinkle": {
+      "level": "elementary", "order": 7, "kind": "song",
+      "title": "Twinkle Twinkle",
       "xpReward": 50, "estMinutes": 5, "isPremium": false,
-      "completeMessage": "Grade 2 done! You can navigate the keyboard like a pro. 50 XP!"
+      "completeMessage": "Twinkle Twinkle - hands can join once you are steady. 50 XP!"
     },
-    "grade-06": {
-      "order": 6, "section": "Chord Lab", "grade": 6,
-      "title": "Grade 6: Major Chords (I, IV, V)",
-      "xpReward": 50, "estMinutes": 6, "isPremium": true,
-      "completeMessage": "Three chords. Hundreds of songs. Grade 6 is yours! 50 XP!"
+    "l3-axis": {
+      "level": "middle", "order": 4, "kind": "concept",
+      "title": "The I-V-vi-IV Progression",
+      "xpReward": 50, "estMinutes": 7, "isPremium": false,
+      "completeMessage": "The most-used progression in pop. You own it now. 50 XP!"
     },
-    "grade-12": {
-      "order": 12, "section": "Songcraft", "grade": 12,
-      "title": "Grade 12: Bringing It All Together",
+    "l3-letitbe": {
+      "level": "middle", "order": 7, "kind": "song",
+      "title": "Let It Be",
       "xpReward": 50, "estMinutes": 8, "isPremium": true,
-      "completeMessage": "All 12 grades complete! You think like a musician now. Go play a real piano!"
+      "completeMessage": "Let It Be - four chords, one classic. 50 XP!"
+    },
+    "l4-inversions": {
+      "level": "high", "order": 1, "kind": "concept",
+      "title": "Chord Inversions",
+      "xpReward": 50, "estMinutes": 8, "isPremium": true,
+      "completeMessage": "Same chord, smoother transitions. 50 XP!"
+    },
+    "l4-canon": {
+      "level": "high", "order": 10, "kind": "song",
+      "title": "Canon in D",
+      "xpReward": 50, "estMinutes": 10, "isPremium": true,
+      "completeMessage": "Pachelbel's Canon - the most-used progression ever. 50 XP!"
+    },
+    "l5-river": {
+      "level": "university", "order": 7, "kind": "song",
+      "title": "River Flows in You",
+      "xpReward": 50, "estMinutes": 12, "isPremium": true,
+      "completeMessage": "Yiruma's classic - your first real solo piece. 50 XP!"
+    },
+    "l6-jazz": {
+      "level": "master", "order": 5, "kind": "concept",
+      "title": "Jazz & Blues Voicings",
+      "xpReward": 50, "estMinutes": 15, "isPremium": true,
+      "completeMessage": "9ths, 11ths, 13ths, swing - welcome to jazz. 50 XP!"
     }
   },
 
-  "lessons/grade-01/steps": {
+  "levels": {
+    "kindergarten": { "index": 1, "name": "Level 1 - Kindergarten", "duration": "2-4 weeks" },
+    "elementary": { "index": 2, "name": "Level 2 - Elementary", "duration": "1-2 months" },
+    "middle": { "index": 3, "name": "Level 3 - Middle School", "duration": "2-3 months" },
+    "high": { "index": 4, "name": "Level 4 - High School", "duration": "3-6 months" },
+    "university": { "index": 5, "name": "Level 5 - University", "duration": "6 months-1 year" },
+    "master": { "index": 6, "name": "Level 6 - Master", "duration": "Lifetime mastery" }
+  },
+
+  "lessons/l1-mary/steps": {
     "0": {
       "index": 0,
       "segments": [
-        { "type": "say", "text": "Hello everyone, welcome! I am your AI piano instructor.", "rate": 0.88, "pitch": 1.05, "gap": 200 },
-        { "type": "pause", "ms": 500 },
-        { "type": "chord", "notes": ["C4", "E4", "G4", "B4"], "color": "cyan", "wait": 2500 },
-        { "type": "say", "text": "That is a C Major 7 chord. Four notes. Already beautiful.", "rate": 0.86, "pitch": 1.05, "gap": 200 }
-      ]
-    },
-    "10": {
-      "index": 10,
-      "segments": [
-        { "type": "quiz", "quiz": {
-          "kind": "mcq",
-          "question": "In the 1-3-5 exercise starting on C, which three keys do you play?",
-          "sub": "Finger 1 is thumb, finger 3 is middle, finger 5 is pinky",
-          "options": ["C, D, E", "C, E, G", "C, F, G", "D, F, A"],
-          "answer": "C, E, G",
-          "explain": "Finger 1 (thumb) on C, finger 3 (middle) on E, finger 5 (pinky) on G - the C Major chord shape."
-        } }
+        { "type": "say", "text": "Your first song - right hand only, within five fingers.", "gap": 600 },
+        { "type": "seq", "notes": ["E4", "D4", "C4", "D4", "E4", "E4", "E4"], "color": "green", "delay": 420 },
+        { "type": "seq", "notes": ["D4", "D4", "D4"], "color": "green", "delay": 420 },
+        { "type": "seq", "notes": ["E4", "G4", "G4"], "color": "green", "delay": 420 }
       ]
     }
   },
@@ -79,8 +111,8 @@
 
   "questTemplates": {
     "daily-practice-10": { "title": "Play 10 minutes", "period": "daily", "metric": "minutesPracticed", "goal": 10, "reward": { "gems": 20 } },
-    "daily-perfect-3":   { "title": "Land 3 perfect lessons", "period": "daily", "metric": "perfectLessons", "goal": 3, "reward": { "xp": 30 } },
-    "weekly-song":       { "title": "Play a song all the way through", "period": "weekly", "metric": "songsCompleted", "goal": 1, "reward": { "xp": 200 } }
+    "daily-perfect-3": { "title": "Land 3 perfect lessons", "period": "daily", "metric": "perfectLessons", "goal": 3, "reward": { "xp": 30 } },
+    "weekly-song": { "title": "Play a song all the way through", "period": "weekly", "metric": "songsCompleted", "goal": 1, "reward": { "xp": 200 } }
   },
 
   "subscriptionPlans": {

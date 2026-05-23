@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../ble/ble_controller.dart';
 import '../ble/ble_transport.dart';
+import '../data/user_repository.dart';
 import '../theme/app_theme.dart';
+import 'calibration_screen.dart';
 import '../widgets/chunky_button.dart';
 import '../widgets/led_strip_art.dart';
 import '../widgets/mascot_image.dart';
@@ -21,15 +23,48 @@ class BleConnectScreen extends StatefulWidget {
 }
 
 class _BleConnectScreenState extends State<BleConnectScreen> {
+  BleController? _controller;
+  bool _handledConnect = false;
+
   @override
   void initState() {
     super.initState();
-    // Native: auto-start discovery once the first frame is up (so permission
-    // dialogs have a UI to attach to). Web waits for the user to tap "Choose".
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final c = context.read<BleController>();
+      _controller = c..addListener(_onState);
+      // Native: auto-start discovery once the first frame is up (so permission
+      // dialogs have a UI to attach to). Web waits for the "Choose device" tap.
       if (c.canListDevices) c.startScan();
     });
+  }
+
+  /// Side-effects on state change: persist the paired module + advance to
+  /// calibration when a connection is established.
+  void _onState() {
+    final c = _controller;
+    if (c == null || !mounted) return;
+    final s = c.state;
+    if (s is BleConnected && !_handledConnect) {
+      _handledConnect = true;
+      context.read<UserRepository>().savePairedDevice(
+            bleId: s.peripheral.id,
+            name: s.peripheral.name,
+            ledCount: s.peripheral.status.ledCount,
+            firmware: s.peripheral.status.firmware,
+          );
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const CalibrationScreen()),
+      );
+    } else if (s is! BleConnected) {
+      _handledConnect = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.removeListener(_onState);
+    super.dispose();
   }
 
   @override
