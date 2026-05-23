@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../audio/piano_audio.dart';
 import '../ble/ble_controller.dart';
 import '../data/user_repository.dart';
 import '../input/note_input_service.dart';
@@ -34,6 +35,7 @@ class _LessonScreenState extends State<LessonScreen> {
       ble: context.read<BleController>(),
       repo: context.read<UserRepository>(),
       input: context.read<NoteInputService>(),
+      audio: context.read<PianoAudio>(),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _c.start());
   }

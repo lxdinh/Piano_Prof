@@ -11,6 +11,7 @@ class LibraryItem {
     required this.status,
     this.musicXmlPath,
     this.musicXmlAsset,
+    this.musicXmlContent,
     this.grouped = false,
     this.pageCount = 1,
   });
@@ -21,6 +22,7 @@ class LibraryItem {
   final LibraryStatus status;
   final String? musicXmlPath; // Storage path (online)
   final String? musicXmlAsset; // bundled asset path (offline demo OMR result)
+  final String? musicXmlContent; // raw MusicXML from the OMR server (in-memory)
   final bool grouped; // a song made from multiple pages
   final int pageCount;
 
@@ -43,6 +45,7 @@ class LibraryItem {
     LibraryStatus? status,
     String? musicXmlPath,
     String? musicXmlAsset,
+    String? musicXmlContent,
     bool? grouped,
     int? pageCount,
   }) =>
@@ -53,6 +56,7 @@ class LibraryItem {
         status: status ?? this.status,
         musicXmlPath: musicXmlPath ?? this.musicXmlPath,
         musicXmlAsset: musicXmlAsset ?? this.musicXmlAsset,
+        musicXmlContent: musicXmlContent ?? this.musicXmlContent,
         grouped: grouped ?? this.grouped,
         pageCount: pageCount ?? this.pageCount,
       );

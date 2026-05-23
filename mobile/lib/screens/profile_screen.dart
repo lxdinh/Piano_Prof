@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../billing/subscription_controller.dart';
 import '../data/models/user_profile.dart';
 import '../data/user_repository.dart';
+import '../services/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chunky_button.dart';
 import '../widgets/mascot_image.dart';
@@ -134,6 +135,7 @@ class ProfileScreen extends StatelessWidget {
                 () => Navigator.of(context).push(
                       MaterialPageRoute<void>(builder: (_) => const BleConnectScreen()),
                     )),
+            _settingsTile(Icons.document_scanner, 'OMR scan server', () => _omrServerDialog(context)),
             _settingsTile(Icons.help_outline, 'Help center', () {}),
             _settingsTile(Icons.privacy_tip_outlined, 'Terms & privacy', () {}),
             const SizedBox(height: 16),
@@ -174,6 +176,45 @@ class ProfileScreen extends StatelessWidget {
                     letterSpacing: 0.5)),
           ],
         ),
+      ),
+    );
+  }
+
+  void _omrServerDialog(BuildContext context) {
+    final settings = context.read<AppSettings>();
+    final ctrl = TextEditingController(text: settings.omrServerUrl);
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('OMR scan server'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'URL of your self-hosted oemer server (see backend/omr). '
+              'Leave blank to use the offline demo score.',
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              keyboardType: TextInputType.url,
+              decoration: const InputDecoration(hintText: 'https://omr.example.com'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              await settings.setOmrServerUrl(ctrl.text);
+              if (context.mounted) Navigator.of(context).pop();
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }

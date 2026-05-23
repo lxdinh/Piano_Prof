@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../audio/piano_audio.dart';
 import '../ble/ble_controller.dart';
 import '../ble/ble_transport.dart';
 import '../ble/piano_professor_gatt.dart';
@@ -50,12 +51,15 @@ class LessonCompleteState extends LessonUiState {
 /// Plays a lesson step-by-step, mirrors the Kotlin LessonViewModel, and pushes
 /// LED frames to the connected module (if any) as chords/sequences play.
 class LessonController extends ChangeNotifier {
-  LessonController({required this.lesson, this.ble, this.repo, this.input});
+  LessonController({required this.lesson, this.ble, this.repo, this.input, this.audio});
 
   final Lesson lesson;
   final BleController? ble;
   final UserRepository? repo;
   final NoteInputService? input;
+  final PianoAudio? audio;
+
+  final Set<int> _soundingMidis = {};
 
   LessonUiState _state = const LessonIdle();
   LessonUiState get state => _state;
@@ -178,6 +182,15 @@ class LessonController extends ChangeNotifier {
       notes.map(NoteMapping.whiteKeyOf).toSet();
 
   void _light(List<String> notes, String color) {
+    // Audio — always (independent of the LED hardware).
+    for (final n in notes) {
+      final m = NoteMapping.toMidi(n);
+      if (m != null) {
+        audio?.noteOn(m);
+        _soundingMidis.add(m);
+      }
+    }
+    // LEDs — only when a module is connected.
     final p = _peripheral;
     if (p == null) return;
     final (r, g, b) = NoteMapping.rgb(color);
@@ -193,6 +206,10 @@ class LessonController extends ChangeNotifier {
   }
 
   void _clear() {
+    for (final m in _soundingMidis.toList()) {
+      audio?.noteOff(m);
+    }
+    _soundingMidis.clear();
     final p = _peripheral;
     if (p == null) return;
     try {

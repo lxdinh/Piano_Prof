@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'audio/piano_audio.dart';
 import 'billing/subscription_controller.dart';
 import 'ble/ble_controller.dart';
 import 'data/user_repository.dart';
 import 'input/note_input_service.dart';
 import 'library/library_controller.dart';
+import 'omr/omr_service.dart';
 import 'screens/home_shell.dart';
+import 'services/app_settings.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_bootstrap.dart';
 import 'theme/app_theme.dart';
@@ -22,7 +25,17 @@ Future<void> main() async {
   final userRepo = UserRepository(auth);
   await userRepo.ensureProfile();
 
-  runApp(PianoProfessorApp(auth: auth, userRepo: userRepo));
+  final audio = PianoAudio();
+  await audio.init(); // piano sound engine (silent-safe if it fails)
+
+  final settings = await AppSettings.load();
+
+  runApp(PianoProfessorApp(
+    auth: auth,
+    userRepo: userRepo,
+    audio: audio,
+    settings: settings,
+  ));
 }
 
 class PianoProfessorApp extends StatelessWidget {
@@ -30,10 +43,14 @@ class PianoProfessorApp extends StatelessWidget {
     super.key,
     required this.auth,
     required this.userRepo,
+    required this.audio,
+    required this.settings,
   });
 
   final AuthService auth;
   final UserRepository userRepo;
+  final PianoAudio audio;
+  final AppSettings settings;
 
   @override
   Widget build(BuildContext context) {
@@ -43,11 +60,14 @@ class PianoProfessorApp extends StatelessWidget {
       providers: [
         Provider<AuthService>.value(value: auth),
         Provider<UserRepository>.value(value: userRepo),
+        Provider<PianoAudio>.value(value: audio),
+        Provider<AppSettings>.value(value: settings),
         ChangeNotifierProvider<BleController>(create: (_) => BleController()..init()),
         ChangeNotifierProvider<NoteInputService>(
             create: (context) => NoteInputService(context.read<BleController>())),
         ChangeNotifierProvider<SubscriptionController>(create: (_) => SubscriptionController()),
-        ChangeNotifierProvider<LibraryController>(create: (_) => LibraryController(userRepo)),
+        ChangeNotifierProvider<LibraryController>(
+            create: (_) => LibraryController(userRepo, settings, OmrService())),
       ],
       child: MaterialApp(
         title: 'Piano Professor',
