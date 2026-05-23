@@ -10,13 +10,21 @@ class LibraryItem {
     required this.source,
     required this.status,
     this.musicXmlPath,
+    this.musicXmlAsset,
+    this.grouped = false,
+    this.pageCount = 1,
   });
 
   final String id;
   final String title;
-  final String source; // pdfUpload | photoOmr | import
+  final String source; // pdfUpload | photoOmr | import | grouped
   final LibraryStatus status;
-  final String? musicXmlPath;
+  final String? musicXmlPath; // Storage path (online)
+  final String? musicXmlAsset; // bundled asset path (offline demo OMR result)
+  final bool grouped; // a song made from multiple pages
+  final int pageCount;
+
+  bool get isSong => grouped || status == LibraryStatus.ready;
 
   factory LibraryItem.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
     final m = d.data() ?? const <String, dynamic>{};
@@ -26,15 +34,27 @@ class LibraryItem {
       source: m['source'] as String? ?? 'pdfUpload',
       status: statusFrom(m['status'] as String?),
       musicXmlPath: m['musicXmlPath'] as String?,
+      grouped: m['grouped'] as bool? ?? false,
+      pageCount: (m['pageCount'] as num?)?.toInt() ?? 1,
     );
   }
 
-  LibraryItem copyWith({LibraryStatus? status, String? musicXmlPath}) => LibraryItem(
+  LibraryItem copyWith({
+    LibraryStatus? status,
+    String? musicXmlPath,
+    String? musicXmlAsset,
+    bool? grouped,
+    int? pageCount,
+  }) =>
+      LibraryItem(
         id: id,
         title: title,
         source: source,
         status: status ?? this.status,
         musicXmlPath: musicXmlPath ?? this.musicXmlPath,
+        musicXmlAsset: musicXmlAsset ?? this.musicXmlAsset,
+        grouped: grouped ?? this.grouped,
+        pageCount: pageCount ?? this.pageCount,
       );
 
   static LibraryStatus statusFrom(String? s) => switch (s) {

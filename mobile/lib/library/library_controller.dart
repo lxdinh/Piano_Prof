@@ -34,6 +34,42 @@ class LibraryController extends ChangeNotifier {
   bool _busy = false;
   bool get busy => _busy;
 
+  // --- multi-select + grouping ---
+  final Set<String> selected = {};
+  bool get selecting => selected.isNotEmpty;
+
+  void toggleSelect(String id) {
+    if (!selected.remove(id)) selected.add(id);
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    selected.clear();
+    notifyListeners();
+  }
+
+  /// Combine the selected pages into a single song with one MusicXML score.
+  /// (Real OMR of all pages happens in the backend; offline we attach the demo
+  /// score so the preview + chord lesson work end-to-end.)
+  void groupSelected(String title) {
+    final ids = selected.toList();
+    if (ids.length < 2) return;
+    final pages = _items.where((i) => ids.contains(i.id)).toList();
+    final remaining = _items.where((i) => !ids.contains(i.id)).toList();
+    final song = LibraryItem(
+      id: 'song-${DateTime.now().millisecondsSinceEpoch}',
+      title: title.trim().isEmpty ? 'My Song' : title.trim(),
+      source: 'grouped',
+      status: LibraryStatus.ready,
+      grouped: true,
+      pageCount: pages.length,
+      musicXmlAsset: 'assets/songs/demo_song.musicxml',
+    );
+    _items = [song, ...remaining];
+    selected.clear();
+    notifyListeners();
+  }
+
   Future<void> pickPdf() => _ingest(pdf: true, camera: false);
   Future<void> pickImage() => _ingest(pdf: false, camera: false);
   Future<void> snapPhoto() => _ingest(pdf: false, camera: true);
@@ -95,7 +131,10 @@ class LibraryController extends ChangeNotifier {
     Timer(const Duration(seconds: 3), () {
       _items = _items
           .map((e) => e.id == item.id
-              ? e.copyWith(status: LibraryStatus.ready, musicXmlPath: '(demo).musicxml')
+              ? e.copyWith(
+                  status: LibraryStatus.ready,
+                  musicXmlAsset: 'assets/songs/demo_song.musicxml',
+                )
               : e)
           .toList();
       notifyListeners();
