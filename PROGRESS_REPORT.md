@@ -124,7 +124,7 @@ The controller design changed significantly as the requirements clarified:
    - Controller v2: 5× rigid FR-4 PCBs
 4. **Assemble** the boards (hand-solder or JLCPCB SMT assembly service)
 5. **ESP32-S3 firmware** — BLE server + FastLED + TinyUSB MIDI Host + UART MIDI parser + note→LED mapping (Phase 3)
-6. **App software** — add Bluetooth to LuminaKeys + Capacitor wrap + note-feedback UI (Phase 4)
+6. **App software** — ✅ rebuilt as a **React Native + Expo** app (supersedes the LuminaKeys-web-+-Capacitor and the Flutter plans; both retired to `legacy/`). 5-tab Duolingo-style shell, data-driven lesson engine (voice / light-keys / audio / quiz / LED sync), gamification (XP / streak / hearts / gems / 8 achievements), OMR import, premium gating, local notifications. Local-authoritative data (offline-safe); Firebase drops in later (see `docs/APP_ARCHITECTURE.md`). Verification: `tsc` clean, 23 unit tests pass, Metro bundles 1235 modules. APKs build via EAS on push to `main`. Awaiting ESP32-S3 firmware for end-to-end BLE test. (Phase 4)
 7. **Integration & testing** — flash, pair, end-to-end test with both USB and TRS MIDI sources, mount on the piano (Phase 5)
 8. **Source the in-box accessory** — TRS-to-5-pin-DIN MIDI adapter cable (Type A polarity) for shipping with units sold to users with DIN-MIDI pianos
 

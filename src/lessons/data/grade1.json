@@ -1,0 +1,68 @@
+{
+  "id": 1,
+  "title": "Foundations",
+  "description": "The piano layout and your first chord.",
+  "lessons": [
+    {
+      "id": "g1-l1",
+      "grade": 1,
+      "title": "Meet the Piano",
+      "subtitle": "Find Middle C and play your first sound.",
+      "xpReward": 20,
+      "complete": "Nice! You found Middle C and heard your first chord. 20 XP earned.",
+      "steps": [
+        {
+          "segments": [
+            { "type": "say", "text": "Hello! I am your AI piano instructor." },
+            { "type": "pause", "ms": 400 },
+            { "type": "say", "text": "Our goal is simple: play real songs you love. The secret? Chords. Chords first.", "rate": 0.9 },
+            { "type": "pause", "ms": 400 },
+            { "type": "say", "text": "But before chords, let me show you something beautiful.", "gap": 600 },
+            { "type": "chord", "notes": ["C4", "E4", "G4", "B4"], "color": "cyan", "wait": 2500 },
+            { "type": "say", "text": "That is a C Major 7 chord. Four notes, one moment. Already beautiful." }
+          ]
+        },
+        {
+          "segments": [
+            { "type": "say", "text": "A piano has only seven letter names. A B C D E F G. Then it repeats.", "rate": 0.9 },
+            { "type": "pause", "ms": 300 },
+            { "type": "say", "text": "Every glowing key here is a C. Same note, different octave.", "gap": 500 },
+            { "type": "seqAll", "notes": ["C2", "C3", "C4", "C5", "C6"], "color": "cyan", "delay": 700 },
+            { "type": "say", "text": "C is always to the LEFT of the group of two black keys. That is your anchor." }
+          ]
+        },
+        {
+          "segments": [
+            { "type": "say", "text": "Your first chord. C Major. Thumb on C, middle finger on E, pinky on G." },
+            { "type": "pause", "ms": 400 },
+            { "type": "quiz", "prompt": "Play C, E, G together.", "expect": ["C4", "E4", "G4"], "color": "yellow", "xp": 10 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g1-l2",
+      "grade": 1,
+      "title": "The 1-3-5 Pattern",
+      "subtitle": "Skip a finger. That's a chord.",
+      "xpReward": 25,
+      "complete": "You just learned the 1-3-5 chord shape. Every major chord uses it. 25 XP earned.",
+      "steps": [
+        {
+          "segments": [
+            { "type": "say", "text": "Instead of playing every note in a row, we skip a finger." },
+            { "type": "seq", "notes": ["C4", "D4", "E4", "F4", "G4"], "color": "cyan", "delay": 380 },
+            { "type": "say", "text": "Now skip every other one.", "gap": 500 },
+            { "type": "seq", "notes": ["C4", "E4", "G4"], "color": "yellow", "delay": 480 },
+            { "type": "say", "text": "Thumb, middle, pinky. The 1-3-5 pattern." }
+          ]
+        },
+        {
+          "segments": [
+            { "type": "quiz", "prompt": "Play 1-3-5 starting on C.", "expect": ["C4", "E4", "G4"], "color": "yellow", "xp": 15 }
+          ]
+        }
+      ]
+    }
+  ]
+}

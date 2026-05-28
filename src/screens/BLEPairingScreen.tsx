@@ -19,9 +19,10 @@ import {
 } from 'react-native';
 import Svg, {
   Rect, Circle, Ellipse, Line, G, Defs,
-  RadialGradient, LinearGradient, Stop, Text as SvgText, Animate,
+  RadialGradient, LinearGradient, Stop, Text as SvgText,
 } from 'react-native-svg';
-import { useBLE, FoundDevice, BLEPhase } from '../ble/useBLE';
+import { FoundDevice, BLEPhase } from '../ble/useBLE';
+import { useBLEContext } from '../ble/BLEContext';
 import { CAL_STEPS, CAL_TARGET_NOTES } from '../ble/constants';
 import { cmdRainbow, cmdCommit } from '../ble/protocol';
 import { Colors, Fonts, Radii, Spacing } from '../theme/tokens';
@@ -484,7 +485,9 @@ export default function BLEPairingScreen({
   onStartLesson,
   onBack,
 }: BLEPairingScreenProps) {
-  const ble = useBLE();
+  // Use the app-wide BLE context so the connected device + calibration map are
+  // visible to the lesson engine (which reads the same provider instance).
+  const ble = useBLEContext();
 
   useEffect(() => {
     if (ble.phase === 'CONNECTED' && ble.activeDevice) {
