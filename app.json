@@ -34,7 +34,7 @@
         "NSBluetoothPeripheralUsageDescription": "Piano Professor uses Bluetooth to connect to your LED strip controller."
       }
     },
-    "owner": "lxdinh",
+    "owner": "htdinh",
     "plugins": [
       [
         "react-native-ble-plx",
