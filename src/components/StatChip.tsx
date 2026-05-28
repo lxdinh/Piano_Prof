@@ -1,23 +1,43 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Fonts, Radii, Spacing } from '../theme/tokens';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
+import { Colors, Fonts, Radii, Spacing, Motion } from '../theme/tokens';
+import AnimatedCounter from './AnimatedCounter';
 
 export type StatChipKind = 'streak' | 'xp' | 'hearts' | 'gems';
 
-const KIND_COLORS: Record<StatChipKind, { color: string; icon: string }> = {
-  streak: { color: Colors.rust,   icon: '🔥' },
-  xp:     { color: Colors.butter, icon: '⭐' },
-  hearts: { color: Colors.error,  icon: '❤️' },
-  gems:   { color: Colors.sky,    icon: '💎' },
+const KIND_COLORS: Record<StatChipKind, { color: string; icon: string; bg: string }> = {
+  streak: { color: Colors.rust,   icon: '🔥', bg: 'rgba(194,65,12,0.10)' },
+  xp:     { color: Colors.butter, icon: '⭐', bg: 'rgba(245,184,0,0.12)' },
+  hearts: { color: Colors.error,  icon: '❤️', bg: 'rgba(255,75,75,0.10)' },
+  gems:   { color: Colors.sky,    icon: '💎', bg: 'rgba(91,184,227,0.12)' },
 };
 
-export default function StatChip({ kind, value }: { kind: StatChipKind; value: number | string }) {
+interface Props {
+  kind: StatChipKind;
+  value: number;
+}
+
+// Chip pops (scale 1 → 1.15 → 1) on every value change so newly earned XP /
+// gems / streak days feel rewarded.
+export default function StatChip({ kind, value }: Props) {
   const k = KIND_COLORS[kind];
+  const scale = useRef(new Animated.Value(1)).current;
+  const lastValue = useRef(value);
+
+  useEffect(() => {
+    if (value === lastValue.current) return;
+    lastValue.current = value;
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 1.18, ...Motion.spring.pop, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, ...Motion.spring.press, useNativeDriver: true }),
+    ]).start();
+  }, [value, scale]);
+
   return (
-    <View style={styles.chip}>
-      <Text style={styles.icon}>{k.icon}</Text>
-      <Text style={[styles.value, { color: k.color }]}>{value}</Text>
-    </View>
+    <Animated.View style={[styles.chip, { backgroundColor: k.bg, transform: [{ scale }] }]}>
+      <Animated.Text style={styles.icon}>{k.icon}</Animated.Text>
+      <AnimatedCounter value={value} style={[styles.value, { color: k.color }]} />
+    </Animated.View>
   );
 }
 
@@ -25,10 +45,9 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: Spacing.xs,
-    backgroundColor: 'rgba(0,0,0,0.04)',
+    paddingVertical: Spacing.xs + 2,
     borderRadius: Radii.pill,
   },
   icon: { fontSize: Fonts.lg },

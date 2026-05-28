@@ -1,16 +1,37 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
-import { Colors, Radii, Spacing } from '../theme/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, Radii, Spacing, Elevation } from '../theme/tokens';
 
 interface Props {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   padded?: boolean;
+  /** Render a soft warm gradient instead of flat white — for hero cards. */
+  variant?: 'plain' | 'warm';
+  /** Elevation preset. Default md. */
+  elevation?: keyof typeof Elevation;
 }
 
-export default function PpCard({ children, style, padded = true }: Props) {
+export default function PpCard({
+  children, style, padded = true, variant = 'plain', elevation = 'md',
+}: Props) {
+  const padding = padded ? { padding: Spacing.lg } : null;
+
+  if (variant === 'warm') {
+    return (
+      <LinearGradient
+        colors={['#FFFFFF', '#FFF5DC']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={[styles.card, Elevation[elevation], padding, style]}
+      >
+        {children}
+      </LinearGradient>
+    );
+  }
   return (
-    <View style={[styles.card, padded && { padding: Spacing.lg }, style]}>
+    <View style={[styles.card, styles.plain, Elevation[elevation], padding, style]}>
       {children}
     </View>
   );
@@ -18,14 +39,11 @@ export default function PpCard({ children, style, padded = true }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: Radii.xl,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: Colors.inkLine,
-    borderBottomWidth: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
+  },
+  plain: {
+    backgroundColor: '#FFFFFF',
   },
 });

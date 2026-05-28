@@ -1,52 +1,123 @@
-import React from 'react';
-import { Pressable, Text, StyleSheet, View, ViewStyle, StyleProp } from 'react-native';
-import { Colors, Fonts, Radii, Spacing } from '../theme/tokens';
+import React, { useRef } from 'react';
+import {
+  Animated, Pressable, Text, StyleSheet, View, ViewStyle, StyleProp,
+  ActivityIndicator,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  Colors, Fonts, Radii, Spacing, Gradients, Elevation, Motion,
+} from '../theme/tokens';
+import * as haptics from '../feedback/haptics';
 
-export type ChunkyButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'sky';
+export type ChunkyButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'sky' | 'violet';
 
 interface Props {
   label: string;
   onPress?: () => void;
   variant?: ChunkyButtonVariant;
   disabled?: boolean;
+  loading?: boolean;
   icon?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   fullWidth?: boolean;
+  /** Haptic intensity. `none` disables. */
+  haptic?: 'none' | 'tap' | 'press' | 'bump';
 }
 
-const VARIANT_STYLES: Record<ChunkyButtonVariant, { bg: string; shadow: string; text: string }> = {
-  primary:   { bg: Colors.brand,   shadow: Colors.brandDark,  text: '#FFFFFF' },
-  sky:       { bg: Colors.sky,     shadow: Colors.skyDark,    text: '#FFFFFF' },
-  secondary: { bg: Colors.cream100, shadow: Colors.butterDark, text: Colors.ink900 },
-  ghost:     { bg: 'transparent',  shadow: 'transparent',     text: Colors.ink700 },
-  danger:    { bg: Colors.error,   shadow: '#C53A3A',         text: '#FFFFFF' },
+// Per-variant: gradient fill, "shadow plate" color (the chunky bottom edge),
+// and label color. The button is rendered as TWO stacked layers — the shadow
+// plate underneath and the gradient face on top — so the press animation
+// can drop the face down by SHADOW_DEPTH and the shadow appears to vanish.
+const VARIANTS: Record<ChunkyButtonVariant, {
+  gradient: readonly [string, string];
+  shadow: string;
+  text: string;
+}> = {
+  primary:   { gradient: Gradients.brand,  shadow: '#2E7000', text: '#FFFFFF' },
+  sky:       { gradient: Gradients.sky,    shadow: '#1F6A8A', text: '#FFFFFF' },
+  violet:    { gradient: Gradients.violet, shadow: '#5B21B6', text: '#FFFFFF' },
+  secondary: { gradient: ['#FFF8E1', '#FFE6BA'] as const, shadow: '#C99300', text: Colors.ink900 },
+  danger:    { gradient: ['#FF7C7C', '#E63A3A'] as const, shadow: '#8F2424', text: '#FFFFFF' },
+  ghost:     { gradient: ['transparent', 'transparent'] as const, shadow: 'transparent', text: Colors.ink700 },
 };
 
+const SHADOW_DEPTH = 5;
+
 export default function ChunkyButton({
-  label, onPress, variant = 'primary', disabled, icon, style, fullWidth,
+  label, onPress, variant = 'primary', disabled, loading, icon, style,
+  fullWidth, haptic = 'press',
 }: Props) {
-  const v = VARIANT_STYLES[variant];
+  const v = VARIANTS[variant];
+  const isGhost = variant === 'ghost';
+  const press = useRef(new Animated.Value(0)).current;
+
+  const animateTo = (to: number) => {
+    Animated.spring(press, { toValue: to, ...Motion.spring.press, useNativeDriver: true }).start();
+  };
+
+  const handlePress = () => {
+    if (disabled || loading) return;
+    if (haptic !== 'none') haptics[haptic]();
+    onPress?.();
+  };
+
+  const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, SHADOW_DEPTH] });
+  const shadowH = press.interpolate({ inputRange: [0, 1], outputRange: [SHADOW_DEPTH, 0] });
+
   return (
     <View style={[fullWidth && { width: '100%' }, style]}>
       <Pressable
-        onPress={disabled ? undefined : onPress}
-        style={({ pressed }) => [
-          styles.btn,
-          { backgroundColor: v.bg },
-          variant !== 'ghost' && { borderBottomColor: v.shadow, borderBottomWidth: pressed ? 0 : 4 },
-          pressed && { transform: [{ translateY: 2 }] },
-          disabled && { opacity: 0.5 },
-        ]}
+        onPress={handlePress}
+        onPressIn={() => animateTo(1)}
+        onPressOut={() => animateTo(0)}
+        disabled={disabled || loading}
+        style={styles.wrap}
+        hitSlop={6}
       >
-        {icon}
-        <Text style={[styles.label, { color: v.text }]}>{label}</Text>
+        {/* Shadow plate (chunky bottom edge) */}
+        {!isGhost && (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.shadowPlate, { backgroundColor: v.shadow, height: shadowH }]}
+          />
+        )}
+        {/* Face */}
+        <Animated.View style={[styles.face, { transform: [{ translateY }] }, disabled && { opacity: 0.5 }]}>
+          <LinearGradient
+            colors={[v.gradient[0], v.gradient[1]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={[
+              styles.gradient,
+              isGhost && { backgroundColor: 'transparent' },
+              !isGhost && Elevation.sm,
+            ]}
+          >
+            {loading ? (
+              <ActivityIndicator color={v.text} />
+            ) : (
+              <>
+                {icon}
+                <Text style={[styles.label, { color: v.text }]} numberOfLines={1}>{label}</Text>
+              </>
+            )}
+          </LinearGradient>
+        </Animated.View>
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  btn: {
+  wrap: { borderRadius: Radii.lg, paddingBottom: SHADOW_DEPTH },
+  shadowPlate: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    borderBottomLeftRadius: Radii.lg,
+    borderBottomRightRadius: Radii.lg,
+  },
+  face: { borderRadius: Radii.lg, overflow: 'hidden' },
+  gradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -59,7 +130,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: Fonts.md,
     fontWeight: Fonts.weight.black,
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
 });
