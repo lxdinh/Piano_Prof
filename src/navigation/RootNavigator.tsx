@@ -31,10 +31,19 @@ export default function RootNavigator() {
   }
 
   return (
-    <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      initialRouteName={initialRoute}
+      screenOptions={{
+        headerShown: false,
+        // Cohesive cross-fade for the onboarding → main flow; modals get
+        // their natural sheet slide via the group below.
+        animation: 'fade',
+        animationDuration: 220,
+      }}
+    >
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />
-      <Stack.Group screenOptions={{ presentation: 'modal' }}>
+      <Stack.Group screenOptions={{ presentation: 'modal', animation: 'slide_from_bottom' }}>
         <Stack.Screen name="Lesson" component={LessonScreen} />
         <Stack.Screen name="LessonComplete" component={LessonCompleteScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="BLEPairing" component={BLEPairingRoute} />
