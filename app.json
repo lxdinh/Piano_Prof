@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Piano Professor",
+    "slug": "piano-professor",
+    "version": "0.6.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFAEC"
+    },
+    "android": {
+      "package": "com.lxdinh.pianoprofessor",
+      "versionCode": 7,
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFAEC"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.lxdinh.pianoprofessor",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Piano Professor uses Bluetooth to connect to your LED strip controller.",
+        "NSBluetoothPeripheralUsageDescription": "Piano Professor uses Bluetooth to connect to your LED strip controller."
+      }
+    },
+    "owner": "lxdinh",
+    "plugins": [
+      ["react-native-ble-plx", {
+        "isBackgroundEnabled": false,
+        "modes": ["peripheral", "central"],
+        "bluetoothAlwaysPermission": "Piano Professor uses Bluetooth to connect to your LED piano strip."
+      }]
+    ],
+    "assetBundlePatterns": ["**/*"]
+  }
+}

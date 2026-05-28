@@ -1,0 +1,132 @@
+name: Build APK (EAS)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:          # don't burn EAS credits on prose changes
+      - '**.md'
+      - '.gitignore'
+      - 'docs/**'
+      - 'chats/**'
+      - 'project/**'
+      - 'supabase/**'
+      - 'hardware/**'
+  workflow_dispatch:       # manual trigger from GitHub UI
+
+jobs:
+  build:
+    name: EAS Android Preview Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # needed to commit logs back to repo
+
+    steps:
+      # ── Checkout ─────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Node + npm cache ─────────────────────────────────────────
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ── Install dependencies ─────────────────────────────────────
+      # Must run before any `eas` command that evaluates app config —
+      # Expo plugins live in node_modules and eas will fail without them.
+      - name: Install dependencies
+        run: npm install
+
+      # ── EAS CLI ──────────────────────────────────────────────────
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      # ── Init EAS project (idempotent) ────────────────────────────
+      # Writes projectId into app.json on first run; no-op thereafter.
+      # Does NOT reset an existing project.
+      - name: Initialize EAS project
+        run: eas init --non-interactive --force
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      # ── Commit updated app.json if projectId was written ─────────
+      - name: Commit app.json (if changed)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git diff --quiet app.json || \
+            git commit -am "chore: add EAS projectId to app.json [skip ci]" && \
+            git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Submit build to EAS ───────────────────────────────────────
+      # --no-wait: exits as soon as EAS queues the build.
+      #   The compile runs on EAS cloud (~10–15 min), not here.
+      #   This keeps Actions usage to ~3 min per push.
+      # continue-on-error: true so logs get committed even on failure.
+      - name: Submit build to EAS
+        id: eas_build
+        continue-on-error: true
+        run: |
+          mkdir -p .build-info
+          eas build \
+            --platform android \
+            --profile preview \
+            --non-interactive \
+            --no-wait \
+            --json \
+            2>&1 | tee .build-info/last-build.log
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      # ── Parse install URL from JSON output ───────────────────────
+      - name: Extract build URL
+        run: |
+          # The last valid JSON object in the log is the build submission response
+          BUILD_URL=$(grep -o '"buildDetailsPageUrl":"[^"]*"' .build-info/last-build.log \
+            | tail -1 | cut -d'"' -f4) || true
+          INSTALL_URL=$(grep -o '"url":"[^"]*expo\.dev[^"]*"' .build-info/last-build.log \
+            | tail -1 | cut -d'"' -f4) || true
+
+          echo "BUILD_URL=${BUILD_URL}"   >> "$GITHUB_OUTPUT"
+          echo "INSTALL_URL=${INSTALL_URL}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "Build submitted: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "Details: ${BUILD_URL}"
+            echo "Install: ${INSTALL_URL}"
+          } > .build-info/last-build-url.txt
+
+      # ── Commit logs + URL back to repo ───────────────────────────
+      # [skip ci] prevents this commit from triggering another build loop.
+      - name: Commit build info
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .build-info/
+          git diff --staged --quiet || \
+            git commit -m "ci: update build info [skip ci]" && \
+            git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Print summary ─────────────────────────────────────────────
+      - name: Build summary
+        run: |
+          echo "### EAS Build Submitted" >> "$GITHUB_STEP_SUMMARY"
+          cat .build-info/last-build-url.txt >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "EAS compiles in the cloud — check expo.dev/accounts/lxdinh/builds" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Fail job if submission itself failed ──────────────────────
+      # Logs are already committed above — safe to fail now.
+      - name: Check submission result
+        if: steps.eas_build.outcome == 'failure'
+        run: |
+          echo "EAS build submission failed. See .build-info/last-build.log"
+          exit 1
