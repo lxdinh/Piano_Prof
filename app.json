@@ -40,7 +40,10 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": false,
-          "modes": ["peripheral", "central"],
+          "modes": [
+            "peripheral",
+            "central"
+          ],
           "bluetoothAlwaysPermission": "Piano Professor uses Bluetooth to connect to your LED piano strip."
         }
       ],
@@ -51,6 +54,13 @@
         }
       ]
     ],
-    "assetBundlePatterns": ["**/*"]
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "75c6cb4a-9f15-4b3c-b236-4d6ae0e09edc"
+      }
+    }
   }
 }
