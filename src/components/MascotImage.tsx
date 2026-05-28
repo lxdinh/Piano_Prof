@@ -25,19 +25,19 @@ interface Props {
 // Each entry uses static require() so Metro can bundle the file at build time.
 // To add a mood image, uncomment the corresponding line.
 const PNG_SOURCES: Partial<Record<MascotMood, ImageSourcePropType>> = {
-  // happy:    require('../../assets/mascots/happy.png'),
-  // wave:     require('../../assets/mascots/wave.png'),
-  // thinking: require('../../assets/mascots/thinking.png'),
-  // wow:      require('../../assets/mascots/wow.png'),
-  // sad:      require('../../assets/mascots/sad.png'),
-  // sleepy:   require('../../assets/mascots/sleepy.png'),
-  // laugh:    require('../../assets/mascots/laugh.png'),
-  // wink:     require('../../assets/mascots/wink.png'),
-  // cheer:    require('../../assets/mascots/cheer.png'),
-  // love:     require('../../assets/mascots/love.png'),
-  // shocked:  require('../../assets/mascots/shocked.png'),
-  // cool:     require('../../assets/mascots/cool.png'),
-  // trophy:   require('../../assets/mascots/trophy.png'),
+  happy:    require('../../assets/mascots/teach.png'),            // default / instructor pose
+  wave:     require('../../assets/mascots/welcome-cutout.png'),   // onboarding greeting
+  thinking: require('../../assets/mascots/idea.png'),             // quiz prompt
+  wow:      require('../../assets/mascots/wow.png'),
+  sad:      require('../../assets/mascots/sad.png'),              // out of hearts
+  sleepy:   require('../../assets/mascots/tired.png'),            // streak at risk / empty
+  laugh:    require('../../assets/mascots/showman.png'),          // playful
+  wink:     require('../../assets/mascots/star.png'),             // encouragement
+  cheer:    require('../../assets/mascots/cheer.png'),            // quiz correct / onboarding
+  love:     require('../../assets/mascots/love.png'),
+  shocked:  require('../../assets/mascots/shocked.png'),          // wrong answer
+  cool:     require('../../assets/mascots/cool.png'),             // profile
+  trophy:   require('../../assets/mascots/trophy.png'),           // lesson complete / unlock
 };
 
 export default function MascotImage({ mood = 'happy', size = 140, onPress, static: isStatic }: Props) {
