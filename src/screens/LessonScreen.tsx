@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert, Animated, Easing } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,6 +50,17 @@ export default function LessonScreen() {
 
   const heartsAtCompleteRef = useRef(5);
 
+  // Transient mascot "reaction" that briefly overrides the status-based mood
+  // (cheer on correct, shocked on wrong, wow on a fresh chord). Auto-clears.
+  const [reaction, setReaction] = useState<MascotMood | null>(null);
+  const reactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashReaction = useCallback((mood: MascotMood, ms = 1300) => {
+    if (reactionTimer.current) clearTimeout(reactionTimer.current);
+    setReaction(mood);
+    reactionTimer.current = setTimeout(() => setReaction(null), ms);
+  }, []);
+  useEffect(() => () => { if (reactionTimer.current) clearTimeout(reactionTimer.current); }, []);
+
   const engine = useLessonEngine(lesson, {
     onComplete: (xp) => {
       const stars = starsFromHearts(heartsAtCompleteRef.current);
@@ -99,6 +110,16 @@ export default function LessonScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson]);
 
+  // "Wow" reaction the moment a fresh 3+ note chord lights up during playback.
+  const prevChordSize = useRef(0);
+  useEffect(() => {
+    const size = engine.litNotes.length;
+    if (engine.status === 'playing' && size >= 3 && prevChordSize.current < 3) {
+      flashReaction('wow', 900);
+    }
+    prevChordSize.current = size;
+  }, [engine.litNotes, engine.status, flashReaction]);
+
   if (!lesson) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -115,10 +136,12 @@ export default function LessonScreen() {
   const onQuizAnswer = (correct: boolean) => {
     if (correct) {
       haptics.success();
+      flashReaction('cheer', 1600);
       logEvent(Events.quizCorrect, { lessonId: params.lessonId });
     } else {
       haptics.error();
       shake.play();
+      flashReaction('shocked', 1400);
       loseHeart();
     }
     engine.submitQuiz(correct);
@@ -129,7 +152,8 @@ export default function LessonScreen() {
     outputRange: ['rgba(255,75,75,0)', 'rgba(255,75,75,0.18)'],
   });
 
-  const mascotMood = moodForStatus(engine.status, engine.caption.length);
+  // Transient reaction wins; otherwise fall back to the status-based mood.
+  const mascotMood = reaction ?? moodForStatus(engine.status, engine.caption.length);
 
   return (
     <View style={styles.bg}>

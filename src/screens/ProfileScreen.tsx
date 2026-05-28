@@ -1,7 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Animated, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+
+// Big landscape "scene" banner behind the profile header.
+const HERO_BANNER = require('../../assets/mascots/hero-happy.png');
 import { Colors, Fonts, Radii, Spacing, Elevation, Gradients } from '../theme/tokens';
 import PpCard from '../components/PpCard';
 import MascotImage from '../components/MascotImage';
@@ -26,10 +29,14 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.bg}>
-      <LinearGradient
-        colors={[Gradients.brand[0], Gradients.brand[1]]}
-        style={styles.headerBg}
-      />
+      {/* Hero scene banner — full-bleed, bleeds under the status bar */}
+      <View style={styles.headerBg}>
+        <Image source={HERO_BANNER} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <LinearGradient
+          colors={['rgba(15,17,23,0.05)', 'rgba(15,17,23,0.45)']}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {/* Hero */}
@@ -114,29 +121,29 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: Colors.cream50 },
-  headerBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 240 },
+  headerBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 210, overflow: 'hidden' },
   safe: { flex: 1 },
   scroll: { padding: Spacing.lg, gap: Spacing.lg },
 
   heroWrap: {
     alignItems: 'center',
     gap: Spacing.xs,
-    marginTop: Spacing.md,
+    marginTop: 96,            // push the avatar down so it overlaps the banner's lower edge
     paddingBottom: Spacing.md,
   },
   mascotRing: {
-    width: 140, height: 140, borderRadius: 70,
+    width: 132, height: 132, borderRadius: 66,
     backgroundColor: '#FFFFFF',
     alignItems: 'center', justifyContent: 'center',
     ...Elevation.lg,
-    borderWidth: 4, borderColor: '#FFFFFF',
+    borderWidth: 5, borderColor: '#FFFFFF',
   },
-  name: { fontSize: Fonts['2xl'], fontWeight: Fonts.weight.black, color: '#FFFFFF', marginTop: Spacing.sm,
-    textShadowColor: 'rgba(0,0,0,0.2)', textShadowRadius: 4, textShadowOffset: { width: 0, height: 2 } },
+  name: { fontSize: Fonts['2xl'], fontWeight: Fonts.weight.black, color: Colors.ink900, marginTop: Spacing.sm },
   gradePill: {
     paddingHorizontal: Spacing.md, paddingVertical: 4,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: Colors.brand,
     borderRadius: 999,
+    ...Elevation.sm,
   },
   gradePillText: { color: '#FFFFFF', fontSize: Fonts.sm, fontWeight: Fonts.weight.bold },
 
