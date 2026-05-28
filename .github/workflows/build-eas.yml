@@ -3,14 +3,17 @@ name: Build APK (EAS)
 on:
   push:
     branches: [main]
-    paths-ignore:          # don't burn EAS credits on prose changes
+    paths-ignore:          # don't burn EAS credits on prose / non-app changes
       - '**.md'
       - '.gitignore'
       - 'docs/**'
       - 'chats/**'
       - 'project/**'
-      - 'supabase/**'
       - 'hardware/**'
+      - 'backend/**'
+      - 'legacy/**'
+      - 'PROJECT_PLAN.md'
+      - 'PROGRESS_REPORT.md'
   workflow_dispatch:       # manual trigger from GitHub UI
 
 jobs:

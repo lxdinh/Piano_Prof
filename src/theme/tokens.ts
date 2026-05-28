@@ -90,3 +90,54 @@ export const LedColors = [
   '#8B5CF6', // violet
   '#FF7A9C', // pink
 ] as const;
+
+// ── Gradients ───────────────────────────────────────────────────
+// Pairs are [start, end] for expo-linear-gradient. Tuned for a warm,
+// premium, candy-like feel against the cream paper.
+export const Gradients = {
+  brand:   ['#6FE021', '#46A302'] as const, // chunky green button
+  sky:     ['#7FCBEF', '#3A9EC9'] as const,
+  butter:  ['#FFD54A', '#F5B800'] as const,
+  rust:    ['#FF8A5C', '#C2410C'] as const,
+  violet:  ['#A78BFA', '#7C3AED'] as const,
+  paper:   ['#FFFDF6', '#FFF3CC'] as const, // subtle screen backdrop
+  dark:    ['#1A1F2E', '#0F1117'] as const, // connected / lesson stage
+  rainbow: ['#FF4B4B', '#F5B800', '#58CC02', '#5BB8E3', '#8B5CF6'] as const,
+  successGlow: ['#7CE62A', '#58CC02'] as const,
+} as const;
+
+// ── Elevation (cross-platform shadow presets) ───────────────────
+// iOS uses shadow*, Android uses elevation. Spread into a style.
+export const Elevation = {
+  none: {},
+  sm: {
+    shadowColor: '#2A1D11', shadowOpacity: 0.06, shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 }, elevation: 2,
+  },
+  md: {
+    shadowColor: '#2A1D11', shadowOpacity: 0.10, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }, elevation: 5,
+  },
+  lg: {
+    shadowColor: '#2A1D11', shadowOpacity: 0.16, shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 }, elevation: 12,
+  },
+  glow: {
+    shadowColor: '#58CC02', shadowOpacity: 0.5, shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 }, elevation: 10,
+  },
+} as const;
+
+// ── Motion ──────────────────────────────────────────────────────
+// Shared timing/spring constants so every animation feels related.
+export const Motion = {
+  duration: { fast: 150, base: 250, slow: 450, xslow: 800 },
+  spring: {
+    // bouncy press feedback
+    press:  { friction: 6, tension: 220 },
+    // playful pop (stars, badges)
+    pop:    { friction: 4, tension: 90 },
+    // gentle settle (entrances)
+    settle: { friction: 8, tension: 60 },
+  },
+} as const;
