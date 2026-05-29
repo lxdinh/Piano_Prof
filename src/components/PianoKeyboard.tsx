@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, Animated, Pressable } from 'react-native';
-import Svg, { Rect, Defs, LinearGradient, Stop, Line } from 'react-native-svg';
+import Svg, { Rect, Defs, LinearGradient, Stop, Line, Text as SvgText } from 'react-native-svg';
 import { Colors } from '../theme/tokens';
 import LedStripArt from './LedStripArt';
 import * as haptics from '../feedback/haptics';
+import { playMidi } from '../audio/pianoEngine';
 
 interface Props {
   /** MIDI notes currently lit (e.g. [60, 64, 67] = C E G) */
@@ -22,14 +23,26 @@ interface Props {
   height?: number;
   /** Optional tap handler — receives MIDI note. */
   onKeyPress?: (midi: number) => void;
+  /** Play a piano sample on tap (default false). */
+  playSound?: boolean;
+  /** Draw C-octave labels (C2, C3, …) at the foot of each C key. */
+  octaveLabels?: boolean;
+  /** Highlight color used for a freshly-tapped key. */
+  pressColor?: string;
 }
 
 const WHITE_KEY_PATTERN = [0, 2, 4, 5, 7, 9, 11];
 const BLACK_KEY_OFFSETS = [1, 3, 6, 8, 10];
+const NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 function whiteIndexToMidi(start: number, idx: number): number {
   const baseC = start - (start % 12);
   return baseC + Math.floor(idx / 7) * 12 + WHITE_KEY_PATTERN[idx % 7];
+}
+
+function midiToOctaveLabel(midi: number): string {
+  const octave = Math.floor(midi / 12) - 1; // MIDI 60 = C4
+  return `C${octave}`;
 }
 
 // A lit-key glow is rendered as an Animated.View positioned exactly over the
@@ -83,6 +96,9 @@ export default function PianoKeyboard({
   width = 360,
   height = 160,
   onKeyPress,
+  playSound = false,
+  octaveLabels = false,
+  pressColor,
 }: Props) {
   const stripH = showLeds ? 26 : 0;
   const fallboardH = showLeds ? 8 : 0;
@@ -91,12 +107,46 @@ export default function PianoKeyboard({
   const blackW = whiteW * 0.62;
   const blackH = keyAreaH * 0.62;
 
+  // Notes the user is actively touching — gives instant visual feedback even
+  // when no external `litNotes` are supplied (free-play / practice).
+  const [pressedNotes, setPressedNotes] = useState<Set<number>>(() => new Set());
+  const pressTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  useEffect(() => () => { pressTimers.current.forEach((t) => clearTimeout(t)); }, []);
+
   const litSet = useMemo(() => new Set(litNotes), [litNotes]);
   const colorFor = (midi: number): string | null => {
     if (noteColors?.[midi]) return noteColors[midi];
     if (litSet.has(midi)) return litColor;
+    if (pressedNotes.has(midi)) return pressColor ?? litColor;
     return null;
   };
+
+  const interactive = !!onKeyPress || playSound;
+
+  const handlePressIn = useCallback((midi: number) => {
+    haptics.tap();
+    if (playSound) void playMidi(midi);
+    onKeyPress?.(midi);
+    // flash the key for ~260ms
+    setPressedNotes((prev) => {
+      const next = new Set(prev);
+      next.add(midi);
+      return next;
+    });
+    const existing = pressTimers.current.get(midi);
+    if (existing) clearTimeout(existing);
+    pressTimers.current.set(
+      midi,
+      setTimeout(() => {
+        setPressedNotes((prev) => {
+          const next = new Set(prev);
+          next.delete(midi);
+          return next;
+        });
+        pressTimers.current.delete(midi);
+      }, 260),
+    );
+  }, [onKeyPress, playSound]);
 
   const whites = useMemo(() => {
     const arr: { midi: number; x: number }[] = [];
@@ -127,13 +177,8 @@ export default function PianoKeyboard({
       }),
     // colorFor is identity-stable enough for this memo via its inputs:
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [startMidi, whiteKeys, litColor, litSet, noteColors],
+    [startMidi, whiteKeys, litColor, litSet, noteColors, pressedNotes, pressColor],
   );
-
-  const handlePress = (midi: number) => {
-    haptics.tap();
-    onKeyPress?.(midi);
-  };
 
   return (
     <View style={{ width, height }}>
@@ -210,6 +255,23 @@ export default function PianoKeyboard({
             />
           ))}
 
+          {/* Octave labels at the foot of each C key */}
+          {octaveLabels && whites.map(({ midi, x }) =>
+            midi % 12 === 0 ? (
+              <SvgText
+                key={`lbl${midi}`}
+                x={x + whiteW / 2}
+                y={keyAreaH - 8}
+                fontSize={Math.min(11, whiteW * 0.42)}
+                fontWeight="900"
+                fill={midi === 60 ? Colors.rust : Colors.ink500}
+                textAnchor="middle"
+              >
+                {midiToOctaveLabel(midi)}
+              </SvgText>
+            ) : null,
+          )}
+
           {/* Black keys */}
           {blacks.map(({ midi, x }) => (
             <React.Fragment key={`b${midi}`}>
@@ -275,20 +337,22 @@ export default function PianoKeyboard({
           );
         })}
 
-        {/* Tap targets (transparent Pressables) sit on top of everything */}
-        {onKeyPress && (
+        {/* Tap targets (transparent Pressables) sit on top of everything.
+            onPressIn fires immediately for a responsive, instrument-like feel.
+            Black keys render after whites so their hit area wins the overlap. */}
+        {interactive && (
           <>
             {whites.map(({ midi, x }) => (
               <Pressable
                 key={`wp${midi}`}
-                onPress={() => handlePress(midi)}
+                onPressIn={() => handlePressIn(midi)}
                 style={[styles.tap, { left: x, width: whiteW, height: keyAreaH, top: 0 }]}
               />
             ))}
             {blacks.map(({ midi, x }) => (
               <Pressable
                 key={`bp${midi}`}
-                onPress={() => handlePress(midi)}
+                onPressIn={() => handlePressIn(midi)}
                 style={[styles.tap, { left: x, width: blackW, height: blackH, top: 0 }]}
               />
             ))}
