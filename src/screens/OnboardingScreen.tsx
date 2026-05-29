@@ -16,13 +16,18 @@ import MascotImage from '../components/MascotImage';
 import HeroHalo from '../components/HeroHalo';
 import FloatingNotes from '../components/FloatingNotes';
 import Sparkles from '../components/Sparkles';
-import { useEntrance } from '../feedback/motion';
+import { useEntrance, useBreathing } from '../feedback/motion';
 import { setBool } from '../storage/settings';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 
+// Hero scene for the welcome page — Maestro at the keys, background removed.
+const WELCOME_SCENE = require('../../assets/mascots/welcome-piano.png');
+
 const { width: SCREEN_W } = Dimensions.get('window');
 const PAGES = 3;
+const SCENE_W = Math.min(SCREEN_W - 56, 320);
+const SCENE_H = SCENE_W * (781 / 1199); // preserve source aspect ratio
 
 const SWEEP_NOTES = [60, 64, 67, 72, 76, 79, 84];
 
@@ -76,6 +81,7 @@ interface PageProps {
 function Page1({ active }: PageProps) {
   const sweep = useLightSweep(24, active);
   const entrance = useEntrance(active ? 100 : 0);
+  const breath = useBreathing(0.985, 1.015, 3400);
 
   return (
     <View style={styles.page}>
@@ -85,11 +91,13 @@ function Page1({ active }: PageProps) {
           { opacity: entrance.opacity, transform: [{ translateY: entrance.translateY }] },
         ]}
       >
-        <View style={styles.heroBox}>
-          <HeroHalo size={340} color="#FFD86B">
-            <View style={styles.mascotPlate}>
-              <MascotImage mood="wave" size={200} />
-            </View>
+        <View style={styles.sceneBox}>
+          <HeroHalo size={SCENE_W + 70} color="#FFD86B">
+            <Animated.Image
+              source={WELCOME_SCENE}
+              style={[styles.sceneImg, { transform: [{ scale: breath }] }]}
+              resizeMode="contain"
+            />
           </HeroHalo>
           <Sparkles />
         </View>
@@ -302,6 +310,14 @@ const styles = StyleSheet.create({
   },
   mascotPlate: {
     alignItems: 'center', justifyContent: 'center',
+  },
+  // Wide piano scene (welcome page)
+  sceneBox: {
+    width: SCENE_W + 70, height: SCENE_W + 70,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  sceneImg: {
+    width: SCENE_W, height: SCENE_H,
   },
 
   // Copy
