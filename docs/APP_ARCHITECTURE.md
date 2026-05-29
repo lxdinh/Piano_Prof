@@ -1,8 +1,8 @@
 # Piano Professor — App Architecture (React Native / Expo)
 
 The app is a **React Native + Expo (SDK 52, TypeScript)** rebuild that supersedes the
-retired Flutter (`legacy/mobile/`) and Kotlin (`legacy/App/`) apps. It preserves the
-cream-paper / Duolingo-green / Maestro-Penguini design from the web prototype
+retired Flutter and Kotlin prototypes. It preserves the cream-paper /
+Duolingo-green / Maestro-Penguini design from the web prototype
 (`index.html`, `styles.css`, `lessons.js`) and is wired into the existing EAS + GitHub
 Actions APK pipeline (`.github/workflows/build-eas.yml`).
 
