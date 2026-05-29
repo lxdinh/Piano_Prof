@@ -1,0 +1,153 @@
+{
+  "_comment": "Illustrative catalog seed for the Firestore emulator. Keyed by collection -> docId -> data. Lessons follow the 6-level pathway (Kindergarten -> Master); ids and content match mobile/lib/lessons/. Representative subset shown. Prices show Duolingo-style regional brackets. Load with a small Admin-SDK script or the emulator UI.",
+
+  "lessons": {
+    "l1-geography": {
+      "level": "kindergarten", "order": 2, "kind": "concept",
+      "title": "Keyboard Geography & Landmarks",
+      "xpReward": 50, "estMinutes": 5, "isPremium": false,
+      "completeMessage": "You can read the keyboard map now. C and F are your anchors. 50 XP!"
+    },
+    "l1-mary": {
+      "level": "kindergarten", "order": 5, "kind": "song",
+      "title": "Mary Had a Little Lamb",
+      "xpReward": 50, "estMinutes": 4, "isPremium": false,
+      "completeMessage": "Your first song! Right hand, five fingers. 50 XP!"
+    },
+    "l2-rhythm": {
+      "level": "elementary", "order": 1, "kind": "concept",
+      "title": "Note Values & Rhythm",
+      "xpReward": 50, "estMinutes": 6, "isPremium": false,
+      "completeMessage": "Whole, half, quarter, eighth - rhythm is the skeleton of music. 50 XP!"
+    },
+    "l2-twinkle": {
+      "level": "elementary", "order": 7, "kind": "song",
+      "title": "Twinkle Twinkle",
+      "xpReward": 50, "estMinutes": 5, "isPremium": false,
+      "completeMessage": "Twinkle Twinkle - hands can join once you are steady. 50 XP!"
+    },
+    "l3-axis": {
+      "level": "middle", "order": 4, "kind": "concept",
+      "title": "The I-V-vi-IV Progression",
+      "xpReward": 50, "estMinutes": 7, "isPremium": false,
+      "completeMessage": "The most-used progression in pop. You own it now. 50 XP!"
+    },
+    "l3-letitbe": {
+      "level": "middle", "order": 7, "kind": "song",
+      "title": "Let It Be",
+      "xpReward": 50, "estMinutes": 8, "isPremium": true,
+      "completeMessage": "Let It Be - four chords, one classic. 50 XP!"
+    },
+    "l4-inversions": {
+      "level": "high", "order": 1, "kind": "concept",
+      "title": "Chord Inversions",
+      "xpReward": 50, "estMinutes": 8, "isPremium": true,
+      "completeMessage": "Same chord, smoother transitions. 50 XP!"
+    },
+    "l4-canon": {
+      "level": "high", "order": 10, "kind": "song",
+      "title": "Canon in D",
+      "xpReward": 50, "estMinutes": 10, "isPremium": true,
+      "completeMessage": "Pachelbel's Canon - the most-used progression ever. 50 XP!"
+    },
+    "l5-river": {
+      "level": "university", "order": 7, "kind": "song",
+      "title": "River Flows in You",
+      "xpReward": 50, "estMinutes": 12, "isPremium": true,
+      "completeMessage": "Yiruma's classic - your first real solo piece. 50 XP!"
+    },
+    "l6-jazz": {
+      "level": "master", "order": 5, "kind": "concept",
+      "title": "Jazz & Blues Voicings",
+      "xpReward": 50, "estMinutes": 15, "isPremium": true,
+      "completeMessage": "9ths, 11ths, 13ths, swing - welcome to jazz. 50 XP!"
+    }
+  },
+
+  "levels": {
+    "kindergarten": { "index": 1, "name": "Level 1 - Kindergarten", "duration": "2-4 weeks" },
+    "elementary": { "index": 2, "name": "Level 2 - Elementary", "duration": "1-2 months" },
+    "middle": { "index": 3, "name": "Level 3 - Middle School", "duration": "2-3 months" },
+    "high": { "index": 4, "name": "Level 4 - High School", "duration": "3-6 months" },
+    "university": { "index": 5, "name": "Level 5 - University", "duration": "6 months-1 year" },
+    "master": { "index": 6, "name": "Level 6 - Master", "duration": "Lifetime mastery" }
+  },
+
+  "lessons/l1-mary/steps": {
+    "0": {
+      "index": 0,
+      "segments": [
+        { "type": "say", "text": "Your first song - right hand only, within five fingers.", "gap": 600 },
+        { "type": "seq", "notes": ["E4", "D4", "C4", "D4", "E4", "E4", "E4"], "color": "green", "delay": 420 },
+        { "type": "seq", "notes": ["D4", "D4", "D4"], "color": "green", "delay": 420 },
+        { "type": "seq", "notes": ["E4", "G4", "G4"], "color": "green", "delay": 420 }
+      ]
+    }
+  },
+
+  "songs": {
+    "river-flows-in-you": {
+      "title": "River Flows In You", "artist": "Yiruma",
+      "category": "Just learned", "level": 2,
+      "chords": ["Am", "F", "C", "G"], "musicXmlPath": "catalog/songs/river-flows-in-you.mxl", "isPremium": false
+    },
+    "let-it-be": {
+      "title": "Let It Be", "artist": "The Beatles",
+      "category": "Just learned", "level": 1,
+      "chords": ["C", "G", "Am", "F"], "musicXmlPath": "catalog/songs/let-it-be.mxl", "isPremium": false
+    },
+    "despacito": {
+      "title": "Despacito", "artist": "Luis Fonsi",
+      "category": "Trending pop", "level": 2,
+      "chords": ["Bm", "G", "D", "A"], "musicXmlPath": null, "isPremium": true
+    }
+  },
+
+  "achievementsCatalog": {
+    "first-note": { "title": "First Note", "description": "Play your first note", "icon": "note", "color": "#58CC02", "maxLevel": 5, "thresholds": [1, 10, 50, 200, 1000] },
+    "hot-streak": { "title": "Hot Streak", "description": "Keep a daily streak", "icon": "flame", "color": "#C2410C", "maxLevel": 5, "thresholds": [3, 7, 30, 100, 365] },
+    "sharp-ears": { "title": "Sharp Ears", "description": "Ace ear-training quizzes", "icon": "ear", "color": "#5BB8E3", "maxLevel": 3, "thresholds": [5, 25, 100] }
+  },
+
+  "questTemplates": {
+    "daily-practice-10": { "title": "Play 10 minutes", "period": "daily", "metric": "minutesPracticed", "goal": 10, "reward": { "gems": 20 } },
+    "daily-perfect-3": { "title": "Land 3 perfect lessons", "period": "daily", "metric": "perfectLessons", "goal": 3, "reward": { "xp": 30 } },
+    "weekly-song": { "title": "Play a song all the way through", "period": "weekly", "metric": "songsCompleted", "goal": 1, "reward": { "xp": 200 } }
+  },
+
+  "subscriptionPlans": {
+    "super-annual": {
+      "tier": "super", "interval": "annual", "trialDays": 14,
+      "features": ["Unlimited hearts", "No ads", "Unlimited OMR sheet uploads", "Personalized practice"],
+      "storeProductIds": { "appStore": "pp.super.annual", "playStore": "pp_super_annual" },
+      "priceByRegion": {
+        "US": { "currency": "USD", "amountMinor": 8333, "display": "$83.33/yr" },
+        "JP": { "currency": "JPY", "amountMinor": 9800, "display": "¥9,800/yr" },
+        "IN": { "currency": "INR", "amountMinor": 339900, "display": "₹3,399/yr" },
+        "BR": { "currency": "BRL", "amountMinor": 18990, "display": "R$189,90/ano" }
+      }
+    },
+    "super-monthly": {
+      "tier": "super", "interval": "monthly", "trialDays": 0,
+      "features": ["Unlimited hearts", "No ads", "Unlimited OMR sheet uploads"],
+      "storeProductIds": { "appStore": "pp.super.monthly", "playStore": "pp_super_monthly" },
+      "priceByRegion": {
+        "US": { "currency": "USD", "amountMinor": 1299, "display": "$12.99/mo" },
+        "JP": { "currency": "JPY", "amountMinor": 1300, "display": "¥1,300/mo" },
+        "IN": { "currency": "INR", "amountMinor": 49900, "display": "₹499/mo" },
+        "BR": { "currency": "BRL", "amountMinor": 2990, "display": "R$29,90/mês" }
+      }
+    },
+    "max-annual": {
+      "tier": "max", "interval": "annual", "trialDays": 14,
+      "features": ["Everything in Super", "AI tutor feedback", "Priority OMR processing", "Exclusive song packs"],
+      "storeProductIds": { "appStore": "pp.max.annual", "playStore": "pp_max_annual" },
+      "priceByRegion": {
+        "US": { "currency": "USD", "amountMinor": 16667, "display": "$166.67/yr" },
+        "JP": { "currency": "JPY", "amountMinor": 19800, "display": "¥19,800/yr" },
+        "IN": { "currency": "INR", "amountMinor": 679900, "display": "₹6,799/yr" },
+        "BR": { "currency": "BRL", "amountMinor": 37990, "display": "R$379,90/ano" }
+      }
+    }
+  }
+}
