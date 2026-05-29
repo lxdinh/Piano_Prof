@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,9 +14,18 @@ import { UserProvider } from './src/gamification/UserProvider';
 import AchievementCelebration from './src/gamification/AchievementCelebration';
 import RootNavigator from './src/navigation/RootNavigator';
 import { Colors } from './src/theme/tokens';
+import { useLockPortraitOnMount } from './src/feedback/useOrientation';
+import { preloadCore } from './src/audio/pianoEngine';
 
 export default function App() {
   const [fontsLoaded] = useFonts({ Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black });
+
+  // App defaults to portrait. Lesson + Practice flip to landscape via their
+  // own hooks while focused, then restore portrait on blur.
+  useLockPortraitOnMount();
+
+  // Warm the piano sample cache in the background so the first tap is instant.
+  useEffect(() => { void preloadCore(); }, []);
 
   if (!fontsLoaded) {
     return (

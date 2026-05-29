@@ -12,6 +12,7 @@ import BLEPairingRoute from '../screens/BLEPairingRoute';
 import VoiceSettingsScreen from '../screens/VoiceSettingsScreen';
 import OmrImportScreen from '../screens/OmrImportScreen';
 import PaywallScreen from '../screens/PaywallScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -43,13 +44,24 @@ export default function RootNavigator() {
     >
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />
+      {/* Lesson uses a full-screen card (not a bottom sheet) so the landscape
+          layout reads cleanly without a portrait-orientation header gutter. */}
+      <Stack.Screen
+        name="Lesson"
+        component={LessonScreen}
+        options={{ animation: 'fade', animationDuration: 200 }}
+      />
+      <Stack.Screen
+        name="LessonComplete"
+        component={LessonCompleteScreen}
+        options={{ gestureEnabled: false, animation: 'fade' }}
+      />
       <Stack.Group screenOptions={{ presentation: 'modal', animation: 'slide_from_bottom' }}>
-        <Stack.Screen name="Lesson" component={LessonScreen} />
-        <Stack.Screen name="LessonComplete" component={LessonCompleteScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="BLEPairing" component={BLEPairingRoute} />
         <Stack.Screen name="VoiceSettings" component={VoiceSettingsScreen} options={{ headerShown: true, title: 'Instructor voice' }} />
         <Stack.Screen name="OmrImport" component={OmrImportScreen} options={{ headerShown: true, title: 'Import sheet music' }} />
         <Stack.Screen name="Paywall" component={PaywallScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: true, title: 'Settings' }} />
       </Stack.Group>
     </Stack.Navigator>
   );

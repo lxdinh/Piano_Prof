@@ -1,7 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Animated, Image, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
 
 // Big landscape "scene" banner behind the profile header.
 const HERO_BANNER = require('../../assets/mascots/hero-happy.png');
@@ -14,8 +17,12 @@ import AnimatedCounter from '../components/AnimatedCounter';
 import { useUser } from '../gamification/UserProvider';
 import { useAchievements } from '../gamification/UserProvider';
 import { useEntrance } from '../feedback/motion';
+import * as haptics from '../feedback/haptics';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ProfileScreen() {
+  const nav = useNavigation<Nav>();
   const { profile } = useUser();
   const { defs, progress } = useAchievements();
   const heroEntrance = useEntrance(0);
@@ -40,6 +47,14 @@ export default function ProfileScreen() {
         />
       </View>
       <SafeAreaView style={styles.safe} edges={['top']}>
+        {/* Settings gear — top-right over the banner */}
+        <Pressable
+          onPress={() => { haptics.tap(); nav.navigate('Settings'); }}
+          hitSlop={14}
+          style={styles.gearBtn}
+        >
+          <Text style={styles.gearIcon}>⚙</Text>
+        </Pressable>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {/* Hero */}
           <Animated.View
@@ -131,6 +146,14 @@ const styles = StyleSheet.create({
   headerBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 210, overflow: 'hidden' },
   safe: { flex: 1 },
   scroll: { padding: Spacing.lg, gap: Spacing.lg },
+  gearBtn: {
+    position: 'absolute', top: Spacing.lg, right: Spacing.lg, zIndex: 10,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    alignItems: 'center', justifyContent: 'center',
+    ...Elevation.sm,
+  },
+  gearIcon: { fontSize: 22, color: Colors.ink900 },
 
   heroWrap: {
     alignItems: 'center',

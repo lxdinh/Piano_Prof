@@ -1,174 +1,169 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { Colors, Fonts, Radii, Spacing, Elevation, Gradients } from '../theme/tokens';
-import TopStatsBar from '../components/TopStatsBar';
-import PpCard from '../components/PpCard';
 import ChunkyButton from '../components/ChunkyButton';
-import DailyGoalRing from '../components/DailyGoalRing';
-import MascotImage from '../components/MascotImage';
-import HeroHalo from '../components/HeroHalo';
-import FloatingNotes from '../components/FloatingNotes';
-import Sparkles from '../components/Sparkles';
-import { listGrades } from '../lessons/loader';
 import { useUser } from '../gamification/UserProvider';
 import { useEntrance } from '../feedback/motion';
-import { Animated } from 'react-native';
+import {
+  resolvePathway, ResolvedLevel, ResolvedItem, KIND_ICON, PATH_ITEMS,
+} from '../lessons/pathway';
+import * as haptics from '../feedback/haptics';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const AVATAR = require('../../assets/mascots/classical.png');
+
+// ── Top header: avatar + pathway title + stat pills + XP bar ─────
+function PathwayHeader() {
+  const nav = useNavigation<Nav>();
+  const { profile, todayActivity } = useUser();
+  const goal = profile?.settings.dailyGoalXp ?? 50;
+  const earned = todayActivity?.xpEarned ?? 0;
+  const pct = Math.max(0, Math.min(1, earned / goal));
+
+  const stats = [
+    { icon: '🔥', value: profile?.streakCount ?? 0, color: Colors.rust },
+    { icon: '⚡', value: profile?.totalXp ?? 0,     color: Colors.butter },
+    { icon: '💎', value: profile?.gems ?? 0,        color: Colors.sky },
+    { icon: '❤️', value: profile?.hearts.count ?? 5, color: Colors.error },
+  ];
+
+  return (
+    <View style={styles.header}>
+      <View style={styles.headerTop}>
+        <Image source={AVATAR} style={styles.avatar} resizeMode="cover" />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerKicker}>PATHWAY</Text>
+          <Text style={styles.headerTitle}>Kindergarten → Master</Text>
+        </View>
+        <Pressable onPress={() => { haptics.tap(); nav.navigate('BLEPairing'); }} hitSlop={12}>
+          <Text style={styles.bt}>❖</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.statRow}>
+        {stats.map((s, i) => (
+          <View key={i} style={styles.statPill}>
+            <Text style={styles.statIcon}>{s.icon}</Text>
+            <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.xpRow}>
+        <Text style={styles.flag}>🚩</Text>
+        <View style={styles.xpTrack}>
+          <View style={[styles.xpFill, { width: `${pct * 100}%` }]} />
+        </View>
+        <Text style={styles.xpLabel}>{earned}/{goal} XP</Text>
+      </View>
+    </View>
+  );
+}
+
+// ── Level intro card (orange number badge + objective + duration) ─
+function LevelCard({ level }: { level: ResolvedLevel }) {
+  return (
+    <View style={styles.levelCard}>
+      <View style={styles.levelHead}>
+        <View style={styles.levelNum}>
+          <Text style={styles.levelNumText}>{level.index}</Text>
+        </View>
+        <Text style={styles.levelName}>{level.name}</Text>
+      </View>
+      <Text style={styles.levelObjective}>{level.objective}</Text>
+      <View style={styles.durationChip}>
+        <Text style={styles.durationText}>⏱  {level.duration}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ── A single path item (grade / song / exercise / concept) ───────
+function ItemCard({ item, onStart }: { item: ResolvedItem; onStart: (it: ResolvedItem) => void }) {
+  if (item.state === 'active') {
+    return (
+      <View style={styles.activeCard}>
+        <View style={styles.activeIcon}>
+          <Text style={styles.activeIconText}>{KIND_ICON[item.kind]}</Text>
+        </View>
+        <Text style={styles.activeTitle} numberOfLines={2}>{item.title}</Text>
+        <ChunkyButton label="START" haptic="bump" onPress={() => onStart(item)} />
+      </View>
+    );
+  }
+
+  const done = item.state === 'done';
+  const soon = item.state === 'soon';
+  return (
+    <Pressable
+      disabled={!done}
+      onPress={() => done && onStart(item)}
+      style={({ pressed }) => [styles.lockedCard, pressed && done && { transform: [{ scale: 0.99 }] }]}
+    >
+      <View style={[styles.lockedIcon, done && styles.doneIcon]}>
+        <Text style={styles.lockedIconText}>{done ? '✓' : soon ? '🕗' : '🔒'}</Text>
+      </View>
+      <Text style={[styles.lockedTitle, done && styles.doneTitle]} numberOfLines={2}>
+        {item.title}
+      </Text>
+      {soon && (
+        <View style={styles.soonChip}><Text style={styles.soonText}>SOON</Text></View>
+      )}
+    </Pressable>
+  );
+}
+
 export default function LearnScreen() {
   const nav = useNavigation<Nav>();
-  const { profile, lessonProgress, todayActivity } = useUser();
-  const grades = useMemo(() => listGrades(), []);
-  const heroEntrance = useEntrance(0);
-  const listEntrance = useEntrance(150);
+  const { lessonProgress } = useUser();
+  const entrance = useEntrance(0);
 
-  const current = useMemo(() => {
-    for (const g of grades) {
-      for (const l of g.lessons) {
-        if (lessonProgress[l.id]?.status !== 'completed') {
-          return { grade: g, lesson: l };
-        }
+  // An item is "done" when the lesson it links to is completed.
+  const { levels } = useMemo(() => {
+    const completed = new Set<string>();
+    for (const it of PATH_ITEMS) {
+      if (it.lessonRef && lessonProgress[it.lessonRef.lessonId]?.status === 'completed') {
+        completed.add(it.id);
       }
     }
-    const g = grades[0];
-    return g?.lessons[0] ? { grade: g, lesson: g.lessons[0] } : null;
-  }, [grades, lessonProgress]);
+    return resolvePathway(completed);
+  }, [lessonProgress]);
 
-  const goal = profile?.settings.dailyGoalXp ?? 50;
-  const earnedToday = todayActivity?.xpEarned ?? 0;
-  const goalHit = earnedToday >= goal;
+  const onStart = (item: ResolvedItem) => {
+    if (item.lessonRef) {
+      nav.navigate('Lesson', { gradeId: item.lessonRef.gradeId, lessonId: item.lessonRef.lessonId });
+    } else {
+      haptics.warning();
+    }
+  };
 
   return (
     <View style={styles.bg}>
-      {/* Warm paper gradient header backdrop + ambient notes */}
-      <View style={styles.headerBg}>
-        <LinearGradient
-          colors={['#FFFDF6', '#FFF3CC', '#FFE6BA']}
-          locations={[0, 0.6, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        <FloatingNotes active count={3} travel={300} startBottom={40} glyphSize={26} maxOpacity={0.35} />
-      </View>
+      <LinearGradient colors={['#FFFDF6', '#FFF6DD']} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <TopStatsBar title="Learn" />
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* Hero — daily ring + greeting */}
-          <Animated.View
-            style={[
-              styles.hero,
-              { opacity: heroEntrance.opacity, transform: [{ translateY: heroEntrance.translateY }] },
-            ]}
-          >
-            <View style={styles.ringWrap}>
-              <HeroHalo size={172} color={goalHit ? '#7CE62A' : '#FFD86B'}>
-                <DailyGoalRing earnedToday={earnedToday} goal={goal} size={140} />
-              </HeroHalo>
-              {goalHit && <Sparkles />}
+        <PathwayHeader />
+        <Animated.ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          style={{ opacity: entrance.opacity }}
+        >
+          {levels.map((level) => (
+            <View key={level.id} style={styles.levelBlock}>
+              <LevelCard level={level} />
+              {level.items.map((item) => (
+                <ItemCard key={item.id} item={item} onStart={onStart} />
+              ))}
             </View>
-            <View style={styles.heroText}>
-              <Text style={styles.heroKicker}>Good to see you</Text>
-              <Text style={styles.heroTitle}>
-                {goalHit ? 'Goal hit. Keep going?' : 'Ready to play?'}
-              </Text>
-              <Text style={styles.heroSub}>
-                {goalHit
-                  ? 'Bonus XP from here, plus a longer streak.'
-                  : `${Math.max(0, goal - earnedToday)} XP to keep the streak.`}
-              </Text>
-            </View>
-          </Animated.View>
-
-          {/* Up next */}
-          {current && (
-            <Animated.View
-              style={{ opacity: heroEntrance.opacity, transform: [{ translateY: heroEntrance.translateY }] }}
-            >
-              <PpCard variant="warm" style={styles.upNext} elevation="lg">
-                <View style={styles.upNextHead}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.kicker}>Up next · Grade {current.grade.id}</Text>
-                    <Text style={styles.lessonTitle}>{current.lesson.title}</Text>
-                    {current.lesson.subtitle && (
-                      <Text style={styles.lessonSub}>{current.lesson.subtitle}</Text>
-                    )}
-                  </View>
-                  <View style={styles.upNextMascot}>
-                    <HeroHalo size={104} color="#7CE62A">
-                      <MascotImage mood="happy" size={88} static />
-                    </HeroHalo>
-                  </View>
-                </View>
-                <ChunkyButton
-                  label="Start lesson"
-                  fullWidth
-                  haptic="bump"
-                  onPress={() =>
-                    nav.navigate('Lesson', { gradeId: current.grade.id, lessonId: current.lesson.id })
-                  }
-                />
-              </PpCard>
-            </Animated.View>
-          )}
-
-          {/* Journey */}
-          <Animated.View
-            style={{ opacity: listEntrance.opacity, transform: [{ translateY: listEntrance.translateY }] }}
-          >
-            <Text style={styles.sectionTitle}>Your journey</Text>
-            {grades.map((g) => {
-              const total = g.lessons.length;
-              const done = g.lessons.filter((l) => lessonProgress[l.id]?.status === 'completed').length;
-              const locked = total === 0;
-              const complete = !locked && done === total;
-              const pct = total === 0 ? 0 : done / total;
-              return (
-                <Pressable
-                  key={g.id}
-                  disabled={locked}
-                  onPress={() => {
-                    const next = g.lessons.find((l) => lessonProgress[l.id]?.status !== 'completed') ?? g.lessons[0];
-                    if (next) nav.navigate('Lesson', { gradeId: g.id, lessonId: next.id });
-                  }}
-                  style={({ pressed }) => [
-                    styles.gradeRow,
-                    pressed && { transform: [{ scale: 0.98 }] },
-                  ]}
-                >
-                  <LinearGradient
-                    colors={
-                      complete ? [Gradients.brand[0], Gradients.brand[1]] :
-                      locked ? ['#F0E5C8', '#E1D2A8'] :
-                      [Gradients.sky[0], Gradients.sky[1]]
-                    }
-                    style={styles.gradeNum}
-                  >
-                    <Text style={[styles.gradeNumText, locked && { color: Colors.ink500 }]}>{g.id}</Text>
-                  </LinearGradient>
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={styles.gradeTitle}>{g.title}</Text>
-                    <Text style={styles.gradeMeta}>
-                      {locked ? 'Coming soon' : complete ? 'Complete' : `${done}/${total} lessons`}
-                    </Text>
-                    {!locked && (
-                      <View style={styles.miniBar}>
-                        <View style={[styles.miniFill, { width: `${pct * 100}%` }]} />
-                      </View>
-                    )}
-                  </View>
-                  {complete && <Text style={styles.check}>✓</Text>}
-                </Pressable>
-              );
-            })}
-          </Animated.View>
-
+          ))}
+          <Text style={styles.mastery}>~ MASTERY ~</Text>
           <View style={{ height: Spacing['2xl'] }} />
-        </ScrollView>
+        </Animated.ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -176,74 +171,106 @@ export default function LearnScreen() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: Colors.cream50 },
-  headerBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 380 },
   safe: { flex: 1 },
-  scroll: { padding: Spacing.lg, gap: Spacing.lg },
 
-  hero: {
-    flexDirection: 'row',
+  // Header
+  header: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.inkLine,
     gap: Spacing.sm,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
   },
-  ringWrap: {
-    width: 168, height: 168,
-    alignItems: 'center', justifyContent: 'center',
-    marginLeft: -10,
+  headerTop: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  avatar: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#FFFFFF',
+    ...Elevation.sm,
   },
-  heroText: { flex: 1, gap: 2 },
-  heroKicker: {
-    color: Colors.brand,
-    fontSize: Fonts.sm,
-    fontWeight: Fonts.weight.bold,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-  },
-  heroTitle: { color: Colors.ink900, fontSize: Fonts.xl, fontWeight: Fonts.weight.black, marginTop: 2 },
-  heroSub: { color: Colors.ink500, fontSize: Fonts.base, marginTop: 4, lineHeight: 20 },
+  headerKicker: { fontSize: Fonts.xs, fontWeight: Fonts.weight.bold, color: Colors.ink500, letterSpacing: 2 },
+  headerTitle: { fontSize: Fonts.lg, fontWeight: Fonts.weight.black, color: Colors.ink900 },
+  bt: { fontSize: Fonts.xl, color: Colors.sky, fontWeight: Fonts.weight.black },
 
-  upNext: { gap: Spacing.md },
-  upNextHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  upNextMascot: { width: 104, height: 104, alignItems: 'center', justifyContent: 'center' },
-  kicker: {
-    fontSize: Fonts.sm,
-    fontWeight: Fonts.weight.bold,
-    color: Colors.brand,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+  statRow: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.sm },
+  statPill: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    backgroundColor: '#FFFFFF', borderRadius: Radii.pill,
+    paddingVertical: 7, borderWidth: 1, borderColor: Colors.inkLine,
   },
-  lessonTitle: { fontSize: Fonts.xl, fontWeight: Fonts.weight.black, color: Colors.ink900, marginTop: 2 },
-  lessonSub: { fontSize: Fonts.base, color: Colors.ink500, marginTop: 4, lineHeight: 20 },
+  statIcon: { fontSize: 15 },
+  statValue: { fontSize: Fonts.md, fontWeight: Fonts.weight.black },
 
-  sectionTitle: {
-    fontSize: Fonts.sm,
-    fontWeight: Fonts.weight.bold,
-    color: Colors.ink500,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
+  xpRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  flag: { fontSize: 14 },
+  xpTrack: { flex: 1, height: 12, backgroundColor: Colors.inkLine, borderRadius: 6, overflow: 'hidden' },
+  xpFill: { height: 12, backgroundColor: Colors.butter, borderRadius: 6 },
+  xpLabel: { fontSize: Fonts.sm, fontWeight: Fonts.weight.bold, color: Colors.ink500 },
 
-  gradeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: '#FFFFFF',
+  // Scroll
+  scroll: { padding: Spacing.lg, gap: Spacing.md },
+  levelBlock: { gap: Spacing.sm, marginBottom: Spacing.sm },
+
+  // Level card
+  levelCard: {
+    backgroundColor: Colors.butterBg,
     borderRadius: Radii.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    ...Elevation.sm,
+    padding: Spacing.lg,
+    gap: Spacing.sm,
   },
-  gradeNum: {
-    width: 48, height: 48, borderRadius: Radii.md,
+  levelHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  levelNum: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: Colors.rust, alignItems: 'center', justifyContent: 'center',
+  },
+  levelNumText: { color: '#FFFFFF', fontSize: Fonts.lg, fontWeight: Fonts.weight.black },
+  levelName: { flex: 1, fontSize: Fonts.xl, fontWeight: Fonts.weight.black, color: Colors.ink900 },
+  levelObjective: { fontSize: Fonts.md, color: Colors.ink700, lineHeight: 22, fontWeight: Fonts.weight.heavy },
+  durationChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: Radii.pill, paddingHorizontal: Spacing.md, paddingVertical: 5,
+    borderWidth: 1, borderColor: Colors.inkLine,
+  },
+  durationText: { fontSize: Fonts.sm, color: Colors.ink700, fontWeight: Fonts.weight.bold },
+
+  // Active item (START)
+  activeCard: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    backgroundColor: '#FFFFFF', borderRadius: Radii.lg, padding: Spacing.md,
+    borderWidth: 3, borderColor: Colors.butter,
+    ...Elevation.md,
+  },
+  activeIcon: {
+    width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.brand,
+    alignItems: 'center', justifyContent: 'center', ...Elevation.sm,
+  },
+  activeIconText: { fontSize: 24 },
+  activeTitle: { flex: 1, fontSize: Fonts.md, fontWeight: Fonts.weight.black, color: Colors.ink900 },
+
+  // Locked / soon / done item
+  lockedCard: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+    borderRadius: Radii.lg, padding: Spacing.md,
+    borderWidth: 1, borderColor: Colors.inkLine,
+  },
+  lockedIcon: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: '#E1D2A8',
     alignItems: 'center', justifyContent: 'center',
-    ...Elevation.sm,
   },
-  gradeNumText: { color: '#FFFFFF', fontWeight: Fonts.weight.black, fontSize: Fonts.lg },
-  gradeTitle: { fontSize: Fonts.md, fontWeight: Fonts.weight.bold, color: Colors.ink900 },
-  gradeMeta: { fontSize: Fonts.sm, color: Colors.ink500 },
-  miniBar: { height: 4, backgroundColor: Colors.inkLine, borderRadius: 2, overflow: 'hidden', marginTop: 2 },
-  miniFill: { height: 4, backgroundColor: Colors.brand, borderRadius: 2 },
-  check: { color: Colors.brand, fontSize: Fonts.xl, fontWeight: Fonts.weight.black },
+  doneIcon: { backgroundColor: Colors.brand },
+  lockedIconText: { fontSize: 18, color: '#FFFFFF', fontWeight: Fonts.weight.black },
+  lockedTitle: { flex: 1, fontSize: Fonts.md, fontWeight: Fonts.weight.bold, color: Colors.ink500 },
+  doneTitle: { color: Colors.ink900 },
+  soonChip: {
+    backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.md, paddingVertical: 4, borderWidth: 1, borderColor: Colors.inkLine,
+  },
+  soonText: { fontSize: Fonts.xs, fontWeight: Fonts.weight.black, color: Colors.ink500, letterSpacing: 1 },
+
+  mastery: {
+    textAlign: 'center', fontSize: Fonts.md, fontWeight: Fonts.weight.black,
+    color: Colors.ink300, letterSpacing: 3, marginTop: Spacing.lg,
+  },
 });

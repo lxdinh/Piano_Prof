@@ -115,6 +115,26 @@ export async function preloadCore(): Promise<void> {
   }
 }
 
+/** Play notes one after another, spaced by `gapMs`. */
+export async function playSequence(midis: number[], gapMs = 0): Promise<void> {
+  if (!enabled) return;
+  await ensureMode();
+  for (let i = 0; i < midis.length; i++) {
+    void playMidi(midis[i]);
+    if (gapMs > 0 && i < midis.length - 1) {
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, gapMs));
+    }
+  }
+}
+
+/** Stop any currently-ringing notes (e.g. when a lesson is interrupted). */
+export async function stopAll(): Promise<void> {
+  await Promise.all(
+    Array.from(cache.values()).map((s) => s.stopAsync().catch(() => undefined)),
+  );
+}
+
 /** Release every loaded sound (call on app teardown if needed). */
 export async function unloadAll(): Promise<void> {
   const sounds = Array.from(cache.values());

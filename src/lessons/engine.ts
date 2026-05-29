@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Lesson, LessonSegment, QuizSegment } from './schema';
 import { notesToMidi } from './noteToMidi';
 import { COLOR_HEX, hexToRgb } from './colors';
-import { playChord, playSequence, stopAll } from '../audio/pianoSamples';
+import { playChord, playSequence, stopAll } from '../audio/pianoEngine';
 import { speak, stopSpeaking } from '../audio/instructorVoice';
 import { useBLEContext } from '../ble/BLEContext';
 import { useMidiToLed } from './midiToLed';
@@ -10,7 +10,8 @@ import {
   cmdSetMulti, cmdClearAll, cmdCommit, cmdSuccessBurst,
 } from '../ble/protocol';
 
-export type EngineStatus = 'idle' | 'playing' | 'awaiting-quiz' | 'complete';
+export type EngineStatus =
+  | 'idle' | 'playing' | 'awaiting-quiz' | 'awaiting-continue' | 'complete';
 
 export interface EngineState {
   status: EngineStatus;
@@ -28,6 +29,10 @@ export interface UseLessonEngine extends EngineState {
   start: () => void;
   /** Call when the learner has played the quiz target. */
   submitQuiz: (correct: boolean) => void;
+  /** Advance past the between-steps gate to the next step. */
+  continueLesson: () => void;
+  /** Re-run the current step (replays its narration + demo). */
+  replayStep: () => void;
   stop: () => void;
 }
 
@@ -56,6 +61,10 @@ export function useLessonEngine(
   const runToken = useRef(0);
   // Quiz resolver: the runner awaits this promise while status is awaiting-quiz.
   const quizResolver = useRef<((correct: boolean) => void) | null>(null);
+  // Continue resolver: the runner awaits this between steps.
+  const continueResolver = useRef<((action: 'next' | 'replay') => void) | null>(null);
+  // The quiz currently on screen, so REPLAY can re-light/replay its target.
+  const activeQuiz = useRef<QuizSegment | null>(null);
   const heartsRef = useRef(START_HEARTS);
   const xpRef = useRef(0);
 
@@ -112,7 +121,7 @@ export function useLessonEngine(
           setState((s) => ({ ...s, litNotes: midi, litColor: hex }));
           await Promise.all([
             lightKeys(midi, hex),
-            playChord(midi, seg.wait ?? 1500),
+            playChord(midi, 16),
           ]);
           await delay(seg.wait ?? 1500);
           setState((s) => ({ ...s, litNotes: [] }));
@@ -143,6 +152,7 @@ export function useLessonEngine(
         case 'quiz': {
           const midi = notesToMidi(seg.expect);
           const hex = COLOR_HEX[seg.color ?? 'yellow'];
+          activeQuiz.current = seg;
           setState((s) => ({
             ...s,
             status: 'awaiting-quiz',
@@ -157,6 +167,7 @@ export function useLessonEngine(
             quizResolver.current = resolve;
           });
           quizResolver.current = null;
+          activeQuiz.current = null;
           if (!alive()) return false;
 
           if (correct) {
@@ -191,6 +202,20 @@ export function useLessonEngine(
     [lightKeys, clearKeys, ble, opts],
   );
 
+  // Run one step's segments end-to-end. Returns false if cancelled/out-of-hearts.
+  const runStep = useCallback(
+    async (si: number, token: number): Promise<boolean> => {
+      if (!lesson) return false;
+      setState((s) => ({ ...s, stepIndex: si, status: 'playing', caption: '', litNotes: [] }));
+      for (const seg of lesson.steps[si].segments) {
+        const ok = await runSegment(seg, token);
+        if (!ok) return false;
+      }
+      return true;
+    },
+    [lesson, runSegment],
+  );
+
   const start = useCallback(() => {
     if (!lesson) return;
     const token = ++runToken.current;
@@ -209,30 +234,60 @@ export function useLessonEngine(
     }));
 
     (async () => {
-      for (let si = 0; si < lesson.steps.length; si++) {
+      let si = 0;
+      while (si < lesson.steps.length) {
         if (token !== runToken.current) return;
-        setState((s) => ({ ...s, stepIndex: si }));
-        for (const seg of lesson.steps[si].segments) {
-          const ok = await runSegment(seg, token);
-          if (!ok) return;
-        }
+        const ok = await runStep(si, token);
+        if (!ok) return;
+
+        // Last step → complete. Otherwise gate on CONTINUE / REPLAY.
+        if (si + 1 >= lesson.steps.length) break;
+
+        setState((s) => ({ ...s, status: 'awaiting-continue', litNotes: [] }));
+        const action = await new Promise<'next' | 'replay'>((resolve) => {
+          continueResolver.current = resolve;
+        });
+        continueResolver.current = null;
+        if (token !== runToken.current) return;
+        if (action === 'next') si += 1;
+        // 'replay' keeps si unchanged so the same step runs again
       }
+
       if (token !== runToken.current) return;
       const totalXp = lesson.xpReward + xpRef.current;
       xpRef.current = totalXp;
       setState((s) => ({ ...s, status: 'complete', earnedXp: totalXp, caption: lesson.complete }));
       opts.onComplete?.(totalXp);
     })();
-  }, [lesson, runSegment, opts]);
+  }, [lesson, runStep, opts]);
 
   const submitQuiz = useCallback((correct: boolean) => {
     quizResolver.current?.(correct);
+  }, []);
+
+  const continueLesson = useCallback(() => {
+    continueResolver.current?.('next');
+  }, []);
+
+  const replayStep = useCallback(() => {
+    // Between steps: re-run the step. During a quiz: re-light + replay target.
+    if (continueResolver.current) {
+      continueResolver.current('replay');
+      return;
+    }
+    const q = activeQuiz.current;
+    if (q) {
+      const midi = notesToMidi(q.expect);
+      void playChord(midi, 16);
+    }
   }, []);
 
   const stop = useCallback(() => {
     runToken.current++;
     quizResolver.current?.(false);
     quizResolver.current = null;
+    continueResolver.current?.('next');
+    continueResolver.current = null;
     stopSpeaking();
     stopAll();
     clearKeys();
@@ -244,12 +299,13 @@ export function useLessonEngine(
     return () => {
       runToken.current++;
       quizResolver.current?.(false);
+      continueResolver.current?.('next');
       stopSpeaking();
       stopAll();
     };
   }, []);
 
-  return { ...state, start, submitQuiz, stop };
+  return { ...state, start, submitQuiz, continueLesson, replayStep, stop };
 }
 
 function delay(ms: number): Promise<void> {
