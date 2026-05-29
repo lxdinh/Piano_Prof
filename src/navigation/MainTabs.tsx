@@ -6,20 +6,18 @@ import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/b
 import { MainTabsParamList } from './types';
 import { Colors, Fonts, Spacing, Gradients, Elevation, Motion } from '../theme/tokens';
 import LearnScreen from '../screens/LearnScreen';
-import PathScreen from '../screens/PathScreen';
 import SongbookScreen from '../screens/SongbookScreen';
+import PracticeScreen from '../screens/PracticeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import SettingsScreen from '../screens/SettingsScreen';
 import * as haptics from '../feedback/haptics';
 
 const Tab = createBottomTabNavigator<MainTabsParamList>();
 
 const TABS: { name: keyof MainTabsParamList; icon: string; label: string }[] = [
-  { name: 'Learn',    icon: '𝄞', label: 'Learn' },
-  { name: 'Path',     icon: '🪜', label: 'Path' },
-  { name: 'Songbook', icon: '🎵', label: 'Songbook' },
+  { name: 'Learn',    icon: '🎵', label: 'Learn' },
+  { name: 'Sheet',    icon: '🎼', label: 'Sheet' },
+  { name: 'Practice', icon: '🎹', label: 'Practice' },
   { name: 'Profile',  icon: '🐧', label: 'Profile' },
-  { name: 'Settings', icon: '⚙️', label: 'Settings' },
 ];
 
 // Custom tab bar with a "soap-bar" highlight that slides between tabs,
@@ -125,10 +123,9 @@ export default function MainTabs() {
 
 const SCREENS: Record<keyof MainTabsParamList, React.ComponentType<any>> = {
   Learn: LearnScreen,
-  Path: PathScreen,
-  Songbook: SongbookScreen,
+  Sheet: SongbookScreen,
+  Practice: PracticeScreen,
   Profile: ProfileScreen,
-  Settings: SettingsScreen,
 };
 
 const styles = StyleSheet.create({

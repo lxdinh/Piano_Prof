@@ -87,21 +87,31 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       # ── Parse install URL from JSON output ───────────────────────
+      # eas build --no-wait prints "See logs: <url>" once and emits a JSON
+      # array. We extract the build details page URL from either source.
       - name: Extract build URL
         run: |
-          # The last valid JSON object in the log is the build submission response
-          BUILD_URL=$(grep -o '"buildDetailsPageUrl":"[^"]*"' .build-info/last-build.log \
-            | tail -1 | cut -d'"' -f4) || true
-          INSTALL_URL=$(grep -o '"url":"[^"]*expo\.dev[^"]*"' .build-info/last-build.log \
-            | tail -1 | cut -d'"' -f4) || true
+          # Primary: the "See logs:" line printed by eas-cli
+          BUILD_URL=$(grep -oE 'https://expo\.dev/accounts/[A-Za-z0-9_-]+/projects/[A-Za-z0-9_-]+/builds/[A-Za-z0-9-]+' \
+            .build-info/last-build.log | head -1) || true
 
-          echo "BUILD_URL=${BUILD_URL}"   >> "$GITHUB_OUTPUT"
-          echo "INSTALL_URL=${INSTALL_URL}" >> "$GITHUB_OUTPUT"
+          # Fallback: reconstruct from the JSON id + ownerAccount.name
+          if [ -z "$BUILD_URL" ]; then
+            BUILD_ID=$(grep -oE '"id":\s*"[a-f0-9-]+"' .build-info/last-build.log | head -1 | cut -d'"' -f4)
+            OWNER=$(grep -oE '"ownerAccount":\s*\{[^}]*"name":\s*"[^"]+"' .build-info/last-build.log | head -1 | grep -oE '"name":\s*"[^"]+"' | cut -d'"' -f4)
+            if [ -n "$BUILD_ID" ] && [ -n "$OWNER" ]; then
+              BUILD_URL="https://expo.dev/accounts/${OWNER}/projects/piano-professor/builds/${BUILD_ID}"
+            fi
+          fi
+
+          echo "BUILD_URL=${BUILD_URL}" >> "$GITHUB_OUTPUT"
 
           {
             echo "Build submitted: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo "Details: ${BUILD_URL}"
-            echo "Install: ${INSTALL_URL}"
+            echo "Build page: ${BUILD_URL}"
+            echo ""
+            echo "Open the build page on your Android phone. When status = finished,"
+            echo "tap the green Install button to download the APK."
           } > .build-info/last-build-url.txt
 
       # ── Commit logs + URL back to repo ───────────────────────────

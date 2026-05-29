@@ -3,7 +3,7 @@
     "name": "Piano Professor",
     "slug": "piano-professor",
     "version": "0.6.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,

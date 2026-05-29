@@ -2,10 +2,9 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type MainTabsParamList = {
   Learn: undefined;
-  Path: undefined;
-  Songbook: undefined;
+  Sheet: undefined;
+  Practice: undefined;
   Profile: undefined;
-  Settings: undefined;
 };
 
 export type RootStackParamList = {
@@ -17,6 +16,7 @@ export type RootStackParamList = {
   VoiceSettings: undefined;
   OmrImport: undefined;
   Paywall: undefined;
+  Settings: undefined;
 };
 
 declare global {
