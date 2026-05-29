@@ -11,6 +11,9 @@ import PpCard from '../components/PpCard';
 import ChunkyButton from '../components/ChunkyButton';
 import DailyGoalRing from '../components/DailyGoalRing';
 import MascotImage from '../components/MascotImage';
+import HeroHalo from '../components/HeroHalo';
+import FloatingNotes from '../components/FloatingNotes';
+import Sparkles from '../components/Sparkles';
 import { listGrades } from '../lessons/loader';
 import { useUser } from '../gamification/UserProvider';
 import { useEntrance } from '../feedback/motion';
@@ -39,14 +42,19 @@ export default function LearnScreen() {
 
   const goal = profile?.settings.dailyGoalXp ?? 50;
   const earnedToday = todayActivity?.xpEarned ?? 0;
+  const goalHit = earnedToday >= goal;
 
   return (
     <View style={styles.bg}>
-      {/* Warm paper gradient header backdrop */}
-      <LinearGradient
-        colors={[Gradients.paper[0], Gradients.paper[1]]}
-        style={styles.headerBg}
-      />
+      {/* Warm paper gradient header backdrop + ambient notes */}
+      <View style={styles.headerBg}>
+        <LinearGradient
+          colors={['#FFFDF6', '#FFF3CC', '#FFE6BA']}
+          locations={[0, 0.6, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <FloatingNotes active count={3} travel={300} startBottom={40} glyphSize={26} maxOpacity={0.35} />
+      </View>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <TopStatsBar title="Learn" />
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -57,14 +65,19 @@ export default function LearnScreen() {
               { opacity: heroEntrance.opacity, transform: [{ translateY: heroEntrance.translateY }] },
             ]}
           >
-            <DailyGoalRing earnedToday={earnedToday} goal={goal} size={140} />
+            <View style={styles.ringWrap}>
+              <HeroHalo size={172} color={goalHit ? '#7CE62A' : '#FFD86B'}>
+                <DailyGoalRing earnedToday={earnedToday} goal={goal} size={140} />
+              </HeroHalo>
+              {goalHit && <Sparkles />}
+            </View>
             <View style={styles.heroText}>
               <Text style={styles.heroKicker}>Good to see you</Text>
               <Text style={styles.heroTitle}>
-                {earnedToday >= goal ? 'Goal hit. Keep going?' : 'Ready to play?'}
+                {goalHit ? 'Goal hit. Keep going?' : 'Ready to play?'}
               </Text>
               <Text style={styles.heroSub}>
-                {earnedToday >= goal
+                {goalHit
                   ? 'Bonus XP from here, plus a longer streak.'
                   : `${Math.max(0, goal - earnedToday)} XP to keep the streak.`}
               </Text>
@@ -85,7 +98,11 @@ export default function LearnScreen() {
                       <Text style={styles.lessonSub}>{current.lesson.subtitle}</Text>
                     )}
                   </View>
-                  <MascotImage mood="happy" size={88} static />
+                  <View style={styles.upNextMascot}>
+                    <HeroHalo size={104} color="#7CE62A">
+                      <MascotImage mood="happy" size={88} static />
+                    </HeroHalo>
+                  </View>
                 </View>
                 <ChunkyButton
                   label="Start lesson"
@@ -165,9 +182,14 @@ const styles = StyleSheet.create({
 
   hero: {
     flexDirection: 'row',
-    gap: Spacing.lg,
+    gap: Spacing.sm,
     alignItems: 'center',
     paddingVertical: Spacing.sm,
+  },
+  ringWrap: {
+    width: 168, height: 168,
+    alignItems: 'center', justifyContent: 'center',
+    marginLeft: -10,
   },
   heroText: { flex: 1, gap: 2 },
   heroKicker: {
@@ -182,6 +204,7 @@ const styles = StyleSheet.create({
 
   upNext: { gap: Spacing.md },
   upNextHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  upNextMascot: { width: 104, height: 104, alignItems: 'center', justifyContent: 'center' },
   kicker: {
     fontSize: Fonts.sm,
     fontWeight: Fonts.weight.bold,

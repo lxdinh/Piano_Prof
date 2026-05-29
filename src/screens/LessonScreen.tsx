@@ -11,6 +11,8 @@ import HeartsRow from '../components/HeartsRow';
 import PianoKeyboard from '../components/PianoKeyboard';
 import XpBar from '../components/XpBar';
 import MascotImage, { MascotMood } from '../components/MascotImage';
+import HeroHalo from '../components/HeroHalo';
+import FloatingNotes from '../components/FloatingNotes';
 import { getLesson } from '../lessons/loader';
 import { getImportedLesson } from '../lessons/importedLessons';
 import { useLessonEngine } from '../lessons/engine';
@@ -34,6 +36,19 @@ function moodForStatus(status: string, captionLen: number): MascotMood {
   if (status === 'complete') return 'trophy';
   if (captionLen > 80) return 'wave';
   return 'happy';
+}
+
+// Halo tint follows the mascot's emotional state so the whole stage reacts.
+function haloForMood(mood: MascotMood): string {
+  switch (mood) {
+    case 'cheer':
+    case 'trophy':
+    case 'wow':   return '#FFD86B'; // gold celebration
+    case 'shocked': return '#FF6B6B'; // alarm red
+    case 'thinking': return '#7FCBEF'; // cool focus blue
+    case 'sad':   return '#8A93A6'; // muted
+    default:      return '#7CE62A'; // brand green
+  }
 }
 
 export default function LessonScreen() {
@@ -158,6 +173,16 @@ export default function LessonScreen() {
   return (
     <View style={styles.bg}>
       <LinearGradient colors={[Gradients.dark[0], Gradients.dark[1]]} style={StyleSheet.absoluteFill} />
+      {/* Subtle ambient notes drifting up the dark stage */}
+      <FloatingNotes
+        active={engine.status === 'playing'}
+        count={4}
+        travel={340}
+        startBottom={220}
+        glyphSize={22}
+        maxOpacity={0.16}
+        colors={['#7CE62A', '#7FCBEF', '#FFD86B', '#A78BFA']}
+      />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         {/* Top bar */}
@@ -173,7 +198,11 @@ export default function LessonScreen() {
 
         {/* Stage: mascot + caption card */}
         <View style={styles.stage}>
-          <MascotImage mood={mascotMood} size={108} />
+          <View style={styles.mascotWrap}>
+            <HeroHalo size={184} color={haloForMood(mascotMood)}>
+              <MascotImage mood={mascotMood} size={120} />
+            </HeroHalo>
+          </View>
           <Animated.View style={[styles.captionCard, { transform: [{ translateX: shake.translateX }] }]}>
             <Text style={styles.caption}>{engine.caption || lesson.title}</Text>
           </Animated.View>
@@ -238,9 +267,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.lg,
+    gap: Spacing.sm,
     paddingHorizontal: Spacing.xl,
   },
+  mascotWrap: { width: 184, height: 184, alignItems: 'center', justifyContent: 'center' },
   captionCard: {
     backgroundColor: 'rgba(255,255,255,0.07)',
     borderColor: 'rgba(255,255,255,0.10)',

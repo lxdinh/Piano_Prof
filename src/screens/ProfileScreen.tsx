@@ -8,6 +8,8 @@ const HERO_BANNER = require('../../assets/mascots/hero-happy.png');
 import { Colors, Fonts, Radii, Spacing, Elevation, Gradients } from '../theme/tokens';
 import PpCard from '../components/PpCard';
 import MascotImage from '../components/MascotImage';
+import HeroHalo from '../components/HeroHalo';
+import Sparkles from '../components/Sparkles';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { useUser } from '../gamification/UserProvider';
 import { useAchievements } from '../gamification/UserProvider';
@@ -46,8 +48,13 @@ export default function ProfileScreen() {
               { opacity: heroEntrance.opacity, transform: [{ translateY: heroEntrance.translateY }] },
             ]}
           >
-            <View style={styles.mascotRing}>
-              <MascotImage mood="cool" size={120} />
+            <View style={styles.avatarWrap}>
+              <HeroHalo size={196} color="#5BB8E3">
+                <View style={styles.mascotRing}>
+                  <MascotImage mood="cool" size={120} />
+                </View>
+              </HeroHalo>
+              <Sparkles />
             </View>
             <Text style={styles.name}>{profile?.displayName ?? 'Pianist'}</Text>
             <View style={styles.gradePill}>
@@ -128,9 +135,10 @@ const styles = StyleSheet.create({
   heroWrap: {
     alignItems: 'center',
     gap: Spacing.xs,
-    marginTop: 96,            // push the avatar down so it overlaps the banner's lower edge
+    marginTop: 72,            // push the avatar down so it overlaps the banner's lower edge
     paddingBottom: Spacing.md,
   },
+  avatarWrap: { width: 196, height: 196, alignItems: 'center', justifyContent: 'center' },
   mascotRing: {
     width: 132, height: 132, borderRadius: 66,
     backgroundColor: '#FFFFFF',
