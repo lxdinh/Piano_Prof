@@ -4,27 +4,27 @@ No environment variables with visibility "Plain text" and "Sensitive" found for 
 
 
 ✔ Using remote Android credentials (Expo server)
-✔ Created keystore
+✔ Using Keystore from configuration: Build Credentials QPYTZLjOXq (default)
 
 Compressing project files and uploading to EAS Build. Learn more: https://expo.fyi/eas-build-archive
 - Compressing project files
-Your project archive is 209 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
-- Uploading to EAS Build (0 / 209 MB)
-✔ Uploaded to EAS 2s
+Your project archive is 216 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
+- Uploading to EAS Build (0 / 216 MB)
+✔ Uploaded to EAS 1s
 - Computing project fingerprint
 ✔ Computed project fingerprint
 
-See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/3846d90d-2e1d-4e27-a9c9-8f3c97167812
+See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/a785d65f-2993-4f4b-87fc-53f51103a377
 
 [
   {
-    "id": "3846d90d-2e1d-4e27-a9c9-8f3c97167812",
+    "id": "a785d65f-2993-4f4b-87fc-53f51103a377",
     "status": "NEW",
     "platform": "ANDROID",
     "artifacts": {},
     "fingerprint": {
-      "id": "019e7104-5e23-706f-909a-0f3fa51bb2ec",
-      "hash": "d98d0277f85fcf91d935fb086ffef9cde6ae3992"
+      "id": "019e73ed-1942-7ede-9bdf-9cb4b9e99616",
+      "hash": "dac92aaa632c942cda807661778353e729dc10ef"
     },
     "initiatingActor": {
       "id": "5c2cd7db-c8da-460c-935c-f67522076ae0",
@@ -45,12 +45,12 @@ See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/3846d
     "sdkVersion": "52.0.0",
     "appVersion": "0.6.0",
     "appBuildVersion": "7",
-    "gitCommitHash": "477050e17176892109560d8d8e35395ea99668e6",
-    "gitCommitMessage": "chore: add EAS projectId to app.json [skip ci]",
+    "gitCommitHash": "dd65929dcbfeb3f632fee4cf9731e41e7b9a36b0",
+    "gitCommitMessage": "Landscape lessons, full playable piano, 4-tab pathway app\n\nAdds 4-tab pathway app (Learn / Sheet / Practice / Profile), landscape lessons with REPLAY/CONTINUE, offline piano sample engine (49 WAV notes, C2-C6, polyphonic via expo-av), Kindergarten-Master pathway data layer, welcome screen polish (halo + sparkles + floating notes + Beethoven-penguin hero), and CI fix to parse EAS build URLs from \"See logs:\" output.",
     "priority": "NORMAL",
-    "createdAt": "2026-05-28T23:56:12.115Z",
-    "updatedAt": "2026-05-28T23:56:12.115Z",
-    "expirationDate": "2026-06-11T23:56:12.176Z",
+    "createdAt": "2026-05-29T13:29:38.776Z",
+    "updatedAt": "2026-05-29T13:29:38.776Z",
+    "expirationDate": "2026-06-12T13:29:38.871Z",
     "isForIosSimulator": false
   }
 ]
