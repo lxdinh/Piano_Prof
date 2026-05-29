@@ -8,11 +8,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { Colors, Fonts, Spacing, LedColors, Gradients } from '../theme/tokens';
+import { Colors, Fonts, Spacing, LedColors, Gradients, Radii, Elevation } from '../theme/tokens';
 import ChunkyButton from '../components/ChunkyButton';
 import LedStripArt from '../components/LedStripArt';
 import PianoKeyboard from '../components/PianoKeyboard';
 import MascotImage from '../components/MascotImage';
+import HeroHalo from '../components/HeroHalo';
+import FloatingNotes from '../components/FloatingNotes';
+import Sparkles from '../components/Sparkles';
 import { useEntrance } from '../feedback/motion';
 import { setBool } from '../storage/settings';
 
@@ -21,7 +24,6 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 const { width: SCREEN_W } = Dimensions.get('window');
 const PAGES = 3;
 
-// Canon-in-D sweep — the C major arpeggio rotated through the strip.
 const SWEEP_NOTES = [60, 64, 67, 72, 76, 79, 84];
 
 function useLightSweep(count: number, active: boolean): string[] {
@@ -50,13 +52,9 @@ function useLightSweep(count: number, active: boolean): string[] {
 function useChordLoop(active: boolean): number[] {
   const [lit, setLit] = useState<number[]>([]);
   useEffect(() => {
-    if (!active) {
-      setLit([]);
-      return;
-    }
+    if (!active) { setLit([]); return; }
     let phase = 0;
     const id = setInterval(() => {
-      // Cycle: single note → chord → release
       if (phase === 0) setLit([60]);
       else if (phase === 1) setLit([60, 64]);
       else if (phase === 2) setLit([60, 64, 67]);
@@ -74,41 +72,79 @@ interface PageProps {
   pageIndex: number;
 }
 
+// ── Page 1: meet the teacher ───────────────────────────────────
 function Page1({ active }: PageProps) {
   const sweep = useLightSweep(24, active);
   const entrance = useEntrance(active ? 100 : 0);
 
   return (
     <View style={styles.page}>
-      <Animated.View style={[styles.pageInner, { opacity: entrance.opacity, transform: [{ translateY: entrance.translateY }] }]}>
-        <MascotImage mood="wave" size={170} />
-        <Text style={styles.title}>Meet your AI piano teacher</Text>
-        <Text style={styles.subtitle}>Learn real songs, fast. Chords first. No sheet music required.</Text>
-        <View style={styles.demoBox}>
-          <LedStripArt count={24} width={300} height={70} ledColors={sweep} />
+      <Animated.View
+        style={[
+          styles.pageInner,
+          { opacity: entrance.opacity, transform: [{ translateY: entrance.translateY }] },
+        ]}
+      >
+        <View style={styles.heroBox}>
+          <HeroHalo size={340} color="#FFD86B">
+            <View style={styles.mascotPlate}>
+              <MascotImage mood="wave" size={200} />
+            </View>
+          </HeroHalo>
+          <Sparkles />
+        </View>
+
+        <View style={styles.copyBlock}>
+          <Text style={styles.kicker}>WELCOME</Text>
+          <Text style={styles.title}>Meet your{'\n'}AI piano teacher</Text>
+          <Text style={styles.subtitle}>
+            Real songs, fast. Chords first. No sheet music required.
+          </Text>
+        </View>
+
+        <View style={styles.demoCard}>
+          <Text style={styles.demoLabel}>YOUR LED STRIP</Text>
+          <LedStripArt count={24} width={Math.min(SCREEN_W - 88, 300)} height={56} ledColors={sweep} />
         </View>
       </Animated.View>
     </View>
   );
 }
 
+// ── Page 2: keys light up ──────────────────────────────────────
 function Page2({ active }: PageProps) {
   const lit = useChordLoop(active);
   const entrance = useEntrance(active ? 100 : 0);
 
   return (
     <View style={styles.page}>
-      <Animated.View style={[styles.pageInner, { opacity: entrance.opacity, transform: [{ translateY: entrance.translateY }] }]}>
-        <MascotImage mood="thinking" size={130} />
-        <Text style={styles.title}>Your keys light up</Text>
-        <Text style={styles.subtitle}>Pair the LED strip above your piano. Watch which keys to play — and play them.</Text>
-        <View style={styles.demoBox}>
+      <Animated.View
+        style={[
+          styles.pageInner,
+          { opacity: entrance.opacity, transform: [{ translateY: entrance.translateY }] },
+        ]}
+      >
+        <View style={styles.heroBoxSmall}>
+          <HeroHalo size={240} color="#A3D8F0">
+            <MascotImage mood="thinking" size={140} />
+          </HeroHalo>
+        </View>
+
+        <View style={styles.copyBlock}>
+          <Text style={[styles.kicker, { color: Colors.sky }]}>STEP 2</Text>
+          <Text style={styles.title}>Your keys{'\n'}light up</Text>
+          <Text style={styles.subtitle}>
+            Pair your LED strip. Watch which keys to play — then play them.
+          </Text>
+        </View>
+
+        <View style={styles.demoCard}>
           <PianoKeyboard
             litNotes={lit}
             litColor={Colors.brand}
             showLeds
-            width={320}
-            height={170}
+            width={Math.min(SCREEN_W - 80, 320)}
+            height={160}
             startMidi={60}
             whiteKeys={11}
           />
@@ -118,25 +154,56 @@ function Page2({ active }: PageProps) {
   );
 }
 
+// ── Page 3: streak, XP, gems, badges ───────────────────────────
 function Page3({ active }: PageProps) {
   const entrance = useEntrance(active ? 100 : 0);
+
   return (
     <View style={styles.page}>
-      <Animated.View style={[styles.pageInner, { opacity: entrance.opacity, transform: [{ translateY: entrance.translateY }] }]}>
-        <MascotImage mood="cheer" size={170} />
-        <Text style={styles.title}>A streak a day</Text>
-        <Text style={styles.subtitle}>5 minutes, every day. Earn XP, climb the path, never stop a streak.</Text>
+      <Animated.View
+        style={[
+          styles.pageInner,
+          { opacity: entrance.opacity, transform: [{ translateY: entrance.translateY }] },
+        ]}
+      >
+        <View style={styles.heroBox}>
+          <HeroHalo size={340} color="#7CE62A">
+            <View style={styles.mascotPlate}>
+              <MascotImage mood="cheer" size={200} />
+            </View>
+          </HeroHalo>
+          <Sparkles />
+        </View>
+
+        <View style={styles.copyBlock}>
+          <Text style={[styles.kicker, { color: Colors.brand }]}>EVERY DAY</Text>
+          <Text style={styles.title}>5 minutes.{'\n'}Don't break the streak.</Text>
+          <Text style={styles.subtitle}>
+            Earn XP, climb the path, unlock songs.
+          </Text>
+        </View>
+
         <View style={styles.statRow}>
-          <View style={styles.statBlob}><Text style={styles.statIcon}>🔥</Text><Text style={styles.statLabel}>Streak</Text></View>
-          <View style={styles.statBlob}><Text style={styles.statIcon}>⭐</Text><Text style={styles.statLabel}>XP</Text></View>
-          <View style={styles.statBlob}><Text style={styles.statIcon}>💎</Text><Text style={styles.statLabel}>Gems</Text></View>
-          <View style={styles.statBlob}><Text style={styles.statIcon}>🏆</Text><Text style={styles.statLabel}>Badges</Text></View>
+          {[
+            { icon: '🔥', label: 'Streak',  tint: '#FF7A52' },
+            { icon: '⭐', label: 'XP',     tint: '#F5B800' },
+            { icon: '💎', label: 'Gems',   tint: '#5BB8E3' },
+            { icon: '🏆', label: 'Badges', tint: '#58CC02' },
+          ].map((s) => (
+            <View key={s.label} style={styles.statBlob}>
+              <View style={[styles.statBubble, { backgroundColor: s.tint + '22', borderColor: s.tint }]}>
+                <Text style={styles.statIcon}>{s.icon}</Text>
+              </View>
+              <Text style={styles.statLabel}>{s.label}</Text>
+            </View>
+          ))}
         </View>
       </Animated.View>
     </View>
   );
 }
 
+// ── Container ──────────────────────────────────────────────────
 export default function OnboardingScreen() {
   const nav = useNavigation<Nav>();
   const [page, setPage] = useState(0);
@@ -162,7 +229,16 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <LinearGradient colors={[Gradients.paper[0], Gradients.paper[1]]} style={styles.bg}>
+    <View style={styles.bg}>
+      {/* Cream paper base */}
+      <LinearGradient
+        colors={['#FFFDF6', '#FFF3CC', '#FFE6BA']}
+        locations={[0, 0.55, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* Ambient music notes drifting up across the whole stack */}
+      <FloatingNotes active count={5} />
+
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <ScrollView
           ref={scrollRef}
@@ -183,10 +259,7 @@ export default function OnboardingScreen() {
             {Array.from({ length: PAGES }).map((_, i) => (
               <View
                 key={i}
-                style={[
-                  styles.dot,
-                  i === page && styles.dotActive,
-                ]}
+                style={[styles.dot, i === page && styles.dotActive]}
               />
             ))}
           </View>
@@ -201,24 +274,108 @@ export default function OnboardingScreen() {
           )}
         </View>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
+  bg: { flex: 1, backgroundColor: Colors.cream50 },
   safe: { flex: 1 },
   scroll: { flex: 1 },
   page: { width: SCREEN_W, flex: 1 },
-  pageInner: { flex: 1, padding: Spacing.xl, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg },
-  title: { fontSize: Fonts['2xl'], fontWeight: Fonts.weight.black, color: Colors.ink900, textAlign: 'center', paddingHorizontal: Spacing.lg },
-  subtitle: { fontSize: Fonts.md, color: Colors.ink700, textAlign: 'center', paddingHorizontal: Spacing.xl, lineHeight: 24 },
-  demoBox: { marginTop: Spacing.lg, alignItems: 'center' },
-  statRow: { flexDirection: 'row', gap: Spacing.lg, marginTop: Spacing.md },
-  statBlob: { alignItems: 'center', gap: 4 },
-  statIcon: { fontSize: 32 },
+  pageInner: {
+    flex: 1,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+  },
+
+  // Hero
+  heroBox: {
+    width: 340, height: 340,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  heroBoxSmall: {
+    width: 240, height: 240,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  mascotPlate: {
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  // Copy
+  copyBlock: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  kicker: {
+    fontSize: Fonts.sm,
+    fontWeight: Fonts.weight.black,
+    color: Colors.butterDark,
+    letterSpacing: 2.5,
+  },
+  title: {
+    fontSize: Fonts['3xl'],
+    fontWeight: Fonts.weight.black,
+    color: Colors.ink900,
+    textAlign: 'center',
+    lineHeight: 38,
+    paddingHorizontal: Spacing.sm,
+  },
+  subtitle: {
+    fontSize: Fonts.md,
+    color: Colors.ink700,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.md,
+    lineHeight: 24,
+    fontWeight: Fonts.weight.heavy,
+  },
+
+  // Demo
+  demoCard: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: Radii.xl,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.inkLine,
+    ...Elevation.md,
+  },
+  demoLabel: {
+    fontSize: Fonts.xs,
+    fontWeight: Fonts.weight.black,
+    color: Colors.ink500,
+    letterSpacing: 1.8,
+  },
+
+  // Stats (page 3)
+  statRow: {
+    flexDirection: 'row',
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+  },
+  statBlob: { alignItems: 'center', gap: 6 },
+  statBubble: {
+    width: 56, height: 56, borderRadius: 28,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2,
+    ...Elevation.sm,
+  },
+  statIcon: { fontSize: 28 },
   statLabel: { fontSize: Fonts.sm, fontWeight: Fonts.weight.bold, color: Colors.ink700 },
-  footer: { padding: Spacing.xl, gap: Spacing.md, alignItems: 'center' },
+
+  // Footer
+  footer: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    paddingTop: Spacing.md,
+    gap: Spacing.md,
+    alignItems: 'center',
+  },
   dots: { flexDirection: 'row', gap: 8, marginBottom: Spacing.sm },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.inkLine },
   dotActive: { backgroundColor: Colors.brand, width: 24 },

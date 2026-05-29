@@ -26,7 +26,7 @@ interface Props {
 // To add a mood image, uncomment the corresponding line.
 const PNG_SOURCES: Partial<Record<MascotMood, ImageSourcePropType>> = {
   happy:    require('../../assets/mascots/teach.png'),            // default / instructor pose
-  wave:     require('../../assets/mascots/welcome-cutout.png'),   // onboarding greeting
+  wave:     require('../../assets/mascots/classical.png'),        // onboarding greeting (Beethoven-wig penguin, clean BG)
   thinking: require('../../assets/mascots/idea.png'),             // quiz prompt
   wow:      require('../../assets/mascots/wow.png'),
   sad:      require('../../assets/mascots/sad.png'),              // out of hearts
