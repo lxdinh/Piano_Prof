@@ -1,120 +1,10 @@
-﻿// ══════════════════════════════════════════════
-//  SPEECH ENGINE — ElevenLabs neural TTS
-//  Falls back to Web Speech API if no key set
-// ══════════════════════════════════════════════
-
-// ElevenLabs config — user sets key once, saved to localStorage
-const EL_VOICES = {
-  'Rachel (Female, calm)':  '21m00Tio9RAMJtAXASs3a',
-  'Adam (Male, deep)':      'pNInz6obpgDQGcFmaJgB',
-  'Antoni (Male, warm)':    'ErXwobaYiN019PkySvjV',
-  'Bella (Female, warm)':   'EXAVITQu4vr4xnSDxMaL',
-  'Josh (Male, young)':     'TxGEqnHWrfWFTfGW9XjX',
-};
-let EL_KEY = localStorage.getItem('el_key') || '';
-let EL_VOICE_ID = localStorage.getItem('el_voice') || '21m00Tio9RAMJtAXASs3a'; // Rachel — calm, clear
-const audioCache = new Map(); // in-memory L1 cache (per session)
-
-// Persistent voice cache (IndexedDB) — survives reloads, saves ElevenLabs TTS quota
-const VOICE_DB='luminakeys-voice', VOICE_STORE='clips';
-let _voiceDB=null;
-function _openVoiceDB(){
-  return new Promise((resolve,reject)=>{
-    if(_voiceDB) return resolve(_voiceDB);
-    const req=indexedDB.open(VOICE_DB,1);
-    req.onupgradeneeded=()=>req.result.createObjectStore(VOICE_STORE);
-    req.onsuccess=()=>{ _voiceDB=req.result; resolve(_voiceDB); };
-    req.onerror=()=>reject(req.error);
-  });
-}
-async function voiceCacheGet(key){
-  try{
-    const db=await _openVoiceDB();
-    return await new Promise((resolve,reject)=>{
-      const r=db.transaction(VOICE_STORE,'readonly').objectStore(VOICE_STORE).get(key);
-      r.onsuccess=()=>resolve(r.result||null);
-      r.onerror=()=>reject(r.error);
-    });
-  }catch(e){ return null; }
-}
-async function voiceCachePut(key,blob){
-  try{
-    const db=await _openVoiceDB();
-    db.transaction(VOICE_STORE,'readwrite').objectStore(VOICE_STORE).put(blob,key);
-  }catch(e){}
-}
-let currentAudio = null;
-
-function saveELSettings(key, voiceId){
-  EL_KEY = key.trim(); EL_VOICE_ID = voiceId;
-  localStorage.setItem('el_key', EL_KEY);
-  localStorage.setItem('el_voice', EL_VOICE_ID);
-}
-
-// Fallback: Web Speech API
-let _wsvVoices=[], _bestVoice=null;
-const _loadVoices=()=>{
-  _wsvVoices=speechSynthesis.getVoices();
-  const picks=[v=>v.name==='Google US English',v=>v.name.includes('Samantha'),v=>v.name.includes('Google')&&v.lang.startsWith('en'),v=>v.lang.startsWith('en-US'),v=>v.lang.startsWith('en')];
-  for(const p of picks){const f=_wsvVoices.find(p);if(f){_bestVoice=f;break;}}
-};
-speechSynthesis.onvoiceschanged=_loadVoices; _loadVoices();
-
-function _fallbackSay(text, onEnd){
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.voice=_bestVoice; u.rate=0.9; u.pitch=1.05; u.volume=1;
-  u.onstart=()=>setAvatar(true);
-  u.onend=()=>{ setAvatar(false); if(!_segStop&&onEnd) onEnd(); };
-  u.onerror=()=>{ setAvatar(false); if(!_segStop&&onEnd) onEnd(); };
-  speechSynthesis.speak(u);
-}
-
-async function _elSay(text, onEnd){
-  const cacheKey = EL_VOICE_ID+':'+text;
-  let blobUrl = audioCache.get(cacheKey);
-  if(!blobUrl){
-    const stored = await voiceCacheGet(cacheKey);
-    if(stored){ blobUrl = URL.createObjectURL(stored); audioCache.set(cacheKey, blobUrl); }
-  }
-  if(!blobUrl){
-    try{
-      const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE_ID}/stream`,{
-        method:'POST',
-        headers:{'xi-api-key':EL_KEY,'Content-Type':'application/json','Accept':'audio/mpeg'},
-        body:JSON.stringify({
-          text,
-          model_id:'eleven_multilingual_v2',
-          voice_settings:{ stability:0.35, similarity_boost:0.88, style:0.45, use_speaker_boost:true }
-        })
-      });
-      if(!resp.ok) throw new Error('EL API '+resp.status);
-      const blob = await resp.blob();
-      blobUrl = URL.createObjectURL(blob);
-      audioCache.set(cacheKey, blobUrl);
-      voiceCachePut(cacheKey, blob);
-    }catch(e){
-      console.warn('ElevenLabs failed, falling back:',e);
-      _fallbackSay(text, onEnd); return;
-    }
-  }
-  if(_segStop){ if(onEnd) onEnd(); return; }
-  if(currentAudio){ currentAudio.pause(); currentAudio=null; }
-  const audio = new Audio(blobUrl);
-  currentAudio = audio;
-  audio.onplay = ()=>setAvatar(true);
-  audio.onended = ()=>{ setAvatar(false); currentAudio=null; if(!_segStop&&onEnd) onEnd(); };
-  audio.onerror = ()=>{ setAvatar(false); currentAudio=null; if(!_segStop&&onEnd) onEnd(); };
-  audio.play();
-}
-
+﻿// ════════════════════════
+//  SEQUENCE CONTROL
+// ════════════════════════
 let _segStop=false;
-function stopAll(){
-  _segStop=true;
-  speechSynthesis.cancel();
-  if(currentAudio){ currentAudio.pause(); currentAudio=null; }
-  setAvatar(false); clearSeq();
-}
+function stopAll(){ _segStop=true; setAvatar(false); clearSeq(); }
+// Stub: no audio — just advances the sequence immediately
+function sayPart(text, rate, pitch, onEnd){ if(onEnd) setTimeout(onEnd, 50); }
 const LUMI_SVG = `<svg class="lumi" viewBox="0 0 100 100">
   <g class="lumi-ears">
     <polygon class="lumi-ear" points="25,34 32,12 48,31"/>
@@ -151,12 +41,6 @@ function setMascotMood(mood){
   }
 }
 
-// Main speak function — uses ElevenLabs if key set, else fallback
-function sayPart(text, rate=0.88, pitch=1.05, onEnd){
-  if(EL_KEY){ _elSay(text, onEnd); }
-  else { _fallbackSay(text, onEnd); }
-}
-
 // Run a list of segments sequentially:
 // { type:'say', text, rate?, pitch? }
 // { type:'chord', notes[], color?, snd? }
@@ -179,7 +63,6 @@ function runSegs(segs, idx, onDone){
     clearAllLEDs();
     const ns=s.notes; const col=s.color||'cyan';
     ns.forEach(n=>setLED(n,col));
-    if(s.snd!==false) ns.forEach((n,i)=>{ const f=noteFreq(n); if(f) setTimeout(()=>playNote(f),i*35); });
     setTimeout(next, s.wait||1400);
 
   }else if(s.type==='seq'){
@@ -189,7 +72,6 @@ function runSegs(segs, idx, onDone){
       const t=setTimeout(()=>{
         clearAllLEDs();
         setLED(n, s.color||'cyan');
-        const f=noteFreq(n); if(f&&s.snd!==false) playNote(f);
       },d*i);
       seqTimers.push(t);
     });
@@ -202,7 +84,6 @@ function runSegs(segs, idx, onDone){
     s.notes.forEach((n,i)=>{
       const t=setTimeout(()=>{
         setLED(n, s.color||'cyan');
-        const f=noteFreq(n); if(f&&s.snd!==false) playNote(f);
       },d*i);
       seqTimers.push(t);
     });
@@ -217,31 +98,6 @@ function runSegs(segs, idx, onDone){
   }else if(s.type==='quiz'){
     renderQuiz(s.quiz, next);
   }
-}
-
-// ════════════════════════
-//  AUDIO ENGINE
-// ════════════════════════
-let ctx=null, reverb=null;
-function initAudio(){
-  if(ctx) return;
-  ctx=new(window.AudioContext||window.webkitAudioContext)();
-  const len=ctx.sampleRate*1.6;
-  const buf=ctx.createBuffer(2,len,ctx.sampleRate);
-  for(let c=0;c<2;c++){const d=buf.getChannelData(c);for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.5);}
-  reverb=ctx.createConvolver(); reverb.buffer=buf;
-  const rg=ctx.createGain(); rg.gain.value=0.16; reverb.connect(rg); rg.connect(ctx.destination);
-}
-function playNote(freq,dur=1.8){
-  if(!ctx) return;
-  const H=[{m:1,g:.5},{m:2,g:.18},{m:3,g:.09},{m:4,g:.05},{m:6,g:.02}];
-  const master=ctx.createGain(); const now=ctx.currentTime;
-  master.gain.setValueAtTime(0,now);
-  master.gain.linearRampToValueAtTime(0.38,now+0.009);
-  master.gain.setTargetAtTime(0.12,now+0.009,0.22);
-  master.gain.setTargetAtTime(0,now+dur*0.4,dur*0.5);
-  master.connect(ctx.destination); if(reverb) master.connect(reverb);
-  H.forEach(h=>{ const o=ctx.createOscillator(),g=ctx.createGain(); o.type=h.m===1?'triangle':'sine'; o.frequency.value=freq*h.m; g.gain.value=h.g; o.connect(g); g.connect(master); o.start(now); o.stop(now+dur+0.4); });
 }
 
 // ════════════════════════
@@ -278,7 +134,7 @@ function buildPiano(){
     if(note.type==='white'){ led.style.left=(wi*40+15)+'px'; piano.appendChild(key); wi++; }
     else{ key.style.left=(wi*40-13)+'px'; led.style.left=(wi*40-13+8)+'px'; piano.appendChild(key); }
     ledRow.appendChild(led);
-    key.addEventListener('mousedown',()=>{ initAudio(); playNote(note.freq); key.classList.add('playing'); setLED(note.name,'green'); if(window._quizKey===note.name) onKeyQuizHit(note.name); });
+    key.addEventListener('mousedown',()=>{ key.classList.add('playing'); setLED(note.name,'green'); if(window._quizKey===note.name) onKeyQuizHit(note.name); });
     key.addEventListener('mouseup',()=>{ key.classList.remove('playing'); clearLED(note.name); });
     key.addEventListener('mouseleave',()=>{ key.classList.remove('playing'); clearLED(note.name); });
   });
@@ -370,7 +226,6 @@ function addXP(n){
   dailyXP += n;
   persistState();
   refreshGamificationUI();
-  if(streakBumped && typeof playSfx==='function') playSfx('streak');
 }
 
 function loseHeart(){
@@ -514,7 +369,6 @@ function onKeyQuizHit(name){
 }
 
 function showFB(ok,msg){
-  if(typeof playSfx==='function') playSfx(ok?'correct':'wrong');
   setMascotMood(ok?'cheer':'sad');
   document.querySelectorAll('.feedback-banner').forEach(e=>e.remove());
   const fb=document.createElement('div'); fb.className='feedback-banner '+(ok?'correct-fb':'wrong-fb'); fb.style.margin='4px 32px';
@@ -528,7 +382,6 @@ function showFB(ok,msg){
 // ════════════════════════
 function showComplete(){
   stopAll(); completedGrades.add(currentGrade); addXP(50);
-  if(typeof playSfx==='function') playSfx('levelup');
   const btn=document.getElementById('grade-btn-'+currentGrade);
   if(btn&&!btn.querySelector('.check')){ const c=document.createElement('span'); c.className='check'; c.textContent='✓'; btn.appendChild(c); }
   const total = session.correct + session.wrong;
@@ -672,12 +525,8 @@ function buildSidebar(){
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
-  buildPiano(); buildSidebar(); initAudio();
+  buildPiano(); buildSidebar();
   checkDailyStreak();
   refreshGamificationUI();
   showHome();
-  if(!EL_KEY && !localStorage.getItem('el_first_run_dismissed')){
-    localStorage.setItem('el_first_run_dismissed','1');
-    setTimeout(()=>{ if(typeof openSettings==='function') openSettings(); }, 1500);
-  }
 });
