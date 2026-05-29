@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LuminaKeys — Learn Piano the Smart Way</title>
+  <meta name="description" content="AI-powered interactive piano learning. Chords first. Real songs fast.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="logo">🎹 LuminaKeys</div>
+    <div class="topbar-stats">
+      <div class="stat-chip streak"><span class="icon">🔥</span><span id="streak-val">0</span></div>
+      <div class="stat-chip xp"><span class="icon">⭐</span><span id="xp-val">0</span> XP</div>
+      <div class="stat-chip hearts" id="hearts-val">❤️❤️❤️❤️❤️</div>
+      <button class="btn-settings" onclick="openSettings()" title="Voice Settings">⚙️ Voice</button>
+    </div>
+    <div id="grade-badge">Select Grade</div>
+  </header>
+
+  <div class="app-body">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h3>Your Journey</h3>
+        <div class="xp-bar-wrap"><div class="xp-bar" id="xp-bar" style="width:0%"></div></div>
+      </div>
+      <div class="grade-list" id="grade-list"></div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main-panel">
+      <div class="lesson-area" id="lesson-area"></div>
+      <div id="status-bar">Welcome! Choose a grade to begin.</div>
+      <div class="piano-section">
+        <div class="piano-wrapper">
+          <div class="led-row" id="led-row"></div>
+          <div class="piano" id="piano"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:999;display:flex;align-items:center;justify-content:center;">
+    <div style="background:#1a1f2e;border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:36px;width:480px;max-width:95vw;">
+      <h2 style="font-size:1.4rem;font-weight:900;margin-bottom:6px">⚙️ Voice Settings</h2>
+      <p style="color:#7a8499;font-size:0.88rem;margin-bottom:24px;line-height:1.6">Connect <strong style="color:#fff">ElevenLabs</strong> for a realistic AI voice. Free tier = 10,000 chars/month. No credit card needed.<br><a href="https://elevenlabs.io" target="_blank" style="color:#58cc02">Sign up free at elevenlabs.io ↗</a></p>
+      <label style="display:block;font-size:0.82rem;font-weight:700;color:#7a8499;margin-bottom:6px">API KEY</label>
+      <input id="el-key-input" type="password" placeholder="Paste your ElevenLabs API key here" style="width:100%;background:#0a0d16;border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:12px 14px;color:#fff;font-size:0.9rem;margin-bottom:16px;outline:none;font-family:monospace">
+      <label style="display:block;font-size:0.82rem;font-weight:700;color:#7a8499;margin-bottom:6px">VOICE</label>
+      <select id="el-voice-select" style="width:100%;background:#0a0d16;border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:12px 14px;color:#fff;font-size:0.9rem;margin-bottom:24px;outline:none"></select>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-green" style="flex:1" onclick="applySettings()">Save &amp; Apply</button>
+        <button class="btn btn-ghost" onclick="closeSettings()">Cancel</button>
+      </div>
+      <p id="settings-status" style="margin-top:14px;font-size:0.82rem;color:#58cc02;min-height:18px"></p>
+    </div>
+  </div>
+
+  <script src="lessons.js"></script>
+  <script src="sfx.js"></script>
+  <script src="app.js"></script>
+  <script>
+    function openSettings(){
+      const modal=document.getElementById('settings-modal');
+      modal.classList.add('open');
+      document.getElementById('el-key-input').value=localStorage.getItem('el_key')||'';
+      const sel=document.getElementById('el-voice-select'); sel.innerHTML='';
+      Object.entries(EL_VOICES).forEach(([name,id])=>{
+        const o=document.createElement('option'); o.value=id; o.textContent=name;
+        if(id===EL_VOICE_ID) o.selected=true;
+        sel.appendChild(o);
+      });
+    }
+    function closeSettings(){ document.getElementById('settings-modal').classList.remove('open'); }
+    async function applySettings(){
+      const key=document.getElementById('el-key-input').value.trim();
+      const voiceId=document.getElementById('el-voice-select').value;
+      const status=document.getElementById('settings-status');
+      if(!key){ status.textContent='⚠️ Please enter your API key.'; status.style.color='#ff4b4b'; return; }
+      status.textContent='🔄 Testing connection...'; status.style.color='#7a8499';
+      try{
+        const resp=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,{
+          method:'POST',
+          headers:{'xi-api-key':key,'Content-Type':'application/json','Accept':'audio/mpeg'},
+          body:JSON.stringify({text:'Hello! Your voice is connected.',model_id:'eleven_turbo_v2',voice_settings:{stability:0.5,similarity_boost:0.8}})
+        });
+        if(!resp.ok) throw new Error(resp.status);
+        const blob=await resp.blob();
+        const url=URL.createObjectURL(blob);
+        const a=new Audio(url); a.play();
+        saveELSettings(key, voiceId);
+        audioCache.clear();
+        status.textContent='✅ Connected! Realistic voice is now active.'; status.style.color='#58cc02';
+        setTimeout(closeSettings, 2000);
+      }catch(e){
+        status.textContent='❌ Connection failed. Check your API key.'; status.style.color='#ff4b4b';
+      }
+    }
+  </script>
+</body>
+</html>
