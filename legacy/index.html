@@ -2,50 +2,174 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LuminaKeys — Learn Piano the Smart Way</title>
-  <meta name="description" content="AI-powered interactive piano learning. Chords first. Real songs fast.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Piano Professor v0.8.6</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- TOP BAR -->
-  <header class="topbar">
-    <div class="logo">🎹 LuminaKeys</div>
-    <div class="topbar-stats">
-      <div class="stat-chip streak"><span class="icon">🔥</span><span id="streak-val">0</span></div>
-      <div class="stat-chip xp"><span class="icon">⭐</span><span id="xp-val">0</span> XP</div>
-      <div class="stat-chip hearts" id="hearts-val">❤️❤️❤️❤️❤️</div>
-    </div>
-    <div id="grade-badge">Select Grade</div>
-  </header>
+<div id="app">
 
-  <div class="app-body">
+  <!-- ══ LEARN TAB ══════════════════════════════════════════════════════════ -->
+  <div class="screen active" id="screen-learn">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <h3>Your Journey</h3>
-        <div class="xp-bar-wrap"><div class="xp-bar" id="xp-bar" style="width:0%"></div></div>
+    <div class="learn-header">
+      <div class="header-row">
+        <div class="mascot-sm">
+          <img src="../assets/mascots/cheer.png" alt=""
+               onerror="this.style.display='none';this.nextSibling.style.display='block'">
+          <span style="display:none">🐧</span>
+        </div>
+        <div class="header-info">
+          <div class="header-pathway">PATHWAY</div>
+          <div class="header-title">Kindergarten → Master</div>
+        </div>
+        <button class="ble-btn" title="Piano Lights (BLE)">🔵</button>
       </div>
-      <div class="grade-list" id="grade-list"></div>
-    </aside>
+      <div class="stats-row">
+        <div class="stat-pill">🔥 <span id="stat-streak">0</span></div>
+        <div class="stat-pill">⚡ <span id="stat-xp">0</span></div>
+        <div class="stat-pill">💎 <span id="stat-gems">0</span></div>
+        <div class="stat-pill">❤️ <span id="stat-hearts">5</span></div>
+      </div>
+      <div class="daily-goal-row">
+        <span class="goal-icon" id="goal-icon">🏁</span>
+        <div class="goal-bar-wrap"><div class="goal-bar" id="goal-bar" style="width:0%"></div></div>
+        <span class="goal-label" id="goal-label">0/30 XP</span>
+      </div>
+    </div>
 
-    <!-- MAIN -->
-    <div class="main-panel">
-      <div class="lesson-area" id="lesson-area"></div>
-      <div id="status-bar">Welcome! Choose a grade to begin.</div>
-      <div class="piano-section">
-        <div class="piano-wrapper">
-          <div class="led-row" id="led-row"></div>
-          <div class="piano" id="piano"></div>
+    <div class="path-list" id="path-list"></div>
+  </div>
+
+  <!-- ══ SHEET TAB ══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-sheet">
+    <div class="screen-pad">
+      <div class="eyebrow">SHEET MUSIC · OMR</div>
+      <h2>Scan sheet music</h2>
+      <p class="subtitle" style="margin-bottom:16px">Import a PDF or photo — the app analyses it and builds a playable chord preview.</p>
+      <div class="pp-card">
+        <div class="settings-tile">
+          <span class="stile-icon">📸</span>
+          <span class="stile-label">Upload a score</span>
+          <span class="stile-arrow">›</span>
+        </div>
+        <div class="settings-tile">
+          <span class="stile-icon">🎵</span>
+          <span class="stile-label">My library</span>
+          <span class="stile-arrow">›</span>
         </div>
       </div>
+      <p class="subtitle">Requires the self-hosted oemer server (see backend/omr) or a Cloud Function.</p>
+    </div>
+  </div>
+
+  <!-- ══ PRACTICE TAB ════════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-practice">
+    <div class="screen-pad">
+      <div class="eyebrow">PRACTICE · INPUT</div>
+      <h2>Connect your piano</h2>
+      <p class="subtitle" style="margin-bottom:14px">We check the notes you actually play, so lessons can wait for you.</p>
+
+      <div class="pp-card">
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px">
+          <span class="stile-icon">🎹</span>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:900">Piano note feed</div>
+            <div style="font-size:12px;font-weight:700;color:var(--ink-500)">Pair the Piano Lights to read your piano</div>
+          </div>
+        </div>
+        <p style="font-size:12px;font-weight:700;color:var(--ink-500);line-height:1.4;margin-bottom:10px">
+          The LED module reads your piano over USB-MIDI or TRS-MIDI and streams the notes to the app.
+        </p>
+        <button class="chunky-btn primary expand">Pair Piano Lights</button>
+        <div class="note-display">Play a key — the note appears here.</div>
+      </div>
+
+      <div class="pp-card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="stile-icon">🎙️</span>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:900">Microphone (experimental)</div>
+            <div style="font-size:12px;font-weight:700;color:var(--ink-500)">Pitch-detection fallback when no LED module.</div>
+          </div>
+          <label class="toggle"><input type="checkbox"><span class="toggle-track"></span></label>
+        </div>
+      </div>
+
+      <p style="font-size:12px;font-weight:700;color:var(--ink-500);line-height:1.5">
+        Tip: once connected, "find-the-key" lesson steps auto-advance when you play the right note (Listen &amp; Wait).
+      </p>
+    </div>
+  </div>
+
+  <!-- ══ PROFILE TAB ════════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-profile">
+    <div class="screen-pad" id="profile-body"></div>
+  </div>
+
+  <!-- ══ LESSON OVERLAY ════════════════════════════════════════════════════ -->
+  <div class="screen-overlay" id="screen-lesson" style="display:none">
+
+    <div class="lesson-top-bar">
+      <button class="lesson-close" onclick="closeLesson()">✕</button>
+      <div class="lesson-prog-wrap">
+        <div class="lesson-prog-bar" id="lesson-prog" style="width:0%"></div>
+      </div>
+      <div class="lesson-hearts-lbl">❤️ <span id="lesson-hearts">5</span></div>
+    </div>
+
+    <div class="lesson-scroll" id="lesson-scroll">
+      <div class="teacher-row">
+        <div class="mascot-lg">
+          <img id="mascot-img" src="../assets/mascots/teach.png" alt=""
+               onerror="this.style.display='none';document.getElementById('mascot-fallback').style.display='block'">
+          <span id="mascot-fallback" style="display:none">🐧</span>
+        </div>
+        <div class="speech-bubble">
+          <div class="speech-name">MAESTRO PENGUINI</div>
+          <div class="speech-text" id="speech-text">Get ready…</div>
+        </div>
+      </div>
+
+      <div class="chord-chips" id="chord-chips"></div>
+      <div id="quiz-area"></div>
+      <div class="wrong-msg" id="wrong-msg" style="display:none">Not quite — that costs a heart. Try again!</div>
+      <div id="complete-area"></div>
+    </div>
+
+    <div class="piano-wrap" id="piano-wrap">
+      <canvas id="piano-canvas" class="piano-canvas"></canvas>
+    </div>
+
+    <div class="lesson-bottom" id="lesson-bottom">
+      <button class="chunky-btn ghost" onclick="replayStep()">↻ Replay</button>
+      <button class="chunky-btn primary lesson-continue" id="continue-btn" onclick="nextStep()">Continue</button>
     </div>
 
   </div>
 
-  <script src="lessons.js"></script>
-  <script src="app.js"></script>
+</div><!-- /app -->
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-tab="learn"    onclick="switchTab('learn')">
+    <span class="nav-icon">♪</span><span class="nav-label">Learn</span>
+  </button>
+  <button class="nav-btn" data-tab="sheet"           onclick="switchTab('sheet')">
+    <span class="nav-icon">📄</span><span class="nav-label">Sheet</span>
+  </button>
+  <button class="nav-btn" data-tab="practice"        onclick="switchTab('practice')">
+    <span class="nav-icon">🎹</span><span class="nav-label">Practice</span>
+  </button>
+  <button class="nav-btn" data-tab="profile"         onclick="switchTab('profile')">
+    <span class="nav-icon">👤</span><span class="nav-label">Profile</span>
+  </button>
+</nav>
+
+<script src="lessons.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
