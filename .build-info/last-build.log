@@ -10,15 +10,15 @@ Compressing project files and uploading to EAS Build. Learn more: https://expo.f
 - Compressing project files
 Your project archive is 220 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
 - Uploading to EAS Build (0 / 220 MB)
-✔ Uploaded to EAS 1s
+✔ Uploaded to EAS 2s
 - Computing project fingerprint
 ✔ Computed project fingerprint
 
-See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/dc691a27-8a8b-4fc9-abb8-4cb3a9b3a548
+See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/09ce7a53-513b-47bf-8a66-54d6c1427e05
 
 [
   {
-    "id": "dc691a27-8a8b-4fc9-abb8-4cb3a9b3a548",
+    "id": "09ce7a53-513b-47bf-8a66-54d6c1427e05",
     "status": "NEW",
     "platform": "ANDROID",
     "artifacts": {},
@@ -45,12 +45,12 @@ See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/dc691
     "sdkVersion": "52.0.0",
     "appVersion": "0.6.0",
     "appBuildVersion": "7",
-    "gitCommitHash": "d34afee61a2c9f803b2f02fa9c3ba97a0e98fe27",
-    "gitCommitMessage": "Tab bar to legacy look + smoother Duolingo-style feedback\n\nTab bar: rebuild to match the legacy web UI — legacy icon glyphs (music\nnote / page / piano / person), Nunito-900 labels (the font was loaded but\nnever applied), and legacy proportions (64px cream bar, 1.5px ink-line top\nborder, 20px icons, 11px labels). Keep a clean brand-green active state with\na gentle icon pop; drop the white bar, drop shadow, and sliding gradient.\nAdd a Nunito fontFamily token so text actually renders in Nunito.\n\nSmoothness:\n- Learn header stat pills now count up via AnimatedCounter, and the daily-XP\n  bar tweens its width instead of snapping when you return from a lesson.\n- Lesson progress bar glides between steps instead of jumping in chunks.\n- REPLAY is now dimmed/disabled during the play phase (it previously gave\n  haptic feedback but did nothing there, which read as broken).",
+    "gitCommitHash": "f5221a7e5156234199df5d886df12e94c7db5ad8",
+    "gitCommitMessage": "Real quiz grading from played notes + single hearts source of truth\n\nQuizzes now grade what the learner actually plays instead of always passing:\n\n- BLE note input: expose subscribeNotes() from the BLE layer. The firmware\n  already streams [0x01, midiNote] key presses (previously used only for\n  calibration); a persistent monitor now feeds them to listeners for the whole\n  connection.\n- Engine grading: a 'quiz' step waits for the learner to play the target\n  note(s). Each expected key turns green as it's played; wrong notes cost a\n  heart and trigger a shake/'oops'. Pure gradeNote() helper (unit-tested) drives\n  correct / repeat (harmless double-press) / wrong decisions. notePlayed() is\n  fed by BOTH on-screen key taps and live BLE presses, so it works with or\n  without the hardware.\n- Single hearts source of truth: the engine starts from the learner's real,\n  persisted hearts (initialHearts) and each wrong note calls onWrongNote ->\n  loseHeart(), removing the old divergent local counter and double-counting.\n- Accurate stars/accuracy: onComplete now reports hearts-left and a real\n  accuracy (correct notes / notes asked) computed in the engine, instead of a\n  lagging ref that always yielded 3 stars.\n- UX: replace the fake 'I played it' button with a green 'Play the highlighted\n  keys' prompt; 'HEAR IT' replays the target. Stabilise engine callbacks via an\n  optsRef so the per-render opts object no longer churns the BLE subscription.\n\nAdds quizGrading.ts + 6 unit tests (29 total pass).",
     "priority": "NORMAL",
-    "createdAt": "2026-05-30T15:46:00.247Z",
-    "updatedAt": "2026-05-30T15:46:00.247Z",
-    "expirationDate": "2026-06-13T15:46:00.311Z",
+    "createdAt": "2026-05-30T15:59:13.155Z",
+    "updatedAt": "2026-05-30T15:59:13.155Z",
+    "expirationDate": "2026-06-13T15:59:13.194Z",
     "isForIosSimulator": false
   }
 ]
