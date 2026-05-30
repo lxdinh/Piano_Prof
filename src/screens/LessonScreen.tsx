@@ -123,6 +123,17 @@ export default function LessonScreen() {
   const quizMidi = engine.quiz ? notesToMidi(engine.quiz.expect) : [];
   const progress = engine.totalSteps > 0 ? (engine.stepIndex + 1) / engine.totalSteps : 0;
 
+  // Animate the progress bar so it glides between steps instead of jumping.
+  const progressAnim = useRef(new Animated.Value(progress)).current;
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: Math.max(0.04, progress), duration: 350, useNativeDriver: false,
+    }).start();
+  }, [progress, progressAnim]);
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1], outputRange: ['0%', '100%'],
+  });
+
   const onQuizAnswer = (correct: boolean) => {
     if (correct) {
       haptics.success();
@@ -165,7 +176,7 @@ export default function LessonScreen() {
             <Text style={styles.close}>✕</Text>
           </Pressable>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${Math.max(4, progress * 100)}%` }]} />
+            <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
           </View>
           <View style={styles.heartsWrap}>
             <Text style={styles.heart}>❤️</Text>
@@ -205,10 +216,15 @@ export default function LessonScreen() {
         {/* Controls: REPLAY · CONTINUE */}
         <View style={styles.controls}>
           <Pressable
+            disabled={!primaryEnabled}
             onPress={() => { haptics.tap(); engine.replayStep(); }}
-            style={({ pressed }) => [styles.replayBtn, pressed && { transform: [{ scale: 0.97 }] }]}
+            style={({ pressed }) => [
+              styles.replayBtn,
+              !primaryEnabled && styles.replayBtnDisabled,
+              pressed && { transform: [{ scale: 0.97 }] },
+            ]}
           >
-            <Text style={styles.replayText}>↻  REPLAY</Text>
+            <Text style={[styles.replayText, !primaryEnabled && styles.replayTextDisabled]}>↻  REPLAY</Text>
           </Pressable>
           <View style={{ flex: 1 }}>
             <ChunkyButton
@@ -276,5 +292,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0E5C8',
     alignItems: 'center', justifyContent: 'center',
   },
+  replayBtnDisabled: { opacity: 0.45 },
   replayText: { fontSize: Fonts.md, fontWeight: Fonts.weight.black, color: Colors.ink700, letterSpacing: 0.5 },
+  replayTextDisabled: { color: Colors.ink500 },
 });
