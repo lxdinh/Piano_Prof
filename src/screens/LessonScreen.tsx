@@ -139,9 +139,12 @@ export default function LessonScreen() {
 
   const mascotMood = reaction ?? moodForStatus(engine.status);
 
-  // Full keyboard sized to the landscape viewport. C2..B6 = 35 white keys (matches legacy).
+  // Keyboard (C2..B6 = 35 white keys). Height is derived from the space left
+  // AFTER the top bar, teacher row, and controls so the keys never overlap the
+  // REPLAY / CONTINUE buttons. Capped low for a sleek, modern look.
   const pianoW = Math.min(width - Spacing.lg * 2, 1200);
-  const pianoH = Math.min(Math.max(height * 0.42, 150), 230);
+  const RESERVED_V = 232; // top bar + teacher row + controls + paddings
+  const pianoH = Math.max(104, Math.min(180, height - RESERVED_V));
 
   // Primary action adapts to engine state.
   const awaitingQuiz = engine.status === 'awaiting-quiz';
@@ -173,7 +176,7 @@ export default function LessonScreen() {
         {/* Teacher row: mascot + speech bubble */}
         <View style={styles.teacherRow}>
           <View style={styles.mascotSlot}>
-            <MascotImage mood={mascotMood} size={96} />
+            <MascotImage mood={mascotMood} size={68} />
           </View>
           <Animated.View style={[styles.bubble, { transform: [{ translateX: shake.translateX }] }]}>
             <Text style={styles.bubbleName}>MAESTRO PENGUINI</Text>
@@ -246,8 +249,8 @@ const styles = StyleSheet.create({
   heartCount: { fontSize: Fonts.lg, fontWeight: Fonts.weight.black, color: Colors.error },
 
   // Teacher row
-  teacherRow: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.md, marginBottom: Spacing.xs },
-  mascotSlot: { width: 96, height: 96, alignItems: 'center', justifyContent: 'flex-end' },
+  teacherRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.xs },
+  mascotSlot: { width: 68, height: 68, alignItems: 'center', justifyContent: 'center' },
   bubble: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -262,8 +265,8 @@ const styles = StyleSheet.create({
   bubbleName: { fontSize: Fonts.xs, fontWeight: Fonts.weight.black, color: Colors.rust, letterSpacing: 1.5, marginBottom: 3 },
   bubbleText: { fontSize: Fonts.md, color: Colors.ink900, fontWeight: Fonts.weight.heavy, lineHeight: 22 },
 
-  // Piano
-  pianoWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // Piano — bottom-anchored so it sits just above the controls, never overlapping.
+  pianoWrap: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: Spacing.xs },
 
   // Controls
   controls: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingBottom: Spacing.sm, paddingTop: Spacing.xs },
