@@ -1,10 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { Text, StyleSheet, Pressable, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { MainTabsParamList } from './types';
-import { Colors, Fonts, Spacing, Gradients, Elevation, Motion } from '../theme/tokens';
+import { Colors, Fonts, Motion } from '../theme/tokens';
 import LearnScreen from '../screens/LearnScreen';
 import SongbookScreen from '../screens/SongbookScreen';
 import PracticeScreen from '../screens/PracticeScreen';
@@ -13,57 +12,21 @@ import * as haptics from '../feedback/haptics';
 
 const Tab = createBottomTabNavigator<MainTabsParamList>();
 
+// Icons + labels mirror the legacy web UI's bottom nav exactly.
 const TABS: { name: keyof MainTabsParamList; icon: string; label: string }[] = [
-  { name: 'Learn',    icon: '🎵', label: 'Learn' },
-  { name: 'Sheet',    icon: '🎼', label: 'Sheet' },
+  { name: 'Learn',    icon: '♪',  label: 'Learn' },
+  { name: 'Sheet',    icon: '📄', label: 'Sheet' },
   { name: 'Practice', icon: '🎹', label: 'Practice' },
-  { name: 'Profile',  icon: '🐧', label: 'Profile' },
+  { name: 'Profile',  icon: '👤', label: 'Profile' },
 ];
 
-// Custom tab bar with a "soap-bar" highlight that slides between tabs,
-// a chunky bottom shadow, and a per-tap pop animation on the active icon.
-function PpTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const containerW = useRef(0);
-  const slide = useRef(new Animated.Value(state.index)).current;
-
-  useEffect(() => {
-    Animated.spring(slide, { toValue: state.index, ...Motion.spring.press, useNativeDriver: false }).start();
-  }, [state.index, slide]);
-
-  const tabWidth = containerW.current / TABS.length || 0;
-  const indicatorX = slide.interpolate({
-    inputRange: TABS.map((_, i) => i),
-    outputRange: TABS.map((_, i) => i * tabWidth + 6),
-  });
-
+// Bottom tab bar tuned to the legacy proportions (64px cream bar, 20px icon,
+// 11px/900 Nunito label). The active tab is signalled with the brand green plus
+// a gentle icon pop — Duolingo-style — instead of legacy's label-darken only.
+function PpTabBar({ state, navigation }: BottomTabBarProps) {
   return (
     <SafeAreaView edges={['bottom']} style={styles.tabSafe}>
-      <View
-        style={styles.tabBar}
-        onLayout={(e) => {
-          containerW.current = e.nativeEvent.layout.width;
-          // re-trigger interpolation by nudging the value
-          slide.setValue(state.index);
-        }}
-      >
-        {/* sliding indicator */}
-        {tabWidth > 0 && (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.indicator,
-              { width: tabWidth - 12, transform: [{ translateX: indicatorX }] },
-            ]}
-          >
-            <LinearGradient
-              colors={[Gradients.brand[0], Gradients.brand[1]]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-          </Animated.View>
-        )}
-
+      <Animated.View style={styles.tabBar}>
         {state.routes.map((route, i) => {
           const meta = TABS.find((t) => t.name === route.name);
           if (!meta) return null;
@@ -83,7 +46,7 @@ function PpTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             />
           );
         })}
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -91,17 +54,24 @@ function PpTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 function TabButton({
   icon, label, focused, onPress,
 }: { icon: string; label: string; focused: boolean; onPress: () => void }) {
-  const scale = useRef(new Animated.Value(focused ? 1.1 : 1)).current;
+  const scale = useRef(new Animated.Value(focused ? 1 : 1)).current;
   useEffect(() => {
-    Animated.spring(scale, { toValue: focused ? 1.1 : 1, ...Motion.spring.press, useNativeDriver: true }).start();
+    Animated.spring(scale, {
+      toValue: focused ? 1.12 : 1,
+      ...Motion.spring.press,
+      useNativeDriver: true,
+    }).start();
   }, [focused, scale]);
 
   return (
-    <Pressable onPress={onPress} style={styles.tabBtn}>
-      <Animated.Text style={[styles.icon, { transform: [{ scale }] }, focused && styles.iconFocused]}>
+    <Pressable onPress={onPress} style={styles.tabBtn} hitSlop={6}>
+      <Animated.Text
+        style={[styles.icon, focused && styles.iconFocused, { transform: [{ scale }] }]}
+        allowFontScaling={false}
+      >
         {icon}
       </Animated.Text>
-      <Text style={[styles.label, focused && styles.labelFocused]} numberOfLines={1}>
+      <Text style={[styles.label, focused && styles.labelFocused]} numberOfLines={1} allowFontScaling={false}>
         {label}
       </Text>
     </Pressable>
@@ -129,28 +99,23 @@ const SCREENS: Record<keyof MainTabsParamList, React.ComponentType<any>> = {
 };
 
 const styles = StyleSheet.create({
-  tabSafe: { backgroundColor: '#FFFFFF', ...Elevation.lg },
+  tabSafe: { backgroundColor: Colors.cream50 },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 6,
-    paddingTop: 8,
-    paddingBottom: 6,
-    height: 70,
-    borderTopWidth: 1,
+    alignItems: 'stretch',
+    backgroundColor: Colors.cream50,
+    height: 64,
+    borderTopWidth: 1.5,
     borderTopColor: Colors.inkLine,
   },
-  indicator: {
-    position: 'absolute',
-    top: 6,
-    bottom: 6,
-    borderRadius: 16,
-    overflow: 'hidden',
-    opacity: 0.16,
-  },
-  tabBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  icon: { fontSize: 22, color: Colors.ink300 },
+  tabBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, paddingBottom: 4 },
+  icon: { fontSize: 20, lineHeight: 24, color: Colors.ink500 },
   iconFocused: { color: Colors.brand },
-  label: { fontSize: Fonts.xs, color: Colors.ink300, fontWeight: Fonts.weight.bold },
-  labelFocused: { color: Colors.brand, fontWeight: Fonts.weight.black },
+  label: {
+    fontSize: Fonts.sm,
+    fontFamily: Fonts.family.black,
+    fontWeight: Fonts.weight.black,
+    color: Colors.ink300,
+  },
+  labelFocused: { color: Colors.brand },
 });

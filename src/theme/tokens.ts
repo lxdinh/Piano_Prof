@@ -61,6 +61,14 @@ export const Fonts = {
     black: '900' as const,
     heavy: '700' as const,
   },
+  // Nunito family names loaded in App.tsx (@expo-google-fonts/nunito). Use these
+  // so text actually renders in Nunito — matching the legacy web UI — instead of
+  // the system default. Pair each with the matching numeric weight above.
+  family: {
+    heavy: 'Nunito_700Bold',
+    bold:  'Nunito_800ExtraBold',
+    black: 'Nunito_900Black',
+  },
 } as const;
 
 export const Radii = {

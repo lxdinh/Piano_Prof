@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated } from 'react-native';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, Image, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -7,6 +7,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { Colors, Fonts, Radii, Spacing, Elevation, Gradients } from '../theme/tokens';
 import ChunkyButton from '../components/ChunkyButton';
+import AnimatedCounter from '../components/AnimatedCounter';
 import { useUser } from '../gamification/UserProvider';
 import { useEntrance } from '../feedback/motion';
 import {
@@ -25,6 +26,18 @@ function PathwayHeader() {
   const goal = profile?.settings.dailyGoalXp ?? 50;
   const earned = todayActivity?.xpEarned ?? 0;
   const pct = Math.max(0, Math.min(1, earned / goal));
+
+  // Smoothly tween the XP bar width when XP changes (e.g. on return from a
+  // lesson) instead of snapping — Duolingo-style.
+  const fillAnim = useRef(new Animated.Value(pct)).current;
+  useEffect(() => {
+    Animated.timing(fillAnim, {
+      toValue: pct, duration: 600, useNativeDriver: false,
+    }).start();
+  }, [pct, fillAnim]);
+  const fillWidth = fillAnim.interpolate({
+    inputRange: [0, 1], outputRange: ['0%', '100%'],
+  });
 
   const stats = [
     { icon: '🔥', value: profile?.streakCount ?? 0, color: Colors.rust },
@@ -47,10 +60,10 @@ function PathwayHeader() {
       </View>
 
       <View style={styles.statRow}>
-        {stats.map((s, i) => (
-          <View key={i} style={styles.statPill}>
+        {stats.map((s) => (
+          <View key={s.icon} style={styles.statPill}>
             <Text style={styles.statIcon}>{s.icon}</Text>
-            <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
+            <AnimatedCounter value={s.value} style={[styles.statValue, { color: s.color }]} />
           </View>
         ))}
       </View>
@@ -58,7 +71,7 @@ function PathwayHeader() {
       <View style={styles.xpRow}>
         <Text style={styles.flag}>🚩</Text>
         <View style={styles.xpTrack}>
-          <View style={[styles.xpFill, { width: `${pct * 100}%` }]} />
+          <Animated.View style={[styles.xpFill, { width: fillWidth }]} />
         </View>
         <Text style={styles.xpLabel}>{earned}/{goal} XP</Text>
       </View>
