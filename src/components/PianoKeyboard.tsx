@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { View, GestureResponderEvent } from 'react-native';
 import Svg, {
   Rect, Defs, RadialGradient, Stop, Circle, Text as SvgText,
 } from 'react-native-svg';
@@ -83,8 +83,6 @@ export default function PianoKeyboard({
 
   // Notes the user is actively touching — instant feedback during free play.
   const [pressedNotes, setPressedNotes] = useState<Set<number>>(() => new Set());
-  const pressTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
-  useEffect(() => () => { pressTimers.current.forEach((t) => clearTimeout(t)); }, []);
 
   const litSet = useMemo(() => new Set(litNotes), [litNotes]);
   const colorFor = useCallback((midi: number): string | null => {
@@ -128,28 +126,86 @@ export default function PianoKeyboard({
   }, [whites, blacks, colorFor]);
   const glowId = (c: string) => `glow-${litColorList.indexOf(c)}`;
 
-  const handlePressIn = useCallback((midi: number) => {
-    haptics.tap();
-    if (playSound) void playMidi(midi);
-    onKeyPress?.(midi);
-    setPressedNotes((prev) => new Set(prev).add(midi));
-  }, [onKeyPress, playSound]);
+  // ── Multi-touch input ───────────────────────────────────────────────────────
+  // Rendering dozens of overlapping <Pressable>s broke polyphony: React Native's
+  // gesture-responder system only hands the responder to one or two views at a
+  // time, so chords past two notes were dropped and many keys never fired their
+  // press handler at all (no sound, no haptic). Instead we make the whole
+  // keyboard ONE responder and read every active finger out of
+  // nativeEvent.touches, hit-testing each touch to a key. That gives true
+  // polyphony, glissando, and a reliable tap → sound + haptic on every key.
 
-  const handlePressOut = useCallback((midi: number) => {
-    const existing = pressTimers.current.get(midi);
-    if (existing) clearTimeout(existing);
-    pressTimers.current.set(midi, setTimeout(() => {
-      setPressedNotes((prev) => {
-        const next = new Set(prev);
-        next.delete(midi);
-        return next;
-      });
-      pressTimers.current.delete(midi);
-    }, 120));
+  // Map a local touch point to a MIDI note. Black keys win in the upper region
+  // since they sit on top of and between the white keys.
+  const keyAt = useCallback(
+    (x: number, y: number): number | null => {
+      if (y <= ledH + blackH) {
+        for (const m of blacks) {
+          const bx = blackX(m);
+          if (x >= bx && x <= bx + blackW) return m;
+        }
+      }
+      if (y <= ledH + keyH) {
+        const i = Math.floor(x / whiteW);
+        if (i >= 0 && i < whites.length) return whites[i];
+      }
+      return null;
+    },
+    [blacks, whites, blackX, blackW, ledH, blackH, keyH, whiteW],
+  );
+
+  // MIDI notes currently held across all fingers. Kept in a ref so note-on /
+  // note-off diffing doesn't depend on React state-update timing.
+  const activeRef = useRef<Set<number>>(new Set());
+
+  const handleTouches = useCallback(
+    (evt: GestureResponderEvent) => {
+      const touches = evt.nativeEvent.touches ?? [];
+      const now = new Set<number>();
+      for (const t of touches) {
+        const m = keyAt(t.locationX, t.locationY);
+        if (m != null) now.add(m);
+      }
+      const prev = activeRef.current;
+      let changed = now.size !== prev.size;
+      // Note-on for newly pressed keys.
+      for (const m of now) {
+        if (!prev.has(m)) {
+          changed = true;
+          haptics.tap();
+          if (playSound) void playMidi(m);
+          onKeyPress?.(m);
+        }
+      }
+      if (!changed) {
+        for (const m of prev) if (!now.has(m)) { changed = true; break; }
+      }
+      activeRef.current = now;
+      if (changed) setPressedNotes(now);
+    },
+    [keyAt, playSound, onKeyPress],
+  );
+
+  const handleRelease = useCallback(() => {
+    if (activeRef.current.size === 0) return;
+    activeRef.current = new Set();
+    setPressedNotes(new Set());
   }, []);
 
   return (
-    <View style={{ width, height }}>
+    <View
+      style={{ width, height }}
+      pointerEvents={interactive ? 'box-only' : 'auto'}
+      onStartShouldSetResponder={() => interactive}
+      onMoveShouldSetResponder={() => interactive}
+      onResponderGrant={handleTouches}
+      onResponderStart={handleTouches}
+      onResponderMove={handleTouches}
+      onResponderEnd={handleTouches}
+      onResponderRelease={handleRelease}
+      onResponderTerminate={handleRelease}
+      onResponderTerminationRequest={() => false}
+    >
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
         <Defs>
           {litColorList.map((c, i) => (
@@ -256,35 +312,6 @@ export default function PianoKeyboard({
           </>
         )}
       </Svg>
-
-      {/* Tap targets — black keys render after whites so they win the overlap. */}
-      {interactive && (
-        <>
-          {whites.map((m, i) => (
-            <Pressable
-              key={`wp${m}`}
-              onPressIn={() => handlePressIn(m)}
-              onPressOut={() => handlePressOut(m)}
-              style={[styles.tap, { left: i * whiteW, top: ledH, width: whiteW, height: keyH }]}
-            />
-          ))}
-          {blacks.map((m) => (
-            <Pressable
-              key={`bp${m}`}
-              onPressIn={() => handlePressIn(m)}
-              onPressOut={() => handlePressOut(m)}
-              style={[styles.tap, { left: blackX(m), top: ledH, width: blackW, height: blackH }]}
-            />
-          ))}
-        </>
-      )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  tap: {
-    position: 'absolute',
-    backgroundColor: 'transparent',
-  },
-});
