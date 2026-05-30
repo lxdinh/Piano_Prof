@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Lesson, LessonSegment, QuizSegment } from './schema';
 import { notesToMidi } from './noteToMidi';
+import { gradeNote } from './quizGrading';
 import { COLOR_HEX, hexToRgb } from './colors';
 import { playChord, playSequence, stopAll } from '../audio/pianoEngine';
 import { speak, stopSpeaking } from '../audio/instructorVoice';
@@ -20,15 +21,26 @@ export interface EngineState {
   caption: string;
   litNotes: number[];          // MIDI notes currently highlighted on the keyboard
   litColor: string;            // hex for highlighted keys
+  /** Quiz notes the learner has already played correctly (shown green). */
+  playedCorrect: number[];
   quiz: QuizSegment | null;
   hearts: number;
   earnedXp: number;
+  /** Increments on each wrong note — drives the shake/"oops" reaction. */
+  wrongTick: number;
+  /** Increments on each correct note in a quiz — drives a positive blip. */
+  correctTick: number;
 }
 
 export interface UseLessonEngine extends EngineState {
   start: () => void;
-  /** Call when the learner has played the quiz target. */
-  submitQuiz: (correct: boolean) => void;
+  /**
+   * Feed a played MIDI note into the engine. During a quiz this grades the
+   * learner's playing (correct notes advance, wrong notes cost a heart).
+   * Outside a quiz it's a no-op. Called from on-screen key taps AND live BLE
+   * key presses from the real piano.
+   */
+  notePlayed: (midi: number) => void;
   /** Advance past the between-steps gate to the next step. */
   continueLesson: () => void;
   /** Re-run the current step (replays its narration + demo). */
@@ -40,10 +52,26 @@ const START_HEARTS = 5;
 
 export function useLessonEngine(
   lesson: Lesson | null,
-  opts: { onComplete?: (xp: number) => void; onOutOfHearts?: () => void } = {},
+  opts: {
+    /** Starting hearts — the learner's real, persisted heart count. */
+    initialHearts?: number;
+    /** xp, hearts remaining, and accuracy (0..1) at completion. */
+    onComplete?: (xp: number, heartsLeft: number, accuracy: number) => void;
+    /** A wrong note was played — persist the lost heart (single source of truth). */
+    onWrongNote?: () => void;
+    onOutOfHearts?: () => void;
+  } = {},
 ): UseLessonEngine {
   const ble = useBLEContext();
   const midiToLed = useMidiToLed();
+
+  // Keep the latest callbacks in a ref so our memoised functions (notePlayed,
+  // runSegment, start) stay stable across renders — otherwise the per-render
+  // `opts` object literal would churn the BLE subscription and callback chain.
+  const optsRef = useRef(opts);
+  optsRef.current = opts;
+
+  const startHearts = opts.initialHearts ?? START_HEARTS;
 
   const [state, setState] = useState<EngineState>({
     status: 'idle',
@@ -52,21 +80,30 @@ export function useLessonEngine(
     caption: '',
     litNotes: [],
     litColor: COLOR_HEX.green,
+    playedCorrect: [],
     quiz: null,
-    hearts: START_HEARTS,
+    hearts: startHearts,
     earnedXp: 0,
+    wrongTick: 0,
+    correctTick: 0,
   });
 
   // Cancellation token: bumped on stop/unmount so the async runner bails out.
   const runToken = useRef(0);
-  // Quiz resolver: the runner awaits this promise while status is awaiting-quiz.
-  const quizResolver = useRef<((correct: boolean) => void) | null>(null);
+  // Quiz grader: the runner awaits this promise while status is awaiting-quiz.
+  // Resolves true when every expected note has been played correctly.
+  const quizResolver = useRef<((passed: boolean) => void) | null>(null);
+  // Set of expected MIDI notes still un-played for the active quiz.
+  const remainingNotes = useRef<Set<number>>(new Set());
   // Continue resolver: the runner awaits this between steps.
   const continueResolver = useRef<((action: 'next' | 'replay') => void) | null>(null);
   // The quiz currently on screen, so REPLAY can re-light/replay its target.
   const activeQuiz = useRef<QuizSegment | null>(null);
-  const heartsRef = useRef(START_HEARTS);
+  const heartsRef = useRef(startHearts);
   const xpRef = useRef(0);
+  // Accuracy bookkeeping: total quiz notes asked vs. wrong attempts.
+  const notesAsked = useRef(0);
+  const wrongAttempts = useRef(0);
 
   const lightKeys = useCallback(
     async (midiNotes: number[], hex: string) => {
@@ -153,6 +190,8 @@ export function useLessonEngine(
           const midi = notesToMidi(seg.expect);
           const hex = COLOR_HEX[seg.color ?? 'yellow'];
           activeQuiz.current = seg;
+          remainingNotes.current = new Set(midi);
+          notesAsked.current += midi.length;
           setState((s) => ({
             ...s,
             status: 'awaiting-quiz',
@@ -160,36 +199,40 @@ export function useLessonEngine(
             caption: seg.prompt,
             litNotes: midi,
             litColor: hex,
+            playedCorrect: [],
           }));
           await lightKeys(midi, hex);
 
-          const correct = await new Promise<boolean>((resolve) => {
+          // The runner waits here while notePlayed() grades each key. It resolves
+          // true once every expected note has been played (out-of-hearts resolves
+          // false via stop()/notePlayed()).
+          const passed = await new Promise<boolean>((resolve) => {
             quizResolver.current = resolve;
           });
           quizResolver.current = null;
           activeQuiz.current = null;
+          remainingNotes.current = new Set();
           if (!alive()) return false;
 
-          if (correct) {
+          if (passed) {
             xpRef.current += seg.xp ?? 0;
             if (ble.phase === 'CONNECTED') {
               try { await ble.sendLedCommand(cmdSuccessBurst()); } catch { /* ignore */ }
             }
-          } else {
-            heartsRef.current = Math.max(0, heartsRef.current - 1);
           }
           setState((s) => ({
             ...s,
             status: 'playing',
             quiz: null,
             litNotes: [],
+            playedCorrect: [],
             hearts: heartsRef.current,
             earnedXp: xpRef.current,
           }));
           await clearKeys();
 
           if (heartsRef.current <= 0) {
-            opts.onOutOfHearts?.();
+            optsRef.current.onOutOfHearts?.();
             return false;
           }
           return alive();
@@ -199,7 +242,7 @@ export function useLessonEngine(
           return alive();
       }
     },
-    [lightKeys, clearKeys, ble, opts],
+    [lightKeys, clearKeys, ble],
   );
 
   // Run one step's segments end-to-end. Returns false if cancelled/out-of-hearts.
@@ -219,8 +262,10 @@ export function useLessonEngine(
   const start = useCallback(() => {
     if (!lesson) return;
     const token = ++runToken.current;
-    heartsRef.current = START_HEARTS;
+    heartsRef.current = startHearts;
     xpRef.current = 0;
+    notesAsked.current = 0;
+    wrongAttempts.current = 0;
     setState((s) => ({
       ...s,
       status: 'playing',
@@ -228,9 +273,12 @@ export function useLessonEngine(
       totalSteps: lesson.steps.length,
       caption: '',
       litNotes: [],
+      playedCorrect: [],
       quiz: null,
-      hearts: START_HEARTS,
+      hearts: startHearts,
       earnedXp: 0,
+      wrongTick: 0,
+      correctTick: 0,
     }));
 
     (async () => {
@@ -256,13 +304,50 @@ export function useLessonEngine(
       if (token !== runToken.current) return;
       const totalXp = lesson.xpReward + xpRef.current;
       xpRef.current = totalXp;
+      const accuracy = notesAsked.current > 0
+        ? Math.max(0, (notesAsked.current - wrongAttempts.current) / notesAsked.current)
+        : 1;
       setState((s) => ({ ...s, status: 'complete', earnedXp: totalXp, caption: lesson.complete }));
-      opts.onComplete?.(totalXp);
+      optsRef.current.onComplete?.(totalXp, heartsRef.current, accuracy);
     })();
-  }, [lesson, runStep, opts]);
+  }, [lesson, runStep, startHearts]);
 
-  const submitQuiz = useCallback((correct: boolean) => {
-    quizResolver.current?.(correct);
+  const notePlayed = useCallback((midi: number) => {
+    // Only meaningful during a quiz.
+    if (!quizResolver.current || !activeQuiz.current) return;
+    const remaining = remainingNotes.current;
+    const expected = new Set(notesToMidi(activeQuiz.current.expect));
+    const result = gradeNote(midi, expected, remaining);
+
+    if (result.kind === 'repeat') return; // harmless double-press, no penalty
+
+    if (result.kind === 'correct') {
+      remaining.delete(midi);
+      setState((s) => ({
+        ...s,
+        playedCorrect: [...s.playedCorrect, midi],
+        litColor: COLOR_HEX.green,
+        correctTick: s.correctTick + 1,
+      }));
+      if (result.complete) {
+        const resolve = quizResolver.current;
+        quizResolver.current = null;
+        resolve?.(true);
+      }
+      return;
+    }
+
+    // Wrong note → costs a heart (single source of truth via onWrongNote).
+    heartsRef.current = Math.max(0, heartsRef.current - 1);
+    wrongAttempts.current += 1;
+    optsRef.current.onWrongNote?.();
+    setState((s) => ({ ...s, hearts: heartsRef.current, wrongTick: s.wrongTick + 1 }));
+
+    if (heartsRef.current <= 0) {
+      const resolve = quizResolver.current;
+      quizResolver.current = null;
+      resolve?.(false);
+    }
   }, []);
 
   const continueLesson = useCallback(() => {
@@ -305,7 +390,13 @@ export function useLessonEngine(
     };
   }, []);
 
-  return { ...state, start, submitQuiz, continueLesson, replayStep, stop };
+  // Grade live key presses from the real piano (BLE) the same as on-screen taps.
+  useEffect(() => {
+    const unsub = ble.subscribeNotes((midi) => notePlayed(midi));
+    return unsub;
+  }, [ble, notePlayed]);
+
+  return { ...state, start, notePlayed, continueLesson, replayStep, stop };
 }
 
 function delay(ms: number): Promise<void> {

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Alert, Animated, Image, useWindowDimensions,
+  View, Text, StyleSheet, Pressable, Alert, Animated, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -41,7 +41,7 @@ export default function LessonScreen() {
   const nav = useNavigation<Nav>();
   const { params } = useRoute<Rt>();
   const { width, height } = useWindowDimensions();
-  const { completeLesson, loseHeart } = useUser();
+  const { profile, completeLesson, loseHeart } = useUser();
   const shake = useShake();
 
   const lesson = useMemo(
@@ -49,7 +49,9 @@ export default function LessonScreen() {
     [params.gradeId, params.lessonId],
   );
 
-  const heartsAtCompleteRef = useRef(5);
+  // Single source of truth for hearts: the learner's real, persisted count.
+  // Snapshotted once at mount so mid-lesson refills don't shift the in-lesson bar.
+  const initialHearts = useRef(profile?.hearts.count ?? 5).current;
 
   // Transient mascot reaction (cheer/shocked/wow), auto-clears.
   const [reaction, setReaction] = useState<MascotMood | null>(null);
@@ -64,15 +66,11 @@ export default function LessonScreen() {
   useEffect(() => { void preloadCore(); }, []);
 
   const engine = useLessonEngine(lesson, {
-    onComplete: (xp) => {
-      const stars = starsFromHearts(heartsAtCompleteRef.current);
+    initialHearts,
+    onComplete: (xp, heartsLeft, accuracy) => {
+      const stars = starsFromHearts(heartsLeft);
       haptics.success();
-      completeLesson({
-        lessonId: params.lessonId,
-        stars,
-        accuracy: heartsAtCompleteRef.current / 5,
-        xp,
-      });
+      completeLesson({ lessonId: params.lessonId, stars, accuracy, xp });
       nav.replace('LessonComplete', {
         gradeId: params.gradeId,
         lessonId: params.lessonId,
@@ -81,6 +79,8 @@ export default function LessonScreen() {
         message: lesson?.complete ?? 'Great work!',
       });
     },
+    // A wrong note costs a heart — persist it to the real economy.
+    onWrongNote: () => { void loseHeart(); },
     onOutOfHearts: () => {
       haptics.error();
       Alert.alert('Out of hearts', 'Take a break and let your hearts refill, then try again.', [
@@ -88,8 +88,6 @@ export default function LessonScreen() {
       ]);
     },
   });
-
-  useEffect(() => { heartsAtCompleteRef.current = engine.hearts; }, [engine.hearts]);
 
   useEffect(() => {
     if (lesson) {
@@ -109,6 +107,28 @@ export default function LessonScreen() {
     }
     prevChordSize.current = size;
   }, [engine.litNotes, engine.status, flashReaction]);
+
+  // React to the engine grading the learner's playing. wrongTick/correctTick are
+  // monotonic counters bumped by the engine on each wrong / correct quiz note.
+  const prevWrong = useRef(0);
+  const prevCorrect = useRef(0);
+  useEffect(() => {
+    if (engine.wrongTick > prevWrong.current) {
+      prevWrong.current = engine.wrongTick;
+      haptics.error();
+      shake.play();
+      flashReaction('shocked', 1200);
+      logEvent(Events.quizWrong, { lessonId: params.lessonId });
+    }
+  }, [engine.wrongTick, shake, flashReaction, params.lessonId]);
+  useEffect(() => {
+    if (engine.correctTick > prevCorrect.current) {
+      prevCorrect.current = engine.correctTick;
+      haptics.success();
+      flashReaction('cheer', 1200);
+      logEvent(Events.quizCorrect, { lessonId: params.lessonId });
+    }
+  }, [engine.correctTick, flashReaction, params.lessonId]);
 
   if (!lesson) {
     return (
@@ -134,20 +154,6 @@ export default function LessonScreen() {
     inputRange: [0, 1], outputRange: ['0%', '100%'],
   });
 
-  const onQuizAnswer = (correct: boolean) => {
-    if (correct) {
-      haptics.success();
-      flashReaction('cheer', 1600);
-      logEvent(Events.quizCorrect, { lessonId: params.lessonId });
-    } else {
-      haptics.error();
-      shake.play();
-      flashReaction('shocked', 1400);
-      loseHeart();
-    }
-    engine.submitQuiz(correct);
-  };
-
   const mascotMood = reaction ?? moodForStatus(engine.status);
 
   // Keyboard (C2..B6 = 35 white keys). Height is derived from the space left
@@ -160,12 +166,21 @@ export default function LessonScreen() {
   // Primary action adapts to engine state.
   const awaitingQuiz = engine.status === 'awaiting-quiz';
   const awaitingContinue = engine.status === 'awaiting-continue';
-  const primaryLabel = awaitingQuiz ? '✓  I played it' : 'CONTINUE';
-  const primaryEnabled = awaitingQuiz || awaitingContinue;
+  // During a quiz the learner PLAYS the answer (tap or real piano) — no
+  // "I played it" shortcut. CONTINUE only gates between steps.
+  const primaryEnabled = awaitingContinue;
   const onPrimary = () => {
-    if (awaitingQuiz) onQuizAnswer(true);
-    else if (awaitingContinue) { haptics.tap(); engine.continueLesson(); }
+    if (awaitingContinue) { haptics.tap(); engine.continueLesson(); }
   };
+  // Highlight quiz targets, turning each note green as it's played correctly.
+  const quizNoteColors = useMemo(() => {
+    if (!awaitingQuiz) return undefined;
+    const m: Record<number, string> = {};
+    quizMidi.forEach((n) => { m[n] = engine.litColor; });
+    engine.playedCorrect.forEach((n) => { m[n] = Colors.brand; });
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingQuiz, engine.playedCorrect, engine.litColor, quizMidi.join(',')]);
 
   return (
     <View style={styles.bg}>
@@ -197,11 +212,13 @@ export default function LessonScreen() {
           </Animated.View>
         </View>
 
-        {/* Full piano */}
+        {/* Full piano — taps feed the engine so on-screen play grades quizzes
+            exactly like the real piano over BLE. */}
         <View style={styles.pianoWrap}>
           <PianoKeyboard
             litNotes={awaitingQuiz ? quizMidi : litMidi}
             litColor={engine.litColor}
+            noteColors={quizNoteColors}
             pressColor={Colors.brand}
             playSound
             octaveLabels
@@ -210,30 +227,41 @@ export default function LessonScreen() {
             whiteKeys={35}
             width={pianoW}
             height={pianoH}
+            onKeyPress={awaitingQuiz ? engine.notePlayed : undefined}
           />
         </View>
 
-        {/* Controls: REPLAY · CONTINUE */}
+        {/* Controls: REPLAY · (quiz hint | CONTINUE) */}
         <View style={styles.controls}>
           <Pressable
-            disabled={!primaryEnabled}
+            disabled={!awaitingQuiz && !awaitingContinue}
             onPress={() => { haptics.tap(); engine.replayStep(); }}
             style={({ pressed }) => [
               styles.replayBtn,
-              !primaryEnabled && styles.replayBtnDisabled,
+              !awaitingQuiz && !awaitingContinue && styles.replayBtnDisabled,
               pressed && { transform: [{ scale: 0.97 }] },
             ]}
           >
-            <Text style={[styles.replayText, !primaryEnabled && styles.replayTextDisabled]}>↻  REPLAY</Text>
+            <Text style={[styles.replayText, !awaitingQuiz && !awaitingContinue && styles.replayTextDisabled]}>
+              {awaitingQuiz ? '↻  HEAR IT' : '↻  REPLAY'}
+            </Text>
           </Pressable>
           <View style={{ flex: 1 }}>
-            <ChunkyButton
-              label={primaryLabel}
-              fullWidth
-              disabled={!primaryEnabled}
-              haptic={awaitingQuiz ? 'bump' : 'tap'}
-              onPress={onPrimary}
-            />
+            {awaitingQuiz ? (
+              <View style={styles.quizHint}>
+                <Text style={styles.quizHintText}>
+                  🎹  Play the {quizMidi.length > 1 ? 'highlighted keys' : 'highlighted key'}
+                </Text>
+              </View>
+            ) : (
+              <ChunkyButton
+                label="CONTINUE"
+                fullWidth
+                disabled={!primaryEnabled}
+                haptic="tap"
+                onPress={onPrimary}
+              />
+            )}
           </View>
         </View>
       </SafeAreaView>
@@ -295,4 +323,12 @@ const styles = StyleSheet.create({
   replayBtnDisabled: { opacity: 0.45 },
   replayText: { fontSize: Fonts.md, fontWeight: Fonts.weight.black, color: Colors.ink700, letterSpacing: 0.5 },
   replayTextDisabled: { color: Colors.ink500 },
+
+  // Quiz hint (replaces CONTINUE while the learner plays the answer)
+  quizHint: {
+    height: 52, borderRadius: Radii.lg,
+    backgroundColor: '#EAF7DD', borderWidth: 2, borderColor: Colors.brand,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  quizHintText: { fontSize: Fonts.md, fontWeight: Fonts.weight.black, color: Colors.brandDark },
 });
