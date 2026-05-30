@@ -188,6 +188,13 @@ export interface UseBLEReturn {
   disconnect:        () => Promise<void>;
   sendLedCommand:    (bytes: Uint8Array) => Promise<void>;
   reset:             () => void;
+  /**
+   * Subscribe to live key-press events from the piano (firmware sends
+   * [0x01, midiNote] on the calibrate characteristic). Returns an unsubscribe
+   * fn. Works whenever a device is CONNECTED — used by the lesson engine to
+   * grade "play this note" steps from what the learner actually plays.
+   */
+  subscribeNotes:    (cb: (midiNote: number) => void) => () => void;
 }
 
 // ── Singleton BleManager ────────────────────────────────────────
@@ -207,6 +214,31 @@ export function useBLE(): UseBLEReturn {
   const calCharRef          = useRef<Characteristic | null>(null);
   const scanTimerRef        = useRef<ReturnType<typeof setTimeout> | null>(null);
   const calSubscriptionRef  = useRef<{ remove(): void } | null>(null);
+  // Persistent note-input monitor (lives for the whole connection) + the set of
+  // listeners (lesson engine, free-play, etc.) that want key-press events.
+  const noteSubscriptionRef = useRef<{ remove(): void } | null>(null);
+  const noteListenersRef    = useRef<Set<(midiNote: number) => void>>(new Set());
+
+  const subscribeNotes = useCallback((cb: (midiNote: number) => void) => {
+    noteListenersRef.current.add(cb);
+    return () => { noteListenersRef.current.delete(cb); };
+  }, []);
+
+  // Begin monitoring key presses on the calibrate characteristic. The firmware
+  // reuses [0x01, midiNote, ledIndex] notifications for normal play, so a single
+  // monitor feeds both calibration and lesson grading. Idempotent.
+  const startNoteMonitor = useCallback(() => {
+    if (noteSubscriptionRef.current || !calCharRef.current) return;
+    noteSubscriptionRef.current = calCharRef.current.monitor((error, char) => {
+      if (error || !char?.value) return;
+      const bytes = Buffer.from(char.value, 'base64');
+      if (bytes[0] !== 0x01) return;
+      const midiNote = bytes[1];
+      noteListenersRef.current.forEach((cb) => {
+        try { cb(midiNote); } catch { /* one bad listener shouldn't break others */ }
+      });
+    });
+  }, []);
 
   // ── Monitor BLE adapter state ─────────────────────────────────
   useEffect(() => {
@@ -364,10 +396,13 @@ export function useBLE(): UseBLEReturn {
 
     dispatch({ type: 'CONNECTED' });
 
+    // Start listening for key presses for the whole connection (lesson grading).
+    startNoteMonitor();
+
     // Celebrate with rainbow
     await writeToLed(cmdRainbow(25));
     await writeToLed(cmdCommit());
-  }, []);
+  }, [startNoteMonitor]);
 
   // ── Internal write helper ─────────────────────────────────────
   async function writeToLed(bytes: Uint8Array): Promise<void> {
@@ -448,6 +483,8 @@ export function useBLE(): UseBLEReturn {
   // ── Disconnect ────────────────────────────────────────────────
   const disconnect = useCallback(async () => {
     calSubscriptionRef.current?.remove();
+    noteSubscriptionRef.current?.remove();
+    noteSubscriptionRef.current = null;
     const device = connectedDeviceRef.current;
     if (device) {
       try { await device.cancelConnection(); } catch {}
@@ -467,6 +504,7 @@ export function useBLE(): UseBLEReturn {
     return () => {
       clearTimeout(scanTimerRef.current!);
       calSubscriptionRef.current?.remove();
+      noteSubscriptionRef.current?.remove();
       getManager().stopDeviceScan();
     };
   }, []);
@@ -487,5 +525,6 @@ export function useBLE(): UseBLEReturn {
     disconnect,
     sendLedCommand,
     reset,
+    subscribeNotes,
   };
 }
