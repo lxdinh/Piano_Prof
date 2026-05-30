@@ -1,5 +1,5 @@
-Build submitted: 2026-05-30T05:30:07Z
-Build page: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/8a34efd1-3cfe-4d5f-a044-4b4ba4d87e25
+Build submitted: 2026-05-30T15:32:00Z
+Build page: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/ce0a1d16-627f-48d6-8ffa-3441c2c23623
 
 Open the build page on your Android phone. When status = finished,
 tap the green Install button to download the APK.

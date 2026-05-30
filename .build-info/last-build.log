@@ -8,17 +8,17 @@ No environment variables with visibility "Plain text" and "Sensitive" found for 
 
 Compressing project files and uploading to EAS Build. Learn more: https://expo.fyi/eas-build-archive
 - Compressing project files
-Your project archive is 217 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
-- Uploading to EAS Build (0 / 217 MB)
-✔ Uploaded to EAS 1s
+Your project archive is 220 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
+- Uploading to EAS Build (0 / 220 MB)
+✔ Uploaded to EAS 2s
 - Computing project fingerprint
 ✔ Computed project fingerprint
 
-See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/8a34efd1-3cfe-4d5f-a044-4b4ba4d87e25
+See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/ce0a1d16-627f-48d6-8ffa-3441c2c23623
 
 [
   {
-    "id": "8a34efd1-3cfe-4d5f-a044-4b4ba4d87e25",
+    "id": "ce0a1d16-627f-48d6-8ffa-3441c2c23623",
     "status": "NEW",
     "platform": "ANDROID",
     "artifacts": {},
@@ -45,12 +45,12 @@ See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/8a34e
     "sdkVersion": "52.0.0",
     "appVersion": "0.6.0",
     "appBuildVersion": "7",
-    "gitCommitHash": "ab25827d0792b0418518bc1d42e0030b6fb62f0c",
-    "gitCommitMessage": "Match legacy piano: full C2–B6 range + dot-LED rendering\n\nRewrite PianoKeyboard to mirror legacy/app.js drawPiano 1:1 — flat\n#FFFAEC white keys with colored lit tints, flat black keys, C-octave\nlabels (middle C in rust), and round glowing LED dots (one per white +\nblack key) on a piano-black strip, replacing the gradient/LED-bar style.\n\nLesson and Practice keyboards now span C2..B6 (35 white keys, MIDI\n36-95) to exactly match the legacy reference, not the C2..C6 subset.",
+    "gitCommitHash": "20b00912d3ad9c2739c45df375e97e60afcb2f0c",
+    "gitCommitMessage": "Sleek lesson layout, clean mascots, smooth full-range piano audio\n\nLayout: derive the keyboard height from the space left after the top bar,\nteacher row, and controls (cap 180, down from 230) and bottom-anchor it, so\nthe keys no longer overlap the REPLAY/CONTINUE buttons. Slim the lesson\nmascot to a 68px avatar.\n\nMascot art: strip the stray sliver bleeding in from the neighbouring sticker\nabove each cutout (the fragment that showed over the penguin's head). Removes\nonly components lying entirely above the main figure, so hats/batons/sheet\nmusic stay intact. 12 mascots cleaned.\n\nAudio: regenerate the piano sample set and extend it from C6 up to C7 so every\nkey on the C2..B6 keyboard has a correctly-pitched sample — fixing the silence\nabove C5/C6 (notes there previously had no sample and clamped an octave down).\nUpper octaves use fewer partials, gentler brightness, and a soft volume taper\nso the high register is smooth and lovely instead of harsh. Mid/low timbre is\nunchanged. Adds scripts/gen_piano_samples.py and widens the sample map to\nMIDI 36..96.",
     "priority": "NORMAL",
-    "createdAt": "2026-05-30T05:30:06.930Z",
-    "updatedAt": "2026-05-30T05:30:06.930Z",
-    "expirationDate": "2026-06-13T05:30:06.974Z",
+    "createdAt": "2026-05-30T15:32:00.215Z",
+    "updatedAt": "2026-05-30T15:32:00.215Z",
+    "expirationDate": "2026-06-13T15:32:00.273Z",
     "isForIosSimulator": false
   }
 ]
