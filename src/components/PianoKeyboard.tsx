@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, Animated, Pressable } from 'react-native';
-import Svg, { Rect, Defs, LinearGradient, Stop, Line, Text as SvgText } from 'react-native-svg';
+import { View, StyleSheet, Pressable } from 'react-native';
+import Svg, {
+  Rect, Defs, RadialGradient, Stop, Circle, Text as SvgText,
+} from 'react-native-svg';
 import { Colors } from '../theme/tokens';
-import LedStripArt from './LedStripArt';
 import * as haptics from '../feedback/haptics';
 import { playMidi } from '../audio/pianoEngine';
 
@@ -13,11 +14,11 @@ interface Props {
   litColor?: string;
   /** Override per-note color */
   noteColors?: Record<number, string>;
-  /** Show the LED strip above the keys */
+  /** Show the LED dot strip above the keys */
   showLeds?: boolean;
-  /** Lowest MIDI note (default 48 = C3) */
+  /** Lowest MIDI note (default 36 = C2, matching the legacy keyboard) */
   startMidi?: number;
-  /** Number of white keys to draw (default 15 — 2 octaves + bit) */
+  /** Number of white keys to draw (default 35 = C2..B6, matching legacy) */
   whiteKeys?: number;
   width?: number;
   height?: number;
@@ -31,59 +32,31 @@ interface Props {
   pressColor?: string;
 }
 
-const WHITE_KEY_PATTERN = [0, 2, 4, 5, 7, 9, 11];
-const BLACK_KEY_OFFSETS = [1, 3, 6, 8, 10];
-const NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+// ── Legacy keyboard constants (mirror legacy/app.js drawPiano) ────────────────
+const LED_STRIP_H = 18;        // matches PpKeyboard.ledStripH / legacy LED_H
+const BG_DARK = '#1A1410';     // piano-black behind the LED strip + key gaps
+const WHITE_FILL = '#FFFAEC';  // flat white-key colour
+const DIM_DOT = '#2A2A2A';     // un-lit LED dot
+const LABEL_MIDDLE = '#C2410C'; // middle-C (MIDI 60) label
+const LABEL_OTHER = '#7C6446';  // other C labels
 
-function whiteIndexToMidi(start: number, idx: number): number {
-  const baseC = start - (start % 12);
-  return baseC + Math.floor(idx / 7) * 12 + WHITE_KEY_PATTERN[idx % 7];
+function isBlack(m: number): boolean {
+  return [1, 3, 6, 8, 10].includes(((m % 12) + 12) % 12);
 }
 
 function midiToOctaveLabel(midi: number): string {
-  const octave = Math.floor(midi / 12) - 1; // MIDI 60 = C4
-  return `C${octave}`;
+  return `C${Math.floor(midi / 12) - 1}`; // MIDI 60 = C4
 }
 
-// A lit-key glow is rendered as an Animated.View positioned exactly over the
-// key, with backgroundColor=glow + an iOS shadow / Android elevation tuned
-// for color. This produces a "the LED inside the key is shining" effect that
-// flat SVG fills can't fake.
-function KeyGlow({
-  x, y, w, h, color, on, isBlack,
-}: { x: number; y: number; w: number; h: number; color: string; on: boolean; isBlack: boolean }) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(opacity, {
-      toValue: on ? 1 : 0,
-      duration: on ? 140 : 320,
-      useNativeDriver: true,
-    }).start();
-  }, [on, opacity]);
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        styles.glow,
-        {
-          left: x,
-          top: y,
-          width: w,
-          height: h,
-          backgroundColor: color,
-          borderRadius: isBlack ? 3 : 4,
-          // Sharp inner edge stays visible on top of the colored key
-          opacity,
-          shadowColor: color,
-          shadowOpacity: 0.95,
-          shadowRadius: 18,
-          shadowOffset: { width: 0, height: 0 },
-          elevation: 14,
-        },
-      ]}
-    />
-  );
+/** Append an 8-bit alpha to a #RRGGBB colour; pass-through for anything else. */
+function withAlpha(hex: string, alpha: number): string {
+  if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+    const a = Math.round(Math.max(0, Math.min(1, alpha)) * 255)
+      .toString(16)
+      .padStart(2, '0');
+    return hex + a;
+  }
+  return hex;
 }
 
 export default function PianoKeyboard({
@@ -91,8 +64,8 @@ export default function PianoKeyboard({
   litColor = Colors.brand,
   noteColors,
   showLeds = true,
-  startMidi = 48,
-  whiteKeys = 15,
+  startMidi = 36,
+  whiteKeys = 35,
   width = 360,
   height = 160,
   onKeyPress,
@@ -100,281 +73,218 @@ export default function PianoKeyboard({
   octaveLabels = false,
   pressColor,
 }: Props) {
-  const stripH = showLeds ? 26 : 0;
-  const fallboardH = showLeds ? 8 : 0;
-  const keyAreaH = height - stripH - fallboardH;
+  const ledH = showLeds ? LED_STRIP_H : 0;
+  const keyH = height - ledH;
   const whiteW = width / whiteKeys;
   const blackW = whiteW * 0.62;
-  const blackH = keyAreaH * 0.62;
+  const blackH = keyH * 0.62;
+  const ledCy = ledH / 2;
+  const dotR = Math.max(2, Math.min(5, whiteW * 0.16));
 
-  // Notes the user is actively touching — gives instant visual feedback even
-  // when no external `litNotes` are supplied (free-play / practice).
+  // Notes the user is actively touching — instant feedback during free play.
   const [pressedNotes, setPressedNotes] = useState<Set<number>>(() => new Set());
   const pressTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
   useEffect(() => () => { pressTimers.current.forEach((t) => clearTimeout(t)); }, []);
 
   const litSet = useMemo(() => new Set(litNotes), [litNotes]);
-  const colorFor = (midi: number): string | null => {
+  const colorFor = useCallback((midi: number): string | null => {
     if (noteColors?.[midi]) return noteColors[midi];
     if (litSet.has(midi)) return litColor;
     if (pressedNotes.has(midi)) return pressColor ?? litColor;
     return null;
-  };
+  }, [noteColors, litSet, litColor, pressedNotes, pressColor]);
 
   const interactive = !!onKeyPress || playSound;
+
+  // White key MIDI list + black keys nestled between them (legacy layout).
+  const { whites, blacks, indexOfWhite } = useMemo(() => {
+    const w: number[] = [];
+    let m = startMidi;
+    while (w.length < whiteKeys) {
+      if (!isBlack(m)) w.push(m);
+      m++;
+    }
+    const idx: Record<number, number> = {};
+    w.forEach((mm, i) => { idx[mm] = i; });
+    const highMidi = w[w.length - 1];
+    const b: number[] = [];
+    for (let mm = startMidi; mm <= highMidi; mm++) {
+      if (isBlack(mm) && idx[mm - 1] !== undefined) b.push(mm);
+    }
+    return { whites: w, blacks: b, indexOfWhite: idx };
+  }, [startMidi, whiteKeys]);
+
+  const blackX = useCallback(
+    (m: number) => (indexOfWhite[m - 1] + 1) * whiteW - blackW / 2,
+    [indexOfWhite, whiteW, blackW],
+  );
+
+  // Unique lit colours → one RadialGradient def each (for the LED-dot glow).
+  const litColorList = useMemo(() => {
+    const set = new Set<string>();
+    whites.forEach((m) => { const c = colorFor(m); if (c) set.add(c); });
+    blacks.forEach((m) => { const c = colorFor(m); if (c) set.add(c); });
+    return [...set];
+  }, [whites, blacks, colorFor]);
+  const glowId = (c: string) => `glow-${litColorList.indexOf(c)}`;
 
   const handlePressIn = useCallback((midi: number) => {
     haptics.tap();
     if (playSound) void playMidi(midi);
     onKeyPress?.(midi);
-    // flash the key for ~260ms
-    setPressedNotes((prev) => {
-      const next = new Set(prev);
-      next.add(midi);
-      return next;
-    });
-    const existing = pressTimers.current.get(midi);
-    if (existing) clearTimeout(existing);
-    pressTimers.current.set(
-      midi,
-      setTimeout(() => {
-        setPressedNotes((prev) => {
-          const next = new Set(prev);
-          next.delete(midi);
-          return next;
-        });
-        pressTimers.current.delete(midi);
-      }, 260),
-    );
+    setPressedNotes((prev) => new Set(prev).add(midi));
   }, [onKeyPress, playSound]);
 
-  const whites = useMemo(() => {
-    const arr: { midi: number; x: number }[] = [];
-    for (let i = 0; i < whiteKeys; i++) {
-      arr.push({ midi: whiteIndexToMidi(startMidi, i), x: i * whiteW });
-    }
-    return arr;
-  }, [startMidi, whiteKeys, whiteW]);
-
-  const blacks = useMemo(() => {
-    const arr: { midi: number; x: number }[] = [];
-    for (let i = 0; i < whiteKeys - 1; i++) {
-      const midi = whiteIndexToMidi(startMidi, i);
-      const semi = midi % 12;
-      if (BLACK_KEY_OFFSETS.includes(semi + 1)) {
-        arr.push({ midi: midi + 1, x: (i + 1) * whiteW - blackW / 2 });
-      }
-    }
-    return arr;
-  }, [startMidi, whiteKeys, whiteW, blackW]);
-
-  // LED row colors (one per white key)
-  const ledColors = useMemo(
-    () =>
-      Array.from({ length: whiteKeys }, (_, i) => {
-        const midi = whiteIndexToMidi(startMidi, i);
-        return colorFor(midi) ?? '#2A1D11';
-      }),
-    // colorFor is identity-stable enough for this memo via its inputs:
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [startMidi, whiteKeys, litColor, litSet, noteColors, pressedNotes, pressColor],
-  );
+  const handlePressOut = useCallback((midi: number) => {
+    const existing = pressTimers.current.get(midi);
+    if (existing) clearTimeout(existing);
+    pressTimers.current.set(midi, setTimeout(() => {
+      setPressedNotes((prev) => {
+        const next = new Set(prev);
+        next.delete(midi);
+        return next;
+      });
+      pressTimers.current.delete(midi);
+    }, 120));
+  }, []);
 
   return (
     <View style={{ width, height }}>
-      {showLeds && (
-        <>
-          <LedStripArt count={whiteKeys} width={width} height={stripH} ledColors={ledColors} />
-          {/* Fallboard — the wooden lip beneath the LED strip on a real piano */}
-          <View style={[styles.fallboard, { height: fallboardH }]} />
-        </>
-      )}
-
-      <View style={{ width, height: keyAreaH }}>
-        {/* Static key geometry */}
-        <Svg width={width} height={keyAreaH} viewBox={`0 0 ${width} ${keyAreaH}`}>
-          <Defs>
-            <LinearGradient id="white-key" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#FFFEF8" />
-              <Stop offset="0.85" stopColor="#FCF5E0" />
-              <Stop offset="1" stopColor="#E8D9BC" />
-            </LinearGradient>
-            <LinearGradient id="white-key-shadow" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#000000" stopOpacity={0.16} />
-              <Stop offset="1" stopColor="#000000" stopOpacity={0} />
-            </LinearGradient>
-            <LinearGradient id="black-key" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#3F3025" />
-              <Stop offset="0.18" stopColor="#1F1612" />
-              <Stop offset="1" stopColor="#0A0605" />
-            </LinearGradient>
-            <LinearGradient id="black-key-top" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.18} />
-              <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
-            </LinearGradient>
-          </Defs>
-
-          {/* White keys */}
-          {whites.map(({ midi, x }) => (
-            <React.Fragment key={`w${midi}`}>
-              <Rect
-                x={x + 1}
-                y={0}
-                width={whiteW - 2}
-                height={keyAreaH}
-                rx={4}
-                ry={4}
-                fill="url(#white-key)"
-                stroke={Colors.ink900}
-                strokeWidth={0.6}
-                strokeOpacity={0.55}
-              />
-              {/* Inner shadow at top — sells the recessed look under the LED bar */}
-              <Rect
-                x={x + 2}
-                y={0}
-                width={whiteW - 4}
-                height={10}
-                fill="url(#white-key-shadow)"
-                pointerEvents="none"
-              />
-            </React.Fragment>
+      <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        <Defs>
+          {litColorList.map((c, i) => (
+            <RadialGradient key={c} id={`glow-${i}`} cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor={c} stopOpacity={0.8} />
+              <Stop offset="1" stopColor={c} stopOpacity={0} />
+            </RadialGradient>
           ))}
+        </Defs>
 
-          {/* Gap shadow lines between white keys */}
-          {whites.slice(0, -1).map(({ x }, i) => (
-            <Line
-              key={`gap${i}`}
-              x1={x + whiteW}
-              y1={4}
-              x2={x + whiteW}
-              y2={keyAreaH - 6}
-              stroke={Colors.ink900}
-              strokeWidth={0.5}
-              strokeOpacity={0.35}
-            />
-          ))}
+        {/* Piano-black background (shows through the LED strip + key gaps) */}
+        <Rect x={0} y={0} width={width} height={height} rx={14} ry={14} fill={BG_DARK} />
 
-          {/* Octave labels at the foot of each C key */}
-          {octaveLabels && whites.map(({ midi, x }) =>
-            midi % 12 === 0 ? (
-              <SvgText
-                key={`lbl${midi}`}
-                x={x + whiteW / 2}
-                y={keyAreaH - 8}
-                fontSize={Math.min(11, whiteW * 0.42)}
-                fontWeight="900"
-                fill={midi === 60 ? Colors.rust : Colors.ink500}
-                textAnchor="middle"
-              >
-                {midiToOctaveLabel(midi)}
-              </SvgText>
-            ) : null,
-          )}
-
-          {/* Black keys */}
-          {blacks.map(({ midi, x }) => (
-            <React.Fragment key={`b${midi}`}>
+        {/* White keys */}
+        {whites.map((m, i) => {
+          const x = i * whiteW;
+          const lit = colorFor(m);
+          return (
+            <React.Fragment key={`w${m}`}>
               <Rect
                 x={x}
-                y={0}
-                width={blackW}
-                height={blackH}
-                rx={3}
-                ry={3}
-                fill="url(#black-key)"
-                stroke={'#000000'}
-                strokeWidth={0.5}
+                y={ledH}
+                width={whiteW - 0.5}
+                height={keyH}
+                fill={WHITE_FILL}
+                stroke={BG_DARK}
+                strokeWidth={0.6}
               />
-              {/* Top highlight */}
-              <Rect
-                x={x + 1}
-                y={1}
-                width={blackW - 2}
-                height={blackH * 0.35}
-                rx={3}
-                ry={3}
-                fill="url(#black-key-top)"
-                pointerEvents="none"
-              />
+              {lit && (
+                <Rect
+                  x={x}
+                  y={ledH}
+                  width={whiteW - 0.5}
+                  height={keyH}
+                  fill={withAlpha(lit, 0.30)}
+                />
+              )}
             </React.Fragment>
-          ))}
-        </Svg>
-
-        {/* Animated glow overlays — render UNDER white keys to bleed up through them,
-            OVER black keys to color them. White-key glow sits at the bottom 40% so
-            it looks like the LED is shining out the front of the key. */}
-        {whites.map(({ midi, x }) => {
-          const c = colorFor(midi);
-          if (!c) return null;
-          return (
-            <KeyGlow
-              key={`wg${midi}`}
-              x={x + 2}
-              y={keyAreaH * 0.55}
-              w={whiteW - 4}
-              h={keyAreaH * 0.42}
-              color={c}
-              on={true}
-              isBlack={false}
-            />
-          );
-        })}
-        {blacks.map(({ midi, x }) => {
-          const c = colorFor(midi);
-          if (!c) return null;
-          return (
-            <KeyGlow
-              key={`bg${midi}`}
-              x={x + 1}
-              y={1}
-              w={blackW - 2}
-              h={blackH - 2}
-              color={c}
-              on={true}
-              isBlack={true}
-            />
           );
         })}
 
-        {/* Tap targets (transparent Pressables) sit on top of everything.
-            onPressIn fires immediately for a responsive, instrument-like feel.
-            Black keys render after whites so their hit area wins the overlap. */}
-        {interactive && (
+        {/* C labels at the foot of each C key */}
+        {octaveLabels && whites.map((m, i) =>
+          m % 12 === 0 ? (
+            <SvgText
+              key={`lbl${m}`}
+              x={i * whiteW + whiteW / 2}
+              y={height - 5}
+              fontSize={m === 60 ? 9.5 : 8.5}
+              fontWeight={m === 60 ? '900' : '700'}
+              fill={m === 60 ? LABEL_MIDDLE : LABEL_OTHER}
+              textAnchor="middle"
+            >
+              {midiToOctaveLabel(m)}
+            </SvgText>
+          ) : null,
+        )}
+
+        {/* Black keys (on top of the white-key rects) */}
+        {blacks.map((m) => {
+          const x = blackX(m);
+          const lit = colorFor(m);
+          return (
+            <React.Fragment key={`b${m}`}>
+              <Rect x={x} y={ledH} width={blackW} height={blackH} fill={BG_DARK} />
+              {lit && (
+                <Rect x={x} y={ledH} width={blackW} height={blackH} fill={withAlpha(lit, 0.55)} />
+              )}
+            </React.Fragment>
+          );
+        })}
+
+        {/* LED dot strip — one dot per white + black key */}
+        {showLeds && (
           <>
-            {whites.map(({ midi, x }) => (
-              <Pressable
-                key={`wp${midi}`}
-                onPressIn={() => handlePressIn(midi)}
-                style={[styles.tap, { left: x, width: whiteW, height: keyAreaH, top: 0 }]}
-              />
-            ))}
-            {blacks.map(({ midi, x }) => (
-              <Pressable
-                key={`bp${midi}`}
-                onPressIn={() => handlePressIn(midi)}
-                style={[styles.tap, { left: x, width: blackW, height: blackH, top: 0 }]}
-              />
-            ))}
+            {whites.map((m, i) => {
+              const cx = i * whiteW + whiteW / 2;
+              const lit = colorFor(m);
+              if (!lit) {
+                return <Circle key={`wd${m}`} cx={cx} cy={ledCy} r={dotR * 0.8} fill={DIM_DOT} />;
+              }
+              return (
+                <React.Fragment key={`wd${m}`}>
+                  <Circle cx={cx} cy={ledCy} r={dotR * 2.5} fill={`url(#${glowId(lit)})`} />
+                  <Circle cx={cx} cy={ledCy} r={dotR} fill={lit} />
+                  <Circle cx={cx} cy={ledCy} r={dotR * 0.42} fill="#FFFFFF" />
+                </React.Fragment>
+              );
+            })}
+            {blacks.map((m) => {
+              const cx = (indexOfWhite[m - 1] + 1) * whiteW;
+              const lit = colorFor(m);
+              if (!lit) {
+                return <Circle key={`bd${m}`} cx={cx} cy={ledCy} r={dotR * 0.8} fill={DIM_DOT} />;
+              }
+              return (
+                <React.Fragment key={`bd${m}`}>
+                  <Circle cx={cx} cy={ledCy} r={dotR * 2.5} fill={`url(#${glowId(lit)})`} />
+                  <Circle cx={cx} cy={ledCy} r={dotR} fill={lit} />
+                  <Circle cx={cx} cy={ledCy} r={dotR * 0.42} fill="#FFFFFF" />
+                </React.Fragment>
+              );
+            })}
           </>
         )}
-      </View>
+      </Svg>
+
+      {/* Tap targets — black keys render after whites so they win the overlap. */}
+      {interactive && (
+        <>
+          {whites.map((m, i) => (
+            <Pressable
+              key={`wp${m}`}
+              onPressIn={() => handlePressIn(m)}
+              onPressOut={() => handlePressOut(m)}
+              style={[styles.tap, { left: i * whiteW, top: ledH, width: whiteW, height: keyH }]}
+            />
+          ))}
+          {blacks.map((m) => (
+            <Pressable
+              key={`bp${m}`}
+              onPressIn={() => handlePressIn(m)}
+              onPressOut={() => handlePressOut(m)}
+              style={[styles.tap, { left: blackX(m), top: ledH, width: blackW, height: blackH }]}
+            />
+          ))}
+        </>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  glow: {
-    position: 'absolute',
-  },
   tap: {
     position: 'absolute',
     backgroundColor: 'transparent',
-  },
-  fallboard: {
-    width: '100%',
-    backgroundColor: '#2A1D11',
-    borderBottomWidth: 1,
-    borderBottomColor: '#0E0907',
   },
 });

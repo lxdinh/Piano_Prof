@@ -139,7 +139,7 @@ export default function LessonScreen() {
 
   const mascotMood = reaction ?? moodForStatus(engine.status);
 
-  // Full keyboard sized to the landscape viewport. C2..C6 = 29 white keys.
+  // Full keyboard sized to the landscape viewport. C2..B6 = 35 white keys (matches legacy).
   const pianoW = Math.min(width - Spacing.lg * 2, 1200);
   const pianoH = Math.min(Math.max(height * 0.42, 150), 230);
 
@@ -193,7 +193,7 @@ export default function LessonScreen() {
             octaveLabels
             showLeds
             startMidi={36}
-            whiteKeys={29}
+            whiteKeys={35}
             width={pianoW}
             height={pianoH}
           />

@@ -83,7 +83,7 @@ export default function PracticeScreen() {
             octaveLabels
             showLeds
             startMidi={36}     // C2
-            whiteKeys={29}     // C2..C6
+            whiteKeys={35}     // C2..B6 (matches legacy)
             width={pianoW}
             height={pianoH}
           />
