@@ -32,8 +32,11 @@ const VARIANTS: Record<ChunkyButtonVariant, {
   gradient: readonly [string, string];
   shadow: string;
   text: string;
+  /** Flat fill used while disabled, so the button reads "not ready yet" without
+   *  exposing the dark shadow plate (which looked like a two-tone green). */
+  disabled?: readonly [string, string];
 }> = {
-  primary:   { gradient: Gradients.brand,  shadow: '#2E7000', text: '#FFFFFF' },
+  primary:   { gradient: Gradients.brand,  shadow: '#2E7000', text: '#FFFFFF', disabled: ['#AEE38C', '#A2DC7C'] },
   sky:       { gradient: Gradients.sky,    shadow: '#1F6A8A', text: '#FFFFFF' },
   violet:    { gradient: Gradients.violet, shadow: '#5B21B6', text: '#FFFFFF' },
   secondary: { gradient: ['#FFF8E1', '#FFE6BA'] as const, shadow: '#C99300', text: Colors.ink900 },
@@ -49,6 +52,12 @@ export default function ChunkyButton({
 }: Props) {
   const v = VARIANTS[variant];
   const isGhost = variant === 'ghost';
+  // When disabled, drop the chunky shadow plate (the dark bottom edge) entirely —
+  // that's what made the disabled CONTINUE button look like two stacked greens.
+  // Filled variants get a flat light fill instead of a dimmed gradient.
+  const disabledFlat = disabled && !!v.disabled;
+  const faceGradient: readonly [string, string] = disabledFlat ? v.disabled! : v.gradient;
+  const showShadow = !isGhost && !disabled;
   const press = useRef(new Animated.Value(0)).current;
 
   const animateTo = (to: number) => {
@@ -74,17 +83,25 @@ export default function ChunkyButton({
         style={styles.wrap}
         hitSlop={6}
       >
-        {/* Shadow plate (chunky bottom edge) */}
-        {!isGhost && (
+        {/* Shadow plate (chunky bottom edge) — hidden while disabled */}
+        {showShadow && (
           <Animated.View
             pointerEvents="none"
             style={[styles.shadowPlate, { backgroundColor: v.shadow, height: shadowH }]}
           />
         )}
         {/* Face */}
-        <Animated.View style={[styles.face, { transform: [{ translateY }] }, disabled && { opacity: 0.5 }]}>
+        <Animated.View
+          style={[
+            styles.face,
+            { transform: [{ translateY: showShadow ? translateY : 0 }] },
+            // Filled variants with a dedicated disabled fill stay full-opacity
+            // (flat light green); others fall back to a gentle dim.
+            disabled && !disabledFlat && { opacity: 0.5 },
+          ]}
+        >
           <LinearGradient
-            colors={[v.gradient[0], v.gradient[1]]}
+            colors={[faceGradient[0], faceGradient[1]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={[

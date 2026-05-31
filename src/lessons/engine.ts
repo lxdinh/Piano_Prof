@@ -3,6 +3,7 @@ import { Lesson, LessonSegment, QuizSegment } from './schema';
 import { notesToMidi } from './noteToMidi';
 import { gradeNote } from './quizGrading';
 import { COLOR_HEX, hexToRgb } from './colors';
+import { handColorForMidi } from '../theme/handColors';
 import { playChord, playSequence, stopAll } from '../audio/pianoEngine';
 import { speak, stopSpeaking } from '../audio/instructorVoice';
 import { useBLEContext } from '../ble/BLEContext';
@@ -106,14 +107,16 @@ export function useLessonEngine(
   const wrongAttempts = useRef(0);
 
   const lightKeys = useCallback(
-    async (midiNotes: number[], hex: string) => {
+    async (midiNotes: number[], _hex: string) => {
       if (ble.phase !== 'CONNECTED') return;
+      // Light each physical key by the hand that plays it (left = cyan,
+      // right = orange) so the LED strip matches the on-screen keyboard.
       const entries = midiNotes
-        .map((m) => midiToLed(m))
-        .filter((i): i is number => i != null)
-        .map((index) => ({
+        .map((m) => ({ m, index: midiToLed(m) }))
+        .filter((e): e is { m: number; index: number } => e.index != null)
+        .map(({ m, index }) => ({
           index,
-          rgb: hexToRgb(hex),
+          rgb: hexToRgb(handColorForMidi(m)),
         }));
       if (entries.length === 0) return;
       try {

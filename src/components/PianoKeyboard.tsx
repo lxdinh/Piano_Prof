@@ -1,9 +1,10 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, GestureResponderEvent } from 'react-native';
+import { View, GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 import Svg, {
   Rect, Defs, RadialGradient, Stop, Circle, Text as SvgText,
 } from 'react-native-svg';
 import { Colors } from '../theme/tokens';
+import { handColorForMidi } from '../theme/handColors';
 import * as haptics from '../feedback/haptics';
 import { playMidi } from '../audio/pianoEngine';
 
@@ -30,6 +31,12 @@ interface Props {
   octaveLabels?: boolean;
   /** Highlight color used for a freshly-tapped key. */
   pressColor?: string;
+  /**
+   * Color every lit/pressed key by the hand that plays it — left hand (below
+   * Middle C) cyan, right hand orange. Overrides litColor/pressColor but NOT an
+   * explicit `noteColors` entry (so quiz "correct = green" feedback still wins).
+   */
+  colorByHand?: boolean;
 }
 
 // ── Legacy keyboard constants (mirror legacy/app.js drawPiano) ────────────────
@@ -72,6 +79,7 @@ export default function PianoKeyboard({
   playSound = false,
   octaveLabels = false,
   pressColor,
+  colorByHand = false,
 }: Props) {
   const ledH = showLeds ? LED_STRIP_H : 0;
   const keyH = height - ledH;
@@ -87,10 +95,14 @@ export default function PianoKeyboard({
   const litSet = useMemo(() => new Set(litNotes), [litNotes]);
   const colorFor = useCallback((midi: number): string | null => {
     if (noteColors?.[midi]) return noteColors[midi];
-    if (litSet.has(midi)) return litColor;
-    if (pressedNotes.has(midi)) return pressColor ?? litColor;
+    const isLit = litSet.has(midi);
+    const isPressed = pressedNotes.has(midi);
+    // Left/right-hand color scheme takes over for anything lit or freshly tapped.
+    if (colorByHand && (isLit || isPressed)) return handColorForMidi(midi);
+    if (isLit) return litColor;
+    if (isPressed) return pressColor ?? litColor;
     return null;
-  }, [noteColors, litSet, litColor, pressedNotes, pressColor]);
+  }, [noteColors, litSet, litColor, pressedNotes, pressColor, colorByHand]);
 
   const interactive = !!onKeyPress || playSound;
 
@@ -158,12 +170,33 @@ export default function PianoKeyboard({
   // note-off diffing doesn't depend on React state-update timing.
   const activeRef = useRef<Set<number>>(new Set());
 
+  // Absolute (window) origin of the keyboard, measured on layout. We hit-test
+  // each finger from its absolute pageX/pageY MINUS this origin rather than from
+  // touch.locationX/locationY. On Android, locationX is reported relative to
+  // whichever native sub-view (e.g. a react-native-svg shape) actually received
+  // the touch, so taps over the right portion of the SVG came back with the
+  // wrong x and never resolved to a key — that whole region played no sound.
+  // pageX/pageY are always window-absolute, so this is reliable edge to edge.
+  const containerRef = useRef<View>(null);
+  const originRef = useRef<{ x: number; y: number } | null>(null);
+  const measureOrigin = useCallback(() => {
+    containerRef.current?.measureInWindow((x, y) => {
+      originRef.current = { x, y };
+    });
+  }, []);
+  const onLayout = useCallback((_e: LayoutChangeEvent) => measureOrigin(), [measureOrigin]);
+
   const handleTouches = useCallback(
     (evt: GestureResponderEvent) => {
-      const touches = evt.nativeEvent.touches ?? [];
+      const ne = evt.nativeEvent;
+      // Prefer live touches; fall back to changedTouches (covers mouse/web).
+      const touches = ne.touches?.length ? ne.touches : (ne.changedTouches ?? []);
+      const origin = originRef.current;
       const now = new Set<number>();
       for (const t of touches) {
-        const m = keyAt(t.locationX, t.locationY);
+        const x = origin && t.pageX != null ? t.pageX - origin.x : t.locationX;
+        const y = origin && t.pageY != null ? t.pageY - origin.y : t.locationY;
+        const m = keyAt(x, y);
         if (m != null) now.add(m);
       }
       const prev = activeRef.current;
@@ -192,13 +225,22 @@ export default function PianoKeyboard({
     setPressedNotes(new Set());
   }, []);
 
+  const handleGrant = useCallback((evt: GestureResponderEvent) => {
+    // Re-measure on every touch start so a mid-session orientation change or
+    // scroll can't leave us hit-testing against a stale origin.
+    measureOrigin();
+    handleTouches(evt);
+  }, [measureOrigin, handleTouches]);
+
   return (
     <View
+      ref={containerRef}
+      onLayout={onLayout}
       style={{ width, height }}
       pointerEvents={interactive ? 'box-only' : 'auto'}
       onStartShouldSetResponder={() => interactive}
       onMoveShouldSetResponder={() => interactive}
-      onResponderGrant={handleTouches}
+      onResponderGrant={handleGrant}
       onResponderStart={handleTouches}
       onResponderMove={handleTouches}
       onResponderEnd={handleTouches}

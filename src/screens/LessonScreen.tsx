@@ -172,15 +172,15 @@ export default function LessonScreen() {
   const onPrimary = () => {
     if (awaitingContinue) { haptics.tap(); engine.continueLesson(); }
   };
-  // Highlight quiz targets, turning each note green as it's played correctly.
+  // Quiz targets light up by hand (cyan = left, orange = right) via colorByHand;
+  // here we only override the ones already played correctly, turning them green.
   const quizNoteColors = useMemo(() => {
     if (!awaitingQuiz) return undefined;
     const m: Record<number, string> = {};
-    quizMidi.forEach((n) => { m[n] = engine.litColor; });
     engine.playedCorrect.forEach((n) => { m[n] = Colors.brand; });
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [awaitingQuiz, engine.playedCorrect, engine.litColor, quizMidi.join(',')]);
+  }, [awaitingQuiz, engine.playedCorrect]);
 
   return (
     <View style={styles.bg}>
@@ -219,7 +219,7 @@ export default function LessonScreen() {
             litNotes={awaitingQuiz ? quizMidi : litMidi}
             litColor={engine.litColor}
             noteColors={quizNoteColors}
-            pressColor={Colors.brand}
+            colorByHand
             playSound
             octaveLabels
             showLeds

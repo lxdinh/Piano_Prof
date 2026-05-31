@@ -149,7 +149,7 @@ function Page2({ active }: PageProps) {
         <View style={styles.demoCard}>
           <PianoKeyboard
             litNotes={lit}
-            litColor={Colors.brand}
+            colorByHand
             showLeds
             width={Math.min(SCREEN_W - 80, 320)}
             height={160}

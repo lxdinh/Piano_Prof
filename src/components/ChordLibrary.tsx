@@ -91,7 +91,13 @@ export default function ChordLibrary({ onPlayChord, accent = LedColors[3] }: Pro
 
       {phase === 'root' ? (
         // ── Step 1: root letter ────────────────────────────────────────────
-        <View style={styles.rootGrid}>
+        // Scrollable so the chips are always reachable even when vertical space
+        // is tight in landscape — they can no longer slip behind the keyboard.
+        <ScrollView
+          style={styles.rootScroll}
+          contentContainerStyle={styles.rootGrid}
+          showsVerticalScrollIndicator={false}
+        >
           {ROOT_LETTERS.map((l) => (
             <Pressable
               key={l}
@@ -104,7 +110,7 @@ export default function ChordLibrary({ onPlayChord, accent = LedColors[3] }: Pro
               <Text style={styles.rootChipText}>{l}</Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       ) : (
         // ── Step 2: accidental + quality tree ──────────────────────────────
         <View style={styles.qualityArea}>
@@ -181,7 +187,9 @@ export default function ChordLibrary({ onPlayChord, accent = LedColors[3] }: Pro
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, gap: Spacing.sm },
+  // overflow:hidden keeps every chip inside the chooser band — it can't bleed
+  // down over the keyboard the way the old fixed grid did.
+  wrap: { flex: 1, gap: Spacing.sm, overflow: 'hidden' },
 
   // Teacher row
   teacherRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
@@ -199,7 +207,8 @@ const styles = StyleSheet.create({
   bubbleText: { fontSize: Fonts.base, color: Colors.ink900, fontWeight: Fonts.weight.heavy, lineHeight: 18 },
 
   // Step 1: roots
-  rootGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'center' },
+  rootScroll: { flex: 1 },
+  rootGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, justifyContent: 'center', paddingVertical: Spacing.xs },
   rootChip: {
     width: 52, height: 56, borderRadius: Radii.md,
     backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: Colors.inkLine,
