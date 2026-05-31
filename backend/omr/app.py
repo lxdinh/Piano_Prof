@@ -32,6 +32,8 @@ from fastapi.staticfiles import StaticFiles
 
 from pdf import is_pdf, pdf_to_pngs
 from merge import merge_musicxml
+from analyze import analyze_score
+from instruct import analyzed_to_lesson
 from jobs import STORE
 
 app = FastAPI(title="Piano Professor OMR (oemer)")
@@ -82,8 +84,13 @@ async def omr(file: UploadFile = File(...)):
         shutil.rmtree(workdir, ignore_errors=True)
 
 
-def _process_song(job_id: str, page_paths: list[str], workdir: str) -> None:
-    """Background worker: expand PDFs, OMR each page in order, merge, store."""
+def _process_song(job_id: str, page_paths: list[str], workdir: str,
+                  fmt: str, title: str) -> None:
+    """Background worker: expand PDFs, OMR each page in order, merge, store.
+
+    When `fmt == "lesson"` the merged score is analyzed (time/key signature,
+    hand separation, chord loops) and turned into a "professor" Lesson.
+    """
     try:
         # Expand the ordered uploads into an ordered list of image pages.
         image_pages: list[str] = []
@@ -103,7 +110,10 @@ def _process_song(job_id: str, page_paths: list[str], workdir: str) -> None:
             STORE.update(job_id, done_pages=i + 1)
 
         merged = merge_musicxml(xmls)
-        STORE.update(job_id, status="ready", result_xml=merged)
+        lesson = None
+        if fmt == "lesson":
+            lesson = analyzed_to_lesson(analyze_score(merged, title), title)
+        STORE.update(job_id, status="ready", result_xml=merged, result_lesson=lesson)
     except Exception as e:  # noqa: BLE001 — surface any failure to the client
         STORE.update(job_id, status="failed", error=str(e))
     finally:
@@ -116,14 +126,17 @@ async def omr_song(
     files: list[UploadFile] = File(...),
     order: str = Form("[]"),
     title: str = Form("Imported song"),
+    format: str = Form("musicxml"),
 ):
     """Accept N images/PDFs + an `order` (JSON array of indices into `files`).
 
     Saves the uploads, kicks off background OMR+merge, and returns 202 + jobId.
-    The client polls GET /omr/song/{jobId} for the merged MusicXML.
+    `format` is "musicxml" (default) or "lesson" (analyzed "professor" Lesson).
+    The client polls GET /omr/song/{jobId} for the result.
     """
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded.")
+    fmt = "lesson" if format == "lesson" else "musicxml"
 
     try:
         idx = json.loads(order) if order else []
@@ -146,8 +159,8 @@ async def omr_song(
         saved.append(dest)
 
     ordered_paths = [saved[i] for i in idx]
-    job = STORE.create(title=title, total_pages=len(ordered_paths))
-    background.add_task(_process_song, job.id, ordered_paths, workdir)
+    job = STORE.create(title=title, total_pages=len(ordered_paths), fmt=fmt)
+    background.add_task(_process_song, job.id, ordered_paths, workdir, fmt, title)
     return {"jobId": job.id, "status": job.status}
 
 
@@ -166,9 +179,28 @@ def omr_song_status(job_id: str):
     }
     if job.status == "ready":
         body["musicxml"] = job.result_xml
+        if job.result_lesson is not None:
+            body["lesson"] = job.result_lesson
     elif job.status == "failed":
         body["error"] = job.error
     return JSONResponse(body)
+
+
+@app.post("/lesson/from-musicxml")
+async def lesson_from_musicxml(
+    file: UploadFile = File(...),
+    title: str = Form("Imported song"),
+):
+    """Analyze an already-merged MusicXML into a 'professor' Lesson (synchronous).
+
+    Handy for re-processing a cached score or testing the analysis without oemer.
+    """
+    xml = (await file.read()).decode("utf-8", errors="replace")
+    try:
+        lesson = analyzed_to_lesson(analyze_score(xml, title), title)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=422, detail=f"Analysis failed: {e}")
+    return JSONResponse(lesson)
 
 
 # Browser upload portal. Mounted last so it doesn't shadow the API routes above.

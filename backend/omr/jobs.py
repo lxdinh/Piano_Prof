@@ -10,7 +10,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 
 @dataclass
@@ -18,9 +18,11 @@ class Job:
     id: str
     status: str = "processing"          # processing | ready | failed
     title: str = "Imported song"
+    fmt: str = "musicxml"               # "musicxml" | "lesson"
     total_pages: int = 0
     done_pages: int = 0
     result_xml: Optional[str] = None    # merged MusicXML when status == ready
+    result_lesson: Optional[dict[str, Any]] = None  # enriched Lesson (fmt=lesson)
     error: Optional[str] = None         # populated when status == failed
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
@@ -31,8 +33,8 @@ class JobStore:
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
 
-    def create(self, title: str, total_pages: int) -> Job:
-        job = Job(id=uuid.uuid4().hex, title=title, total_pages=total_pages)
+    def create(self, title: str, total_pages: int, fmt: str = "musicxml") -> Job:
+        job = Job(id=uuid.uuid4().hex, title=title, fmt=fmt, total_pages=total_pages)
         with self._lock:
             self._jobs[job.id] = job
         return job

@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir \
         "uvicorn[standard]" \
         python-multipart
 
-COPY app.py merge.py pdf.py jobs.py /app/
+COPY app.py merge.py pdf.py jobs.py analyze.py instruct.py /app/
 COPY static /app/static
 
 EXPOSE 8000

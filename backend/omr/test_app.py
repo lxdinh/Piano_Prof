@@ -58,6 +58,25 @@ def test_song_merges_in_requested_order():
     assert pitches == ["G4", "C4"], pitches
 
 
+def test_song_lesson_format_returns_lesson():
+    client = _client()
+    files = [
+        ("files", ("C4.png", b"x", "image/png")),
+        ("files", ("E4.png", b"x", "image/png")),
+    ]
+    res = client.post("/omr/song", files=files,
+                      data={"order": "[0,1]", "title": "Tune", "format": "lesson"})
+    assert res.status_code == 202, res.text
+    job_id = res.json()["jobId"]
+
+    j = _wait(client, job_id)
+    assert j["status"] == "ready", j
+    assert "lesson" in j, j
+    lesson = j["lesson"]
+    assert lesson["title"] == "Tune"
+    assert lesson["steps"] and lesson["steps"][0]["segments"]
+
+
 def test_bad_order_is_rejected():
     client = _client()
     files = [("files", ("C4.png", b"x", "image/png"))]
@@ -72,6 +91,7 @@ def test_unknown_job_is_404():
 
 if __name__ == "__main__":
     test_song_merges_in_requested_order()
+    test_song_lesson_format_returns_lesson()
     test_bad_order_is_rejected()
     test_unknown_job_is_404()
     print("OK: all app endpoint tests passed")

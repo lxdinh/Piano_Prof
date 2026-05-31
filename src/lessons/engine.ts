@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Lesson, LessonSegment, QuizSegment } from './schema';
+import { Lesson, LessonSegment, QuizSegment, LedColorName, HandName } from './schema';
 import { notesToMidi } from './noteToMidi';
 import { gradeNote } from './quizGrading';
 import { COLOR_HEX, hexToRgb } from './colors';
@@ -49,6 +49,22 @@ export interface UseLessonEngine extends EngineState {
 }
 
 const START_HEARTS = 5;
+
+// Hand-aware color: when a segment sets no explicit color, tint by hand
+// (left = violet, right = cyan, both = green) so the two hands read distinctly.
+function hexForSeg(seg: { color?: LedColorName; hand?: HandName }): string {
+  if (seg.color) return COLOR_HEX[seg.color];
+  if (seg.hand === 'left') return COLOR_HEX.violet;
+  if (seg.hand === 'right') return COLOR_HEX.cyan;
+  if (seg.hand === 'both') return COLOR_HEX.green;
+  return COLOR_HEX.cyan;
+}
+
+// "1, 2, 3 ... 1, 2, 3" for the requested beats/bars.
+function countLine(beats: number, bars: number): string {
+  const one = Array.from({ length: Math.max(1, beats) }, (_, i) => i + 1).join(', ');
+  return Array.from({ length: Math.max(1, bars) }, () => one).join(' ... ');
+}
 
 export function useLessonEngine(
   lesson: Lesson | null,
@@ -154,7 +170,7 @@ export function useLessonEngine(
 
         case 'chord': {
           const midi = notesToMidi(seg.notes);
-          const hex = COLOR_HEX[seg.color ?? 'cyan'];
+          const hex = hexForSeg(seg);
           setState((s) => ({ ...s, litNotes: midi, litColor: hex }));
           await Promise.all([
             lightKeys(midi, hex),
@@ -169,7 +185,7 @@ export function useLessonEngine(
         case 'seq':
         case 'seqAll': {
           const midi = notesToMidi(seg.notes);
-          const hex = COLOR_HEX[seg.color ?? 'cyan'];
+          const hex = hexForSeg(seg);
           const gap = seg.delay ?? 400;
           for (const m of midi) {
             if (!alive()) return false;
@@ -181,6 +197,38 @@ export function useLessonEngine(
             await Promise.all([lightKeys([m], hex), playSequence([m], 0)]);
             await delay(gap);
           }
+          setState((s) => ({ ...s, litNotes: [] }));
+          await clearKeys();
+          return alive();
+        }
+
+        case 'count': {
+          const line = countLine(seg.beats, seg.bars ?? 1);
+          const intro = `In ${seg.meter}, count: ${line}`;
+          setState((s) => ({ ...s, caption: intro }));
+          await speak(intro);
+          if (seg.tempoBpm) {
+            // One bar of silent pulse so the learner internalizes the tempo.
+            const beatMs = 60000 / seg.tempoBpm;
+            await delay(beatMs * Math.max(1, seg.beats));
+          }
+          return alive();
+        }
+
+        case 'arpeggio': {
+          const midi = notesToMidi(seg.notes);
+          const hex = hexForSeg(seg);
+          const gap = seg.delay ?? 220;
+          for (const m of midi) {
+            if (!alive()) return false;
+            setState((s) => ({ ...s, litNotes: [m], litColor: hex }));
+            await Promise.all([lightKeys([m], hex), playSequence([m], 0)]);
+            await delay(gap);
+          }
+          // Hold the whole rolled chord so it rings, then clear.
+          setState((s) => ({ ...s, litNotes: midi, litColor: hex }));
+          await lightKeys(midi, hex);
+          await delay(seg.wait ?? 900);
           setState((s) => ({ ...s, litNotes: [] }));
           await clearKeys();
           return alive();

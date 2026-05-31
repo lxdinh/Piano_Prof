@@ -11,10 +11,18 @@ tiny FastAPI service that the app calls.
     rasterized page-by-page, each page is OMR'd, and all pages are **merged into one**
     MusicXML.
   - `GET /omr/song/{jobId}` → poll status (`processing|ready|failed`); returns the merged
-    `musicxml` when ready.
+    `musicxml` when ready (and a `lesson` when `format=lesson` was requested).
+  - `POST /lesson/from-musicxml` (multipart `file` + optional `title`) → a **"professor"
+    Lesson** JSON, analyzed synchronously from an already-merged MusicXML (handy for
+    testing/re-processing without oemer).
   - `GET /` → a browser **upload portal** (`static/index.html`): pick files, reorder, submit.
 - `merge.py` / `pdf.py` / `jobs.py` — MusicXML merging (music21), PDF→PNG (poppler), job store.
+- `analyze.py` / `instruct.py` — read meter/key/tempo, split the two hands, detect chord
+  loops, and generate the step-by-step left-hand-first "professor" Lesson.
 - `Dockerfile` — builds the service.
+
+Pass `format=lesson` to `POST /omr/song` to get the analyzed Lesson back from the poll
+endpoint instead of raw MusicXML; this is what the mobile app requests.
 
 ## Run locally
 ```bash

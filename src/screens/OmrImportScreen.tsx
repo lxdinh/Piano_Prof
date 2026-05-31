@@ -13,7 +13,7 @@ import {
   pickFromLibrary, capturePhoto, pickMultiple, pickDocuments, PickedImage,
 } from '../omr/pickImage';
 import {
-  runOmrSong, getOmrServer, OmrNotConfiguredError, SongJobStatus,
+  runOmrSong, runSongLesson, getOmrServer, OmrNotConfiguredError, SongJobStatus,
 } from '../omr/omrClient';
 import { musicXmlToLesson } from '../omr/musicxmlToLesson';
 import { registerImportedLesson } from '../lessons/importedLessons';
@@ -62,13 +62,25 @@ export default function OmrImportScreen() {
     setError('');
     setProgress('Uploading…');
     setBusy(true);
+    const songTitle = title.trim() || 'Imported song';
+    const onProg = (s: SongJobStatus) => {
+      if (s.status === 'processing') {
+        setProgress(`Reading the score… page ${s.donePages ?? 0}/${s.totalPages ?? '?'}`);
+      }
+    };
     try {
-      const xml = await runOmrSong(pages, undefined, (s: SongJobStatus) => {
-        if (s.status === 'processing') {
-          setProgress(`Reading the score… page ${s.donePages ?? 0}/${s.totalPages ?? '?'}`);
-        }
-      });
-      const lesson = musicXmlToLesson(xml, title.trim() || 'Imported song');
+      let lesson;
+      try {
+        // Preferred: the server analyzes the score into a full professor lesson
+        // (time signature, left-hand-first, chord rolls).
+        lesson = await runSongLesson(pages, undefined, onProg);
+      } catch (inner) {
+        if (inner instanceof OmrNotConfiguredError) throw inner;
+        // Fallback for older servers without /lesson support: merged MusicXML →
+        // basic client-side lesson.
+        const xml = await runOmrSong(pages, undefined, onProg);
+        lesson = musicXmlToLesson(xml, songTitle);
+      }
       registerImportedLesson(lesson);
       nav.replace('Lesson', { gradeId: 0, lessonId: lesson.id });
     } catch (e) {
