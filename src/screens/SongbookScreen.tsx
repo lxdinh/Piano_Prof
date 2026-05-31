@@ -28,6 +28,13 @@ const COVER_GRADIENTS: readonly [string, string][] = [
   [Gradients.violet[0], Gradients.violet[1]],
 ];
 
+// What the importer does now — multi-page, hands separated, rhythm-aware.
+const IMPORT_FEATURES = [
+  { emoji: '📑', label: 'Multi-page' },
+  { emoji: '🫲', label: 'Hands split' },
+  { emoji: '🥁', label: 'Rhythm read' },
+];
+
 function LevelDots({ level }: { level: number }) {
   return (
     <View style={styles.dots}>
@@ -53,12 +60,21 @@ export default function SongbookScreen() {
             style={{ opacity: importEntrance.opacity, transform: [{ translateY: importEntrance.translateY }] }}
           >
             <PpCard variant="warm" style={styles.importCard} elevation="md">
-              <Text style={styles.importEmoji}>📄</Text>
-              <Text style={styles.importTitle}>Import sheet music</Text>
+              <Text style={styles.importEmoji}>🎼</Text>
+              <Text style={styles.importTitle}>Import a whole song</Text>
               <Text style={styles.importBody}>
-                Snap a photo or pick a PDF — we turn it into a playable, chord-annotated preview.
+                Add every page — photos, screenshots or PDFs — set the order, and your
+                professor reads the score into a step-by-step lesson.
               </Text>
-              <ChunkyButton label="Import a score" variant="sky" fullWidth haptic="bump" onPress={() => nav.navigate('OmrImport')} />
+              <View style={styles.featureRow}>
+                {IMPORT_FEATURES.map((f) => (
+                  <View key={f.label} style={styles.feature}>
+                    <Text style={styles.featureEmoji}>{f.emoji}</Text>
+                    <Text style={styles.featureLabel}>{f.label}</Text>
+                  </View>
+                ))}
+              </View>
+              <ChunkyButton label="Upload sheet music" variant="sky" fullWidth haptic="bump" onPress={() => nav.navigate('OmrImport')} />
             </PpCard>
           </Animated.View>
 
@@ -103,7 +119,12 @@ const styles = StyleSheet.create({
   importCard: { gap: Spacing.sm, alignItems: 'center' },
   importEmoji: { fontSize: 44 },
   importTitle: { fontSize: Fonts.xl, fontWeight: Fonts.weight.black, color: Colors.ink900 },
-  importBody: { fontSize: Fonts.base, color: Colors.ink700, textAlign: 'center', lineHeight: 22, paddingHorizontal: Spacing.md, marginBottom: Spacing.sm },
+  importBody: { fontSize: Fonts.base, color: Colors.ink700, textAlign: 'center', lineHeight: 22, paddingHorizontal: Spacing.md },
+
+  featureRow: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.lg, marginVertical: Spacing.sm },
+  feature: { alignItems: 'center', gap: 2 },
+  featureEmoji: { fontSize: 20 },
+  featureLabel: { fontSize: Fonts.xs, fontWeight: Fonts.weight.bold, color: Colors.ink500 },
 
   sectionTitle: {
     fontSize: Fonts.sm, fontWeight: Fonts.weight.bold, color: Colors.ink500,
