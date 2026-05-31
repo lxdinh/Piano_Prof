@@ -4,7 +4,16 @@ Free Optical Music Recognition (photo of sheet music → MusicXML), so you don't
 Wraps **[oemer](https://github.com/BreezeWhite/oemer)** (open-source, MIT, deep-learning OMR) in a
 tiny FastAPI service that the app calls.
 
-- `app.py` — `POST /omr` (multipart `file`) → returns MusicXML. Matches `mobile/lib/omr/omr_service.dart`.
+- `app.py` — the FastAPI service. Endpoints:
+  - `POST /omr` (multipart `file`) → MusicXML. Single image/PDF page (legacy contract).
+  - `POST /omr/song` (multipart `files` ×N + `order` JSON + optional `title`) → `202 {jobId}`.
+    Uploads a whole song as multiple images/PDFs in a chosen page order; PDFs are
+    rasterized page-by-page, each page is OMR'd, and all pages are **merged into one**
+    MusicXML.
+  - `GET /omr/song/{jobId}` → poll status (`processing|ready|failed`); returns the merged
+    `musicxml` when ready.
+  - `GET /` → a browser **upload portal** (`static/index.html`): pick files, reorder, submit.
+- `merge.py` / `pdf.py` / `jobs.py` — MusicXML merging (music21), PDF→PNG (poppler), job store.
 - `Dockerfile` — builds the service.
 
 ## Run locally
@@ -12,8 +21,13 @@ tiny FastAPI service that the app calls.
 cd backend/omr
 docker build -t pp-omr .
 docker run -p 8000:8000 pp-omr
-# test:
+# test single page:
 curl -F "file=@some_sheet.png" http://localhost:8000/omr -o out.musicxml
+# test a multi-page song (ordered) — returns a jobId, then poll:
+curl -F "files=@p1.png" -F "files=@p2.png" -F 'order=[0,1]' \
+     -F 'title=My Song' http://localhost:8000/omr/song
+curl http://localhost:8000/omr/song/<jobId>
+# or just open http://localhost:8000/ in a browser and upload there.
 ```
 Then in the app: **Profile → OMR scan server** → enter your URL (e.g. `http://<your-LAN-ip>:8000`
 for local testing, or your deployed HTTPS URL). Leave it blank to use the offline demo score.

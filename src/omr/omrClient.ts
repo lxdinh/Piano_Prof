@@ -37,3 +37,74 @@ export async function runOmr(image: PickedImage): Promise<string> {
   }
   return resp.text();
 }
+
+export interface SongJobStatus {
+  jobId: string;
+  status: 'processing' | 'ready' | 'failed';
+  title?: string;
+  totalPages?: number;
+  donePages?: number;
+  musicxml?: string;
+  error?: string;
+}
+
+/** Optional progress callback so the UI can show "page 2/5 read". */
+export type SongProgress = (s: SongJobStatus) => void;
+
+/**
+ * Upload several images/PDFs as ONE song in the given page order, then poll the
+ * server until the merged MusicXML is ready. `order` is a permutation of the
+ * indices of `files` (defaults to as-given). Returns the merged MusicXML text.
+ */
+export async function runOmrSong(
+  files: PickedImage[],
+  order?: number[],
+  onProgress?: SongProgress,
+): Promise<string> {
+  const server = await getOmrServer();
+  if (!server) throw new OmrNotConfiguredError();
+  if (!files.length) throw new Error('Add at least one page.');
+
+  const form = new FormData();
+  for (const f of files) {
+    form.append('files', {
+      uri: f.uri,
+      name: f.fileName,
+      type: f.mimeType,
+    } as unknown as Blob);
+  }
+  form.append('order', JSON.stringify(order ?? files.map((_, i) => i)));
+
+  const start = await fetch(`${server}/omr/song`, { method: 'POST', body: form });
+  if (!start.ok) {
+    const detail = await start.text().catch(() => '');
+    throw new Error(`Upload failed (${start.status}). ${detail.slice(0, 200)}`);
+  }
+  const { jobId } = (await start.json()) as { jobId: string };
+  return pollSongJob(server, jobId, onProgress);
+}
+
+async function pollSongJob(
+  server: string,
+  jobId: string,
+  onProgress?: SongProgress,
+  intervalMs = 2000,
+  timeoutMs = 15 * 60 * 1000,
+): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    const resp = await fetch(`${server}/omr/song/${jobId}`);
+    if (!resp.ok) {
+      if (resp.status === 404) throw new Error('Song job not found on server.');
+      continue; // transient server/network hiccup — keep polling
+    }
+    const status = (await resp.json()) as SongJobStatus;
+    onProgress?.(status);
+    if (status.status === 'ready' && status.musicxml) return status.musicxml;
+    if (status.status === 'failed') {
+      throw new Error(status.error || 'OMR failed while reading the score.');
+    }
+  }
+  throw new Error('Timed out reading the score. Try fewer pages.');
+}

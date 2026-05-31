@@ -37,3 +37,8 @@ expo-env.d.ts
 
 # KiCad VS Code history sidecar (its own git repos)
 **/.history/
+
+# Python (backend/omr OMR service)
+__pycache__/
+*.pyc
+.pytest_cache/

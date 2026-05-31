@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Piano Professor — Sheet Music Upload</title>
+<style>
+  :root { --brand:#58CC02; --ink:#3c3c3c; --line:#e5e5e5; --cream:#fffdf7; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+         background:var(--cream); color:var(--ink); }
+  .wrap { max-width:640px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:24px; margin:8px 0 4px; }
+  p.sub { color:#777; margin:0 0 20px; line-height:1.4; }
+  .card { background:#fff; border:2px solid var(--line); border-radius:16px; padding:16px; margin-bottom:16px; }
+  label.file { display:block; text-align:center; padding:24px; border:2px dashed var(--line);
+               border-radius:12px; cursor:pointer; color:#666; }
+  label.file:hover { border-color:var(--brand); color:var(--brand); }
+  input[type=file] { display:none; }
+  input[type=text] { width:100%; padding:10px 12px; border:1px solid var(--line);
+                     border-radius:10px; font-size:15px; }
+  ul.pages { list-style:none; margin:12px 0 0; padding:0; }
+  ul.pages li { display:flex; align-items:center; gap:10px; padding:10px 12px;
+                border:1px solid var(--line); border-radius:10px; margin-bottom:8px; }
+  ul.pages li .name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px; }
+  ul.pages li .badge { font-size:11px; color:#fff; background:#bbb; border-radius:6px; padding:2px 6px; }
+  ul.pages li .badge.pdf { background:#e05; }
+  button { font:inherit; border:0; border-radius:10px; cursor:pointer; }
+  button.icon { background:#f1f1f1; width:34px; height:34px; font-size:16px; }
+  button.icon:disabled { opacity:.35; cursor:default; }
+  button.primary { width:100%; padding:14px; background:var(--brand); color:#fff;
+                   font-weight:700; font-size:16px; box-shadow:0 4px 0 #46a302; }
+  button.primary:disabled { background:#bdbdbd; box-shadow:none; cursor:default; }
+  .status { margin-top:14px; padding:12px; border-radius:10px; background:#f6f6f6; font-size:14px; }
+  .status.err { background:#fdecec; color:#c0392b; }
+  a.dl { display:inline-block; margin-top:8px; color:var(--brand); font-weight:700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎹 Upload your sheet music</h1>
+  <p class="sub">Add the pages of one song (photos, screenshots, or PDFs). Put them in
+     playing order, then process — we'll read the whole score into one playable file.</p>
+
+  <div class="card">
+    <input type="text" id="title" placeholder="Song title (optional)" />
+  </div>
+
+  <div class="card">
+    <label class="file" for="picker">📄 Tap to add images or PDFs</label>
+    <input type="file" id="picker" accept="image/*,application/pdf" multiple />
+    <ul class="pages" id="list"></ul>
+  </div>
+
+  <button class="primary" id="go" disabled>Process song</button>
+  <div class="status" id="status" style="display:none"></div>
+</div>
+
+<script>
+  const picker = document.getElementById('picker');
+  const list = document.getElementById('list');
+  const go = document.getElementById('go');
+  const statusEl = document.getElementById('status');
+  let pages = []; // [{file}]
+
+  function render() {
+    list.innerHTML = '';
+    pages.forEach((p, i) => {
+      const li = document.createElement('li');
+      const isPdf = p.file.type === 'application/pdf';
+      li.innerHTML =
+        `<span class="badge ${isPdf ? 'pdf' : ''}">${isPdf ? 'PDF' : 'IMG'}</span>` +
+        `<span class="name">${i + 1}. ${p.file.name}</span>`;
+      const up = mkBtn('▲', i === 0, () => swap(i, i - 1));
+      const down = mkBtn('▼', i === pages.length - 1, () => swap(i, i + 1));
+      const del = mkBtn('✕', false, () => { pages.splice(i, 1); render(); });
+      li.append(up, down, del);
+      list.appendChild(li);
+    });
+    go.disabled = pages.length === 0;
+  }
+  function mkBtn(label, disabled, onClick) {
+    const b = document.createElement('button');
+    b.className = 'icon'; b.textContent = label; b.disabled = disabled;
+    b.onclick = onClick; return b;
+  }
+  function swap(a, b) {
+    if (b < 0 || b >= pages.length) return;
+    [pages[a], pages[b]] = [pages[b], pages[a]]; render();
+  }
+
+  picker.addEventListener('change', () => {
+    for (const f of picker.files) pages.push({ file: f });
+    picker.value = ''; render();
+  });
+
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    show('Uploading…');
+    const form = new FormData();
+    pages.forEach(p => form.append('files', p.file));
+    form.append('order', JSON.stringify(pages.map((_, i) => i)));
+    form.append('title', document.getElementById('title').value || 'Imported song');
+    try {
+      const res = await fetch('/omr/song', { method: 'POST', body: form });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const { jobId } = await res.json();
+      await poll(jobId);
+    } catch (e) {
+      show('Failed: ' + e.message, true);
+      go.disabled = false;
+    }
+  });
+
+  async function poll(jobId) {
+    for (;;) {
+      await new Promise(r => setTimeout(r, 2000));
+      const res = await fetch('/omr/song/' + jobId);
+      const j = await res.json();
+      if (j.status === 'processing') {
+        show(`Reading the score… page ${j.donePages}/${j.totalPages || '?'}`);
+      } else if (j.status === 'ready') {
+        const blob = new Blob([j.musicxml], { type: 'application/xml' });
+        const url = URL.createObjectURL(blob);
+        statusEl.className = 'status';
+        statusEl.innerHTML = `✅ Done! <a class="dl" href="${url}" download="song.musicxml">Download MusicXML</a>`;
+        go.disabled = false;
+        return;
+      } else {
+        show('Failed: ' + (j.error || 'unknown error'), true);
+        go.disabled = false;
+        return;
+      }
+    }
+  }
+
+  function show(msg, err) {
+    statusEl.style.display = 'block';
+    statusEl.className = 'status' + (err ? ' err' : '');
+    statusEl.textContent = msg;
+  }
+</script>
+</body>
+</html>
