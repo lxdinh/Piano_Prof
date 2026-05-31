@@ -10,15 +10,15 @@ Compressing project files and uploading to EAS Build. Learn more: https://expo.f
 - Compressing project files
 Your project archive is 220 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
 - Uploading to EAS Build (0 / 220 MB)
-✔ Uploaded to EAS 2s
+✔ Uploaded to EAS 1s
 - Computing project fingerprint
 ✔ Computed project fingerprint
 
-See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/09ce7a53-513b-47bf-8a66-54d6c1427e05
+See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/1cbcee88-cafe-4ef6-96cc-f60b16b09f1d
 
 [
   {
-    "id": "09ce7a53-513b-47bf-8a66-54d6c1427e05",
+    "id": "1cbcee88-cafe-4ef6-96cc-f60b16b09f1d",
     "status": "NEW",
     "platform": "ANDROID",
     "artifacts": {},
@@ -45,12 +45,12 @@ See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/09ce7
     "sdkVersion": "52.0.0",
     "appVersion": "0.6.0",
     "appBuildVersion": "7",
-    "gitCommitHash": "f5221a7e5156234199df5d886df12e94c7db5ad8",
-    "gitCommitMessage": "Real quiz grading from played notes + single hearts source of truth\n\nQuizzes now grade what the learner actually plays instead of always passing:\n\n- BLE note input: expose subscribeNotes() from the BLE layer. The firmware\n  already streams [0x01, midiNote] key presses (previously used only for\n  calibration); a persistent monitor now feeds them to listeners for the whole\n  connection.\n- Engine grading: a 'quiz' step waits for the learner to play the target\n  note(s). Each expected key turns green as it's played; wrong notes cost a\n  heart and trigger a shake/'oops'. Pure gradeNote() helper (unit-tested) drives\n  correct / repeat (harmless double-press) / wrong decisions. notePlayed() is\n  fed by BOTH on-screen key taps and live BLE presses, so it works with or\n  without the hardware.\n- Single hearts source of truth: the engine starts from the learner's real,\n  persisted hearts (initialHearts) and each wrong note calls onWrongNote ->\n  loseHeart(), removing the old divergent local counter and double-counting.\n- Accurate stars/accuracy: onComplete now reports hearts-left and a real\n  accuracy (correct notes / notes asked) computed in the engine, instead of a\n  lagging ref that always yielded 3 stars.\n- UX: replace the fake 'I played it' button with a green 'Play the highlighted\n  keys' prompt; 'HEAR IT' replays the target. Stabilise engine callbacks via an\n  optsRef so the per-render opts object no longer churns the BLE subscription.\n\nAdds quizGrading.ts + 6 unit tests (29 total pass).",
+    "gitCommitHash": "00fc98d44f1ec9e72efa33387e2c02e6ec840b20",
+    "gitCommitMessage": "Fix piano keyboard + add penguin-guided chord library (#3)\n\n* Fix piano keyboard: real multi-touch polyphony, reliable sound + haptics\n\nThe on-screen keyboard rendered one <Pressable> per key in an absolute-\npositioned overlay. React Native's gesture-responder system only grants the\nactive responder to one or two overlapping views at a time, which caused the\nreported bugs:\n  - couldn't sound more than ~2 notes at once, so chords were impossible\n  - many keys (notably the black keys overlapping the white tap targets) never\n    fired their press handler -> no sound AND no haptic on those keys\n  - constant responder hand-off between dozens of Pressables made the keyboard\n    feel laggy/buggy\n\nReplace the per-key Pressable overlay with a single touch surface\n(pointerEvents=\"box-only\") that reads every active finger from\nnativeEvent.touches and hit-tests each one to a key (black keys win the upper\nregion, white keys below). This gives true polyphony, glissando, and a\nreliable tap -> sound + haptic on every white and black key.\n\nPublic props, the audio engine, and the SVG rendering (LED strip, octave\nlabels, lit-note glow) are all unchanged.\n\nhttps://claude.ai/code/session_01J4JRpRUmttWRgFiWVUpbMk\n\n* Practice tab: penguin-guided chord library with full chord tree\n\nReplaces the 4 hard-coded demo chips with a complete, browsable chord library\non the Practice tab, guided by Maestro Penguini (the same mascot used in\nlessons). It uses the multi-touch keyboard fixed earlier, so picked chords\nlight up and every key plays/buzzes.\n\nFlow (the \"music tree\"):\n  1. Pick a root letter (C D E F G A B).\n  2. Pick the accidental (b / natural / #) and the chord quality.\n  3. The chord lights on the keyboard, rolls out so each note is heard, and\n     the penguin explains its notes + character. Tap the lit keys to play it\n     yourself.\n\nNew src/music/chords.ts holds every common chord grouped into a theory tree:\n  - Triads: maj, min, dim, aug, sus2, sus4, power\n  - Sixths: 6, m6\n  - Sevenths: 7, maj7, m7, mMaj7, dim7, m7b5, 7#5\n  - Extensions: add9, 9, maj9, m9, 11, 13\nNotes are spelled by scale degree (Cm7 = C-Eb-G-Bb, C°7 = C-Eb-Gb-Bbb), not\nraw chromatics, so the labels teach correct theory. Voicings are octave-placed\nso even a 13th stays inside the C2..B6 keyboard.\n\nCovered by src/__tests__/chords.test.ts (root math, degree spelling, range).\n\nhttps://claude.ai/code/session_01J4JRpRUmttWRgFiWVUpbMk\n\n---------\n\nCo-authored-by: Claude <noreply@anthropic.com>",
     "priority": "NORMAL",
-    "createdAt": "2026-05-30T15:59:13.155Z",
-    "updatedAt": "2026-05-30T15:59:13.155Z",
-    "expirationDate": "2026-06-13T15:59:13.194Z",
+    "createdAt": "2026-05-31T00:03:47.374Z",
+    "updatedAt": "2026-05-31T00:03:47.374Z",
+    "expirationDate": "2026-06-14T00:03:47.420Z",
     "isForIosSimulator": false
   }
 ]
