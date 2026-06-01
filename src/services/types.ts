@@ -17,6 +17,16 @@ export interface UserSettings {
   reminderTime: string | null; // "HH:mm"
 }
 
+// Lightweight registry entry shown on the "Who's playing?" picker. The full
+// UserProfile lives under pp.<uid>.profile; this is just enough to render a
+// tile without loading every profile's progress.
+export interface ProfileSummary {
+  uid: string;
+  displayName: string;
+  avatarId: string;
+  createdAt: number;
+}
+
 export interface UserProfile {
   uid: string;
   displayName: string;

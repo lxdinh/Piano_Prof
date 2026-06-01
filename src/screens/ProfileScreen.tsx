@@ -16,6 +16,7 @@ import Sparkles from '../components/Sparkles';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { useUser } from '../gamification/UserProvider';
 import { useAchievements } from '../gamification/UserProvider';
+import { moodForAvatar } from '../gamification/avatars';
 import { useEntrance } from '../feedback/motion';
 import * as haptics from '../feedback/haptics';
 
@@ -66,7 +67,7 @@ export default function ProfileScreen() {
             <View style={styles.avatarWrap}>
               <HeroHalo size={196} color="#5BB8E3">
                 <View style={styles.mascotRing}>
-                  <MascotImage mood="cool" size={120} />
+                  <MascotImage mood={moodForAvatar(profile?.avatarId ?? 'cool')} size={120} />
                 </View>
               </HeroHalo>
               <Sparkles />
@@ -75,6 +76,12 @@ export default function ProfileScreen() {
             <View style={styles.gradePill}>
               <Text style={styles.gradePillText}>Grade {profile?.grade ?? 1}</Text>
             </View>
+            <Pressable
+              onPress={() => { haptics.tap(); nav.navigate('ProfilePicker'); }}
+              style={({ pressed }) => [styles.switchBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={styles.switchText}>⇄  Switch profile</Text>
+            </Pressable>
           </Animated.View>
 
           {/* Stat grid */}
@@ -177,6 +184,12 @@ const styles = StyleSheet.create({
     ...Elevation.sm,
   },
   gradePillText: { color: '#FFFFFF', fontSize: Fonts.sm, fontWeight: Fonts.weight.bold },
+  switchBtn: {
+    marginTop: Spacing.sm, paddingHorizontal: Spacing.lg, paddingVertical: 8,
+    backgroundColor: '#FFFFFF', borderRadius: 999,
+    borderWidth: 1, borderColor: Colors.inkLine, ...Elevation.sm,
+  },
+  switchText: { color: Colors.ink700, fontSize: Fonts.sm, fontWeight: Fonts.weight.bold },
 
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
   statCard: { width: '47%', alignItems: 'center', gap: 2 },

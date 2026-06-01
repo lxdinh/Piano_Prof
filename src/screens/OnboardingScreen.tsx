@@ -233,7 +233,9 @@ export default function OnboardingScreen() {
 
   const finish = async () => {
     await setBool('onboarded', true);
-    nav.replace('MainTabs');
+    // Hand off to the profile picker, which (on first run) opens the "create
+    // your profile" form, then routes into the placement test.
+    nav.replace('ProfilePicker');
   };
 
   return (

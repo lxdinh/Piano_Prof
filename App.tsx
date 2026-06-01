@@ -11,18 +11,26 @@ import {
 import { ThemeProvider } from './src/theme/ThemeContext';
 import { BLEProvider } from './src/ble/BLEContext';
 import { UserProvider } from './src/gamification/UserProvider';
+import { ProfilesProvider, useProfiles } from './src/gamification/ProfilesProvider';
 import AchievementCelebration from './src/gamification/AchievementCelebration';
 import RootNavigator from './src/navigation/RootNavigator';
 import { Colors } from './src/theme/tokens';
-import { useLockPortraitOnMount } from './src/feedback/useOrientation';
+import { useAppOrientation } from './src/feedback/useOrientation';
 import { preloadCore } from './src/audio/pianoEngine';
+
+// Bridges the active family profile into UserProvider. When the active uid
+// changes (profile switch), UserProvider reloads that learner's data.
+function ActiveUserProvider({ children }: { children: React.ReactNode }) {
+  const { activeUid } = useProfiles();
+  return <UserProvider uid={activeUid}>{children}</UserProvider>;
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({ Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black });
 
-  // App defaults to portrait. Lesson + Practice flip to landscape via their
-  // own hooks while focused, then restore portrait on blur.
-  useLockPortraitOnMount();
+  // Landscape-first on tablets; phones rotate freely. Lesson + Practice still
+  // force landscape while focused via their own hooks.
+  useAppOrientation();
 
   // Warm the piano sample cache in the background so the first tap is instant.
   useEffect(() => { void preloadCore(); }, []);
@@ -39,13 +47,15 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <BLEProvider>
-          <UserProvider>
-            <NavigationContainer>
-              <StatusBar style="dark" />
-              <RootNavigator />
-              <AchievementCelebration />
-            </NavigationContainer>
-          </UserProvider>
+          <ProfilesProvider>
+            <ActiveUserProvider>
+              <NavigationContainer>
+                <StatusBar style="dark" />
+                <RootNavigator />
+                <AchievementCelebration />
+              </NavigationContainer>
+            </ActiveUserProvider>
+          </ProfilesProvider>
         </BLEProvider>
       </ThemeProvider>
     </SafeAreaProvider>

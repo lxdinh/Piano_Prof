@@ -35,12 +35,19 @@ interface UserContextValue {
   refillAllHearts: () => Promise<void>;
   addGems: (n: number) => Promise<void>;
   setCurrentLesson: (lessonId: string) => Promise<void>;
+  /** Place a new learner: set their grade + mark prerequisite lessons done. */
+  applyPlacement: (gradeNumber: number, completedLessonIds: string[]) => Promise<void>;
   dismissCelebration: () => void;
 }
 
 const UserCtx = createContext<UserContextValue | null>(null);
 
-export function UserProvider({ children }: { children: React.ReactNode }) {
+export function UserProvider({ children, uid: uidProp }: {
+  children: React.ReactNode;
+  // Active profile to load. When omitted (legacy), resolves via getUid(). When
+  // explicitly null, no profile is loaded (fresh install, pre-onboarding).
+  uid?: string | null;
+}) {
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [lessonProgress, setLessonProgress] = useState<Record<string, LessonProgress>>({});
@@ -51,10 +58,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const uidRef = useRef<string>('');
   const celebrationQueue = useRef<AchievementDef[]>([]);
 
-  // ── Initial load ──────────────────────────────────────────────
+  // ── Load (and reload when the active profile changes) ─────────
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const uid = await localBackend.getUid();
+      // Reset to a clean slate so a switched-in profile never briefly shows the
+      // previous learner's streak/XP.
+      setReady(false);
+      setProfile(null);
+      setLessonProgress({});
+      setAchievements({});
+      setTodayActivity(null);
+      celebrationQueue.current = [];
+
+      const uid = uidProp !== undefined ? uidProp : await localBackend.getUid();
+      if (!uid) {
+        // Fresh install with no active profile yet — onboarding will create one.
+        if (!cancelled) setReady(true);
+        return;
+      }
       uidRef.current = uid;
 
       let p = await localBackend.loadProfile(uid);
@@ -75,13 +97,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         localBackend.loadDailyActivity(uid, todayKey()),
       ]);
 
+      if (cancelled) return;
       setProfile(p);
       setLessonProgress(lp);
       setAchievements(ach);
       setTodayActivity(today);
       setReady(true);
     })();
-  }, []);
+    return () => { cancelled = true; };
+  }, [uidProp]);
 
   const persistProfile = useCallback(async (next: UserProfile) => {
     next.updatedAt = Date.now();
@@ -248,6 +272,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await persistProfile({ ...profile, currentLessonId: lessonId });
   }, [profile, persistProfile]);
 
+  const applyPlacement = useCallback(async (gradeNumber: number, completedLessonIds: string[]) => {
+    if (!profile) return;
+    // Seed prerequisite lessons as completed — no XP/gems/streak, since this is
+    // placement (skipping ahead), not earned progress.
+    const nextLp = { ...lessonProgress };
+    const now = Date.now();
+    for (const id of completedLessonIds) {
+      if (nextLp[id]?.status === 'completed') continue;
+      const prog: LessonProgress = {
+        status: 'completed', stars: 0, bestAccuracy: 0, attempts: 0,
+        lastStepIndex: 0, xpEarned: 0, firstCompletedAt: now, lastPlayedAt: now,
+      };
+      nextLp[id] = prog;
+      await localBackend.saveLessonProgress(uidRef.current, id, prog);
+    }
+    setLessonProgress(nextLp);
+    await persistProfile({ ...profile, grade: gradeNumber });
+  }, [profile, lessonProgress, persistProfile]);
+
   const dismissCelebration = useCallback(() => {
     const nextInQueue = celebrationQueue.current.shift() ?? null;
     setCelebrating(nextInQueue);
@@ -256,11 +299,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<UserContextValue>(() => ({
     ready, profile, lessonProgress, achievements, todayActivity, celebrating,
     awardXp, registerActivity, completeLesson, loseHeart, refillAllHearts,
-    addGems, setCurrentLesson, dismissCelebration,
+    addGems, setCurrentLesson, applyPlacement, dismissCelebration,
   }), [
     ready, profile, lessonProgress, achievements, todayActivity, celebrating,
     awardXp, registerActivity, completeLesson, loseHeart, refillAllHearts,
-    addGems, setCurrentLesson, dismissCelebration,
+    addGems, setCurrentLesson, applyPlacement, dismissCelebration,
   ]);
 
   return <UserCtx.Provider value={value}>{children}</UserCtx.Provider>;

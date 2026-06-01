@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
 import { Colors } from '../theme/tokens';
-import { getBool } from '../storage/settings';
+import { useProfiles } from '../gamification/ProfilesProvider';
 import MainTabs from './MainTabs';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import ProfilePickerScreen from '../screens/ProfilePickerScreen';
+import PlacementScreen from '../screens/PlacementScreen';
 import LessonScreen from '../screens/LessonScreen';
 import LessonCompleteScreen from '../screens/LessonCompleteScreen';
 import BLEPairingRoute from '../screens/BLEPairingRoute';
@@ -17,19 +19,19 @@ import SettingsScreen from '../screens/SettingsScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
+  const { ready, profiles } = useProfiles();
 
-  useEffect(() => {
-    getBool('onboarded', false).then((done) => setInitialRoute(done ? 'MainTabs' : 'Onboarding'));
-  }, []);
-
-  if (!initialRoute) {
+  if (!ready) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cream50 }}>
         <ActivityIndicator color={Colors.brand} />
       </View>
     );
   }
+
+  // Fresh install → onboarding (creates the first profile). Returning families
+  // land on the Netflix-style "Who's playing?" picker each cold start.
+  const initialRoute: keyof RootStackParamList = profiles.length === 0 ? 'Onboarding' : 'ProfilePicker';
 
   return (
     <Stack.Navigator
@@ -43,6 +45,8 @@ export default function RootNavigator() {
       }}
     >
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+      <Stack.Screen name="ProfilePicker" component={ProfilePickerScreen} />
+      <Stack.Screen name="Placement" component={PlacementScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />
       {/* Lesson uses a full-screen card (not a bottom sheet) so the landscape
           layout reads cleanly without a portrait-orientation header gutter. */}

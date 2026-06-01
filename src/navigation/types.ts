@@ -9,6 +9,8 @@ export type MainTabsParamList = {
 
 export type RootStackParamList = {
   Onboarding: undefined;
+  ProfilePicker: undefined;
+  Placement: undefined;
   MainTabs: NavigatorScreenParams<MainTabsParamList> | undefined;
   Lesson: { gradeId: number; lessonId: string };
   LessonComplete: { gradeId: number; lessonId: string; xp: number; stars: number; message: string };
