@@ -10,15 +10,15 @@ Compressing project files and uploading to EAS Build. Learn more: https://expo.f
 - Compressing project files
 Your project archive is 220 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
 - Uploading to EAS Build (0 / 220 MB)
-✔ Uploaded to EAS 2s
+✔ Uploaded to EAS 1s
 - Computing project fingerprint
 ✔ Computed project fingerprint
 
-See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/a4bbfb4f-41c0-4594-9cb2-ef43fdb52b74
+See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/8679d364-cbb8-4c81-867a-cdbcac2ef8ed
 
 [
   {
-    "id": "a4bbfb4f-41c0-4594-9cb2-ef43fdb52b74",
+    "id": "8679d364-cbb8-4c81-867a-cdbcac2ef8ed",
     "status": "NEW",
     "platform": "ANDROID",
     "artifacts": {},
@@ -45,12 +45,12 @@ See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/a4bbf
     "sdkVersion": "52.0.0",
     "appVersion": "0.6.0",
     "appBuildVersion": "7",
-    "gitCommitHash": "4a02c1c1f5421c33b5ec5cbfb3673d63e01523b2",
-    "gitCommitMessage": "ci: build APK on the redesign branch too\n\nLets the EAS preview (APK) workflow run for the Phase 1 redesign branch so\nit can be installed and tested before merging to main.",
+    "gitCommitHash": "f4d1cf71420879bd3ac85689e14f9b129bbdf6b6",
+    "gitCommitMessage": "Netflix-style shelf browsing for Learn & Songbook (Phase 2)\n\n- New reusable Shelf (titled horizontal row) and PosterCard (gradient\n  poster tile with state badge) components, orientation-agnostic.\n- Learn tab: a 'Continue learning' hero for the current item plus a\n  horizontal shelf per level, replacing the vertical list.\n- Songbook tab: a featured-song hero, a 'Trending' shelf, and a 'Songs\n  you'll learn' shelf sourced from the pathway songs; import card retained.\n\nPurely presentational over resolvePathway()/PATH_ITEMS — no data changes.\nTypecheck clean; 49 tests passing.",
     "priority": "NORMAL",
-    "createdAt": "2026-06-01T15:54:03.080Z",
-    "updatedAt": "2026-06-01T15:54:03.080Z",
-    "expirationDate": "2026-06-15T15:54:03.170Z",
+    "createdAt": "2026-06-01T15:59:10.611Z",
+    "updatedAt": "2026-06-01T15:59:10.611Z",
+    "expirationDate": "2026-06-15T15:59:10.677Z",
     "isForIosSimulator": false
   }
 ]
