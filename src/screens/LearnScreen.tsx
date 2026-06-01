@@ -8,16 +8,26 @@ import { RootStackParamList } from '../navigation/types';
 import { Colors, Fonts, Radii, Spacing, Elevation, Gradients } from '../theme/tokens';
 import ChunkyButton from '../components/ChunkyButton';
 import AnimatedCounter from '../components/AnimatedCounter';
+import Shelf from '../components/Shelf';
+import PosterCard, { PosterState } from '../components/PosterCard';
 import { useUser } from '../gamification/UserProvider';
 import { useEntrance } from '../feedback/motion';
 import {
-  resolvePathway, ResolvedLevel, ResolvedItem, KIND_ICON, PATH_ITEMS,
+  resolvePathway, ResolvedItem, KIND_ICON, PATH_ITEMS, PathItemKind,
 } from '../lessons/pathway';
 import * as haptics from '../feedback/haptics';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const AVATAR = require('../../assets/mascots/classical.png');
+
+// Cover gradient per item kind — keeps the path colourful like a song library.
+const KIND_COVER: Record<PathItemKind, readonly [string, string]> = {
+  grade: Gradients.brand,
+  concept: Gradients.violet,
+  song: Gradients.sky,
+  exercise: Gradients.butter,
+};
 
 // ── Top header: avatar + pathway title + stat pills + XP bar ─────
 function PathwayHeader() {
@@ -27,22 +37,16 @@ function PathwayHeader() {
   const earned = todayActivity?.xpEarned ?? 0;
   const pct = Math.max(0, Math.min(1, earned / goal));
 
-  // Smoothly tween the XP bar width when XP changes (e.g. on return from a
-  // lesson) instead of snapping — Duolingo-style.
   const fillAnim = useRef(new Animated.Value(pct)).current;
   useEffect(() => {
-    Animated.timing(fillAnim, {
-      toValue: pct, duration: 600, useNativeDriver: false,
-    }).start();
+    Animated.timing(fillAnim, { toValue: pct, duration: 600, useNativeDriver: false }).start();
   }, [pct, fillAnim]);
-  const fillWidth = fillAnim.interpolate({
-    inputRange: [0, 1], outputRange: ['0%', '100%'],
-  });
+  const fillWidth = fillAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
 
   const stats = [
     { icon: '🔥', value: profile?.streakCount ?? 0, color: Colors.rust },
-    { icon: '⚡', value: profile?.totalXp ?? 0,     color: Colors.butter },
-    { icon: '💎', value: profile?.gems ?? 0,        color: Colors.sky },
+    { icon: '⚡', value: profile?.totalXp ?? 0, color: Colors.butter },
+    { icon: '💎', value: profile?.gems ?? 0, color: Colors.sky },
     { icon: '❤️', value: profile?.hearts.count ?? 5, color: Colors.error },
   ];
 
@@ -79,57 +83,27 @@ function PathwayHeader() {
   );
 }
 
-// ── Level intro card (orange number badge + objective + duration) ─
-function LevelCard({ level }: { level: ResolvedLevel }) {
+// ── "Continue learning" hero — the single next item to play ──────
+function ContinueHero({ item, onStart }: { item: ResolvedItem; onStart: (it: ResolvedItem) => void }) {
   return (
-    <View style={styles.levelCard}>
-      <View style={styles.levelHead}>
-        <View style={styles.levelNum}>
-          <Text style={styles.levelNumText}>{level.index}</Text>
-        </View>
-        <Text style={styles.levelName}>{level.name}</Text>
+    <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+      <View style={styles.heroIcon}>
+        <Text style={styles.heroIconText}>{KIND_ICON[item.kind]}</Text>
       </View>
-      <Text style={styles.levelObjective}>{level.objective}</Text>
-      <View style={styles.durationChip}>
-        <Text style={styles.durationText}>⏱  {level.duration}</Text>
+      <View style={{ flex: 1, gap: 4 }}>
+        <Text style={styles.heroKicker}>CONTINUE LEARNING</Text>
+        <Text style={styles.heroTitle} numberOfLines={2}>{item.title}</Text>
       </View>
-    </View>
+      <ChunkyButton label="START" variant="secondary" haptic="bump" onPress={() => onStart(item)} />
+    </LinearGradient>
   );
 }
 
-// ── A single path item (grade / song / exercise / concept) ───────
-function ItemCard({ item, onStart }: { item: ResolvedItem; onStart: (it: ResolvedItem) => void }) {
-  if (item.state === 'active') {
-    return (
-      <View style={styles.activeCard}>
-        <View style={styles.activeIcon}>
-          <Text style={styles.activeIconText}>{KIND_ICON[item.kind]}</Text>
-        </View>
-        <Text style={styles.activeTitle} numberOfLines={2}>{item.title}</Text>
-        <ChunkyButton label="START" haptic="bump" onPress={() => onStart(item)} />
-      </View>
-    );
-  }
-
-  const done = item.state === 'done';
-  const soon = item.state === 'soon';
-  return (
-    <Pressable
-      disabled={!done}
-      onPress={() => done && onStart(item)}
-      style={({ pressed }) => [styles.lockedCard, pressed && done && { transform: [{ scale: 0.99 }] }]}
-    >
-      <View style={[styles.lockedIcon, done && styles.doneIcon]}>
-        <Text style={styles.lockedIconText}>{done ? '✓' : soon ? '🕗' : '🔒'}</Text>
-      </View>
-      <Text style={[styles.lockedTitle, done && styles.doneTitle]} numberOfLines={2}>
-        {item.title}
-      </Text>
-      {soon && (
-        <View style={styles.soonChip}><Text style={styles.soonText}>SOON</Text></View>
-      )}
-    </Pressable>
-  );
+function posterState(item: ResolvedItem): PosterState {
+  if (item.state === 'active') return 'active';
+  if (item.state === 'done') return 'done';
+  if (item.state === 'soon') return 'soon';
+  return 'locked';
 }
 
 export default function LearnScreen() {
@@ -137,8 +111,7 @@ export default function LearnScreen() {
   const { lessonProgress } = useUser();
   const entrance = useEntrance(0);
 
-  // An item is "done" when the lesson it links to is completed.
-  const { levels } = useMemo(() => {
+  const { levels, current } = useMemo(() => {
     const completed = new Set<string>();
     for (const it of PATH_ITEMS) {
       if (it.lessonRef && lessonProgress[it.lessonRef.lessonId]?.status === 'completed') {
@@ -156,6 +129,8 @@ export default function LearnScreen() {
     }
   };
 
+  const canStart = (item: ResolvedItem) => item.state === 'active' || item.state === 'done';
+
   return (
     <View style={styles.bg}>
       <LinearGradient colors={['#FFFDF6', '#FFF6DD']} style={StyleSheet.absoluteFill} />
@@ -166,14 +141,33 @@ export default function LearnScreen() {
           showsVerticalScrollIndicator={false}
           style={{ opacity: entrance.opacity }}
         >
-          {levels.map((level) => (
-            <View key={level.id} style={styles.levelBlock}>
-              <LevelCard level={level} />
-              {level.items.map((item) => (
-                <ItemCard key={item.id} item={item} onStart={onStart} />
-              ))}
+          {current ? (
+            <View style={styles.heroWrap}>
+              <ContinueHero item={current} onStart={onStart} />
             </View>
+          ) : (
+            <View style={[styles.heroWrap, styles.allDone]}>
+              <Text style={styles.allDoneEmoji}>🏆</Text>
+              <Text style={styles.allDoneText}>You're all caught up — more lessons coming soon!</Text>
+            </View>
+          )}
+
+          {levels.map((level) => (
+            <Shelf key={level.id} title={level.short} subtitle={level.objective}>
+              {level.items.map((item) => (
+                <PosterCard
+                  key={item.id}
+                  title={item.title}
+                  subtitle={KIND_LABEL[item.kind]}
+                  icon={KIND_ICON[item.kind]}
+                  cover={KIND_COVER[item.kind]}
+                  state={posterState(item)}
+                  onPress={() => (canStart(item) ? onStart(item) : haptics.warning())}
+                />
+              ))}
+            </Shelf>
           ))}
+
           <Text style={styles.mastery}>~ MASTERY ~</Text>
           <View style={{ height: Spacing['2xl'] }} />
         </Animated.ScrollView>
@@ -181,6 +175,10 @@ export default function LearnScreen() {
     </View>
   );
 }
+
+const KIND_LABEL: Record<PathItemKind, string> = {
+  grade: 'Lesson', concept: 'Concept', song: 'Song', exercise: 'Exercise',
+};
 
 const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: Colors.cream50 },
@@ -221,69 +219,31 @@ const styles = StyleSheet.create({
   xpLabel: { fontSize: Fonts.sm, fontWeight: Fonts.weight.bold, color: Colors.ink500 },
 
   // Scroll
-  scroll: { padding: Spacing.lg, gap: Spacing.md },
-  levelBlock: { gap: Spacing.sm, marginBottom: Spacing.sm },
+  scroll: { paddingVertical: Spacing.lg, gap: Spacing.xl },
 
-  // Level card
-  levelCard: {
-    backgroundColor: Colors.butterBg,
-    borderRadius: Radii.lg,
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  levelHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  levelNum: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: Colors.rust, alignItems: 'center', justifyContent: 'center',
-  },
-  levelNumText: { color: '#FFFFFF', fontSize: Fonts.lg, fontWeight: Fonts.weight.black },
-  levelName: { flex: 1, fontSize: Fonts.xl, fontWeight: Fonts.weight.black, color: Colors.ink900 },
-  levelObjective: { fontSize: Fonts.md, color: Colors.ink700, lineHeight: 22, fontWeight: Fonts.weight.heavy },
-  durationChip: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderRadius: Radii.pill, paddingHorizontal: Spacing.md, paddingVertical: 5,
-    borderWidth: 1, borderColor: Colors.inkLine,
-  },
-  durationText: { fontSize: Fonts.sm, color: Colors.ink700, fontWeight: Fonts.weight.bold },
-
-  // Active item (START)
-  activeCard: {
+  // Hero
+  heroWrap: { paddingHorizontal: Spacing.lg },
+  hero: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    backgroundColor: '#FFFFFF', borderRadius: Radii.lg, padding: Spacing.md,
-    borderWidth: 3, borderColor: Colors.butter,
-    ...Elevation.md,
+    borderRadius: Radii.xl, padding: Spacing.lg, ...Elevation.md,
   },
-  activeIcon: {
-    width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.brand,
-    alignItems: 'center', justifyContent: 'center', ...Elevation.sm,
-  },
-  activeIconText: { fontSize: 24 },
-  activeTitle: { flex: 1, fontSize: Fonts.md, fontWeight: Fonts.weight.black, color: Colors.ink900 },
-
-  // Locked / soon / done item
-  lockedCard: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.45)',
-    borderRadius: Radii.lg, padding: Spacing.md,
-    borderWidth: 1, borderColor: Colors.inkLine,
-  },
-  lockedIcon: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: '#E1D2A8',
+  heroIcon: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center', justifyContent: 'center',
   },
-  doneIcon: { backgroundColor: Colors.brand },
-  lockedIconText: { fontSize: 18, color: '#FFFFFF', fontWeight: Fonts.weight.black },
-  lockedTitle: { flex: 1, fontSize: Fonts.md, fontWeight: Fonts.weight.bold, color: Colors.ink500 },
-  doneTitle: { color: Colors.ink900 },
-  soonChip: {
-    backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.md, paddingVertical: 4, borderWidth: 1, borderColor: Colors.inkLine,
+  heroIconText: { fontSize: 28 },
+  heroKicker: { fontSize: Fonts.xs, fontWeight: Fonts.weight.black, color: 'rgba(255,255,255,0.85)', letterSpacing: 2 },
+  heroTitle: { fontSize: Fonts.lg, fontWeight: Fonts.weight.black, color: '#FFFFFF' },
+
+  allDone: {
+    backgroundColor: '#FFFFFF', borderRadius: Radii.xl, padding: Spacing.xl,
+    alignItems: 'center', gap: Spacing.sm, borderWidth: 1, borderColor: Colors.inkLine,
   },
-  soonText: { fontSize: Fonts.xs, fontWeight: Fonts.weight.black, color: Colors.ink500, letterSpacing: 1 },
+  allDoneEmoji: { fontSize: 44 },
+  allDoneText: { fontSize: Fonts.md, fontWeight: Fonts.weight.heavy, color: Colors.ink700, textAlign: 'center' },
 
   mastery: {
     textAlign: 'center', fontSize: Fonts.md, fontWeight: Fonts.weight.black,
-    color: Colors.ink300, letterSpacing: 3, marginTop: Spacing.lg,
+    color: Colors.ink300, letterSpacing: 3, marginTop: Spacing.sm,
   },
 });

@@ -9,7 +9,10 @@ import { Colors, Fonts, Radii, Spacing, Elevation, Gradients } from '../theme/to
 import TopStatsBar from '../components/TopStatsBar';
 import PpCard from '../components/PpCard';
 import ChunkyButton from '../components/ChunkyButton';
+import Shelf from '../components/Shelf';
+import PosterCard from '../components/PosterCard';
 import { useEntrance } from '../feedback/motion';
+import { LEVELS, PATH_ITEMS } from '../lessons/pathway';
 import * as haptics from '../feedback/haptics';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -28,20 +31,17 @@ const COVER_GRADIENTS: readonly [string, string][] = [
   [Gradients.violet[0], Gradients.violet[1]],
 ];
 
-function LevelDots({ level }: { level: number }) {
-  return (
-    <View style={styles.dots}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <View key={i} style={[styles.dot, i < level && styles.dotOn]} />
-      ))}
-    </View>
-  );
-}
+const LEVEL_SHORT: Record<string, string> = Object.fromEntries(LEVELS.map((l) => [l.id, l.short]));
+
+// Songs woven through the learning path — "songs you can play as you progress".
+const PATH_SONGS = PATH_ITEMS.filter((it) => it.kind === 'song');
 
 export default function SongbookScreen() {
   const nav = useNavigation<Nav>();
-  const importEntrance = useEntrance(0);
-  const listEntrance = useEntrance(150);
+  const heroEntrance = useEntrance(0);
+  const listEntrance = useEntrance(120);
+
+  const featured = TRENDING[0];
 
   return (
     <View style={styles.bg}>
@@ -49,43 +49,62 @@ export default function SongbookScreen() {
       <SafeAreaView style={styles.safe} edges={['top']}>
         <TopStatsBar title="Songbook" />
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {/* Featured hero */}
           <Animated.View
-            style={{ opacity: importEntrance.opacity, transform: [{ translateY: importEntrance.translateY }] }}
+            style={[styles.heroWrap, { opacity: heroEntrance.opacity, transform: [{ translateY: heroEntrance.translateY }] }]}
           >
-            <PpCard variant="warm" style={styles.importCard} elevation="md">
-              <Text style={styles.importEmoji}>📄</Text>
-              <Text style={styles.importTitle}>Import sheet music</Text>
-              <Text style={styles.importBody}>
-                Snap a photo or pick a PDF — we turn it into a playable, chord-annotated preview.
-              </Text>
-              <ChunkyButton label="Import a score" variant="sky" fullWidth haptic="bump" onPress={() => nav.navigate('OmrImport')} />
-            </PpCard>
+            <Pressable onPress={() => haptics.tap()}>
+              <LinearGradient colors={COVER_GRADIENTS[featured.hue]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+                <Text style={styles.heroKicker}>FEATURED SONG</Text>
+                <Text style={styles.heroTitle}>{featured.title}</Text>
+                <Text style={styles.heroArtist}>{featured.artist} · {featured.chords.join(' · ')}</Text>
+                <View style={styles.heroPlay}><Text style={styles.heroPlayText}>▶  Preview</Text></View>
+              </LinearGradient>
+            </Pressable>
           </Animated.View>
 
           <Animated.View
-            style={{ opacity: listEntrance.opacity, transform: [{ translateY: listEntrance.translateY }] }}
+            style={{ opacity: listEntrance.opacity, transform: [{ translateY: listEntrance.translateY }], gap: Spacing.xl }}
           >
-            <Text style={styles.sectionTitle}>Trending</Text>
-            {TRENDING.map((s) => (
-              <Pressable
-                key={s.title}
-                onPress={() => haptics.tap()}
-                style={({ pressed }) => [styles.songRow, pressed && { transform: [{ scale: 0.98 }] }]}
-              >
-                <LinearGradient
-                  colors={COVER_GRADIENTS[s.hue]}
-                  style={styles.cover}
-                >
-                  <Text style={styles.coverText}>♪</Text>
-                </LinearGradient>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.songTitle} numberOfLines={1}>{s.title}</Text>
-                  <Text style={styles.songMeta} numberOfLines={1}>{s.artist} · {s.chords.join(' · ')}</Text>
-                  <LevelDots level={s.level} />
-                </View>
-              </Pressable>
-            ))}
+            {/* Trending shelf */}
+            <Shelf title="Trending" subtitle="Popular with families right now">
+              {TRENDING.map((s) => (
+                <PosterCard
+                  key={s.title}
+                  title={s.title}
+                  subtitle={s.artist}
+                  icon="🎵"
+                  cover={COVER_GRADIENTS[s.hue]}
+                  onPress={() => haptics.tap()}
+                />
+              ))}
+            </Shelf>
+
+            {/* Songs from the learning path */}
+            <Shelf title="Songs you'll learn" subtitle="Unlocked as you climb the path">
+              {PATH_SONGS.map((s, i) => (
+                <PosterCard
+                  key={s.id}
+                  title={s.title}
+                  subtitle={LEVEL_SHORT[s.levelId]}
+                  icon="🎹"
+                  cover={COVER_GRADIENTS[i % COVER_GRADIENTS.length]}
+                  state={s.soon ? 'soon' : 'active'}
+                  onPress={() => haptics.tap()}
+                />
+              ))}
+            </Shelf>
           </Animated.View>
+
+          {/* Import sheet music */}
+          <PpCard variant="warm" style={styles.importCard} elevation="md">
+            <Text style={styles.importEmoji}>📄</Text>
+            <Text style={styles.importTitle}>Import sheet music</Text>
+            <Text style={styles.importBody}>
+              Snap a photo or pick a PDF — we turn it into a playable, chord-annotated preview.
+            </Text>
+            <ChunkyButton label="Import a score" variant="sky" fullWidth haptic="bump" onPress={() => nav.navigate('OmrImport')} />
+          </PpCard>
 
           <View style={{ height: Spacing['2xl'] }} />
         </ScrollView>
@@ -98,33 +117,22 @@ const styles = StyleSheet.create({
   bg: { flex: 1, backgroundColor: Colors.cream50 },
   headerBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 260 },
   safe: { flex: 1 },
-  scroll: { padding: Spacing.lg, gap: Spacing.lg },
+  scroll: { paddingVertical: Spacing.lg, gap: Spacing.xl },
 
-  importCard: { gap: Spacing.sm, alignItems: 'center' },
+  heroWrap: { paddingHorizontal: Spacing.lg },
+  hero: { borderRadius: Radii.xl, padding: Spacing.xl, gap: 4, ...Elevation.md },
+  heroKicker: { fontSize: Fonts.xs, fontWeight: Fonts.weight.black, color: 'rgba(255,255,255,0.85)', letterSpacing: 2 },
+  heroTitle: { fontSize: Fonts['2xl'], fontWeight: Fonts.weight.black, color: '#FFFFFF' },
+  heroArtist: { fontSize: Fonts.sm, color: 'rgba(255,255,255,0.9)', fontWeight: Fonts.weight.heavy },
+  heroPlay: {
+    alignSelf: 'flex-start', marginTop: Spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.lg, paddingVertical: 8,
+  },
+  heroPlayText: { color: '#FFFFFF', fontSize: Fonts.md, fontWeight: Fonts.weight.black },
+
+  importCard: { gap: Spacing.sm, alignItems: 'center', marginHorizontal: Spacing.lg },
   importEmoji: { fontSize: 44 },
   importTitle: { fontSize: Fonts.xl, fontWeight: Fonts.weight.black, color: Colors.ink900 },
   importBody: { fontSize: Fonts.base, color: Colors.ink700, textAlign: 'center', lineHeight: 22, paddingHorizontal: Spacing.md, marginBottom: Spacing.sm },
-
-  sectionTitle: {
-    fontSize: Fonts.sm, fontWeight: Fonts.weight.bold, color: Colors.ink500,
-    textTransform: 'uppercase', letterSpacing: 1.5,
-    marginTop: Spacing.sm, marginBottom: Spacing.sm,
-  },
-
-  songRow: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    backgroundColor: '#FFFFFF', borderRadius: Radii.lg, padding: Spacing.md,
-    marginBottom: Spacing.sm, ...Elevation.sm,
-  },
-  cover: {
-    width: 56, height: 56, borderRadius: Radii.md,
-    alignItems: 'center', justifyContent: 'center',
-    ...Elevation.sm,
-  },
-  coverText: { fontSize: Fonts['2xl'], color: '#FFFFFF', fontWeight: '900' },
-  songTitle: { fontSize: Fonts.md, fontWeight: Fonts.weight.black, color: Colors.ink900 },
-  songMeta: { fontSize: Fonts.sm, color: Colors.ink500 },
-  dots: { flexDirection: 'row', gap: 4, marginTop: 4 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.inkLine },
-  dotOn: { backgroundColor: Colors.brand },
 });
