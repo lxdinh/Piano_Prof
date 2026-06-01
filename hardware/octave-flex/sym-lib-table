@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "WS2812B-2020-lib")(type "KiCad")(uri "G:/Other computers/My Computer/Downloads/Piano Prof/hardware/shared-libs/WS2812B-2020.kicad_sym")(options "")(descr ""))
+)

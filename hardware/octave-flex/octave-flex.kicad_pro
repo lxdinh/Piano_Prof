@@ -50,7 +50,7 @@
         "silk_text_thickness": 0.1,
         "silk_text_upright": false,
         "zones": {
-          "min_clearance": 0.5
+          "min_clearance": 0.15
         }
       },
       "diff_pair_dimensions": [],
@@ -102,7 +102,7 @@
         "silk_over_copper": "warning",
         "silk_overlap": "warning",
         "skew_out_of_range": "error",
-        "solder_mask_bridge": "warning",
+        "solder_mask_bridge": "error",
         "starved_thermal": "error",
         "text_height": "warning",
         "text_on_edge_cuts": "error",
@@ -128,7 +128,7 @@
         "min_connection": 0.0,
         "min_copper_edge_clearance": 0.5,
         "min_groove_width": 0.0,
-        "min_hole_clearance": 0.15,
+        "min_hole_clearance": 0.25,
         "min_hole_to_hole": 0.25,
         "min_microvia_diameter": 0.2,
         "min_microvia_drill": 0.1,
@@ -473,14 +473,14 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "controller_v2.kicad_pro",
+    "filename": "octave-flex.kicad_pro",
     "version": 3
   },
   "net_settings": {
     "classes": [
       {
         "bus_width": 12,
-        "clearance": 0.15,
+        "clearance": 0.2,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
@@ -491,7 +491,7 @@
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "priority": 2147483647,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.2,
+        "track_width": 0.25,
         "via_diameter": 0.6,
         "via_drill": 0.3,
         "wire_width": 6
@@ -502,7 +502,7 @@
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "priority": 0,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.6
+        "track_width": 0.8
       }
     ],
     "meta": {
@@ -512,20 +512,12 @@
     "netclass_assignments": null,
     "netclass_patterns": [
       {
-        "netclass": "Power",
-        "pattern": "+5V"
-      },
-      {
-        "netclass": "Power",
-        "pattern": "+3.3V"
-      },
-      {
-        "netclass": "Power",
-        "pattern": "Net-(D3-VBUS)"
-      },
-      {
         "netclass": "Default",
         "pattern": "GND"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "+5V"
       }
     ]
   },
@@ -534,10 +526,10 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "./",
+      "plot": "",
       "pos_files": "",
       "specctra_dsn": "",
-      "step": "",
+      "step": "octave-flex.step",
       "svg": "",
       "vrml": ""
     },
@@ -664,8 +656,8 @@
     "subpart_id_separator": 0,
     "top_level_sheets": [
       {
-        "filename": "controller_v2.kicad_sch",
-        "name": "controller_v2",
+        "filename": "octave-flex.kicad_sch",
+        "name": "octave-flex",
         "uuid": "00000000-0000-0000-0000-000000000000"
       }
     ],
@@ -674,7 +666,7 @@
   },
   "sheets": [
     [
-      "ac32532a-240d-4791-8a1e-f1f3661d70e1",
+      "612c18b9-0c2c-4708-8e8b-ecc0702c809a",
       "Root"
     ]
   ],

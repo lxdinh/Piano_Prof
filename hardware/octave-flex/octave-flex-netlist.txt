@@ -1,0 +1,204 @@
+================================================================
+LuminaKeys Octave Flex PCB - Design Specification
+================================================================
+Replaces 5x rigid octave-module PCBs with ONE continuous flex
+panel spanning all 5 octaves of the keyboard.
+
+Total length:     822.5 mm  (5 octaves x 164.5 mm)
+Total width:      25 mm     (suggested - tune to mounting rail)
+LEDs:             60 x WS2812B-2020 (2x2mm) at real piano key positions
+Decoupling:       60 x 0.1uF 0603 (one per LED)
+Connectors:       1 x JST SH 4P at left end (input from controller)
+                  (NO output connector - chain ends in the strip)
+
+----------------------------------------------------------------
+FLEX PCB STACKUP (2-layer)
+----------------------------------------------------------------
+Top to bottom:
+  Coverlay        25 um polyimide overlay (protects copper)
+  F.Cu            1 oz copper (35 um) - signal + power
+  Polyimide       25-50 um (base substrate)
+  B.Cu            1 oz copper (35 um) - GND pour + power return
+  Coverlay        25 um polyimide overlay
+  Stiffener       FR4 stiffener under J1 connector area (~15x20mm)
+                  REQUIRED to prevent flex fatigue at solder joint
+
+Total finished thickness: ~0.2 mm (very thin, very flexible)
+
+----------------------------------------------------------------
+POWER BUDGET & TRACE WIDTHS
+----------------------------------------------------------------
+Worst case current (all 60 LEDs full white):
+  60 x 36 mA (WS2812B-2020 datasheet max) = 2.16 A peak
+Typical (mixed colors, 30% brightness): ~0.6-1 A
+
+VOLTAGE DROP CALCULATION (single-end feed over 822 mm):
+  Trace resistance @ 1oz Cu = 0.49 mOhm/sq
+
+  +5V trace 10mm wide x 822mm long = 82.2 squares
+    R = 0.49 mOhm x 82.2 = 40.3 mOhm
+    V drop @ 2A = 81 mV  (1.6% of 5V - OK)
+
+  GND return same: 81 mV
+
+  Total round-trip drop @ 2A peak = 162 mV (3.2% - acceptable)
+  Total drop @ 1A typical         = 81 mV  (1.6% - good)
+
+RECOMMENDATION:
+  +5V on F.Cu: 10 mm wide solid trace OR copper pour along the
+               whole length (use most of the available width above
+               the LED row).
+  GND on B.Cu: SOLID copper pour covering the entire board.
+  Data line:   0.2 mm minimum trace, zigzag between LEDs as needed.
+
+----------------------------------------------------------------
+LED PHYSICAL POSITIONS (all 60 LEDs, global X from board left edge)
+----------------------------------------------------------------
+See octave-flex-led-positions.csv for full data.
+
+OCTAVE 1 (notes C1..B1):    x =  11.75 to 152.75 mm
+OCTAVE 2 (notes C2..B2):    x = 176.25 to 317.25 mm   (offset +164.5)
+OCTAVE 3 (notes C3..B3):    x = 340.75 to 481.75 mm   (offset +329.0)
+OCTAVE 4 (notes C4..B4):    x = 505.25 to 646.25 mm   (offset +493.5)
+OCTAVE 5 (notes C5..B5):    x = 669.75 to 810.75 mm   (offset +658.0)
+
+LAYOUT (y from top edge of 25mm-tall board):
+  LEDs:  y = 20 mm (5mm clearance from bottom edge, places LEDs as close
+                   to the keys as possible when the strip is mounted
+                   above the keyboard)
+  Caps:  y = 14 mm (6mm above LEDs)
+  J1:    y = 8 mm  (top area, no collision with cap row)
+
+Each LED's center is aligned to its corresponding piano key center
+per DIN 8996 (164.5mm octave width, 23.5mm white-key pitch).
+
+----------------------------------------------------------------
+NET LIST
+----------------------------------------------------------------
+POWER:
+  +5V       J1 pin 1 -> all 60 LED VDD pins, all 60 cap top pads
+  GND       J1 pin 2 -> all 60 LED GND pins, all 60 cap bottom pads
+
+DATA:
+  DIN_IN    J1 pin 3 -> LED1 DIN
+  LED1_DOUT -> LED2 DIN
+  LED2_DOUT -> LED3 DIN
+  ... (chain continues)
+  LED59_DOUT -> LED60 DIN
+  LED60_DOUT -> NC (or left as test pad)
+
+OPTIONAL PASSTHROUGH:
+  PASS      J1 pin 4 -> NC (omit if using 3-pin connector instead)
+
+----------------------------------------------------------------
+CONNECTOR
+----------------------------------------------------------------
+J1 (left edge, INPUT)  -- JST SH 4P SMD horizontal
+  Pin 1   +5V
+  Pin 2   GND
+  Pin 3   DIN_IN
+  Pin 4   PASS (optional - leave NC for 3-pin reduction)
+
+IMPORTANT: J1 must sit on a STIFFENER (FR4 backing piece glued
+under the flex). SMD connectors on bare flex will rip off the
+first time you plug in a cable. Spec the stiffener in fab CAM
+notes: "FR4 stiffener 0.5-1mm thick, 15x20mm, centered under J1
+footprint on B.Cu side".
+
+----------------------------------------------------------------
+DECOUPLING (datasheet-required, one per LED)
+----------------------------------------------------------------
+C1..C60   0.1uF X7R 0603, +5V to GND, within 3mm of each LED's VDD pin.
+          Place each Cn next to its corresponding LEDn.
+
+----------------------------------------------------------------
+FLEX-SPECIFIC LAYOUT RULES
+----------------------------------------------------------------
+1. NO COPPER POURS IN BEND AREAS. Flex fatigue happens where
+   copper is wide and stiff. The whole strip is theoretically
+   bendable, but the LED zones must stay relatively rigid (the
+   coverlay + soldered components add stiffness there anyway).
+   Use cross-hatch copper fill (50% fill, 0.5mm hatch) for the
+   GND plane to allow flex.
+
+2. TEARDROPS on all pad-to-trace junctions. Flex movement
+   concentrates stress at sharp transitions; teardrops distribute
+   it. KiCad: Tools > Generate Teardrops.
+
+3. CURVED TRACES, not 90-degree corners. Use 45-degree minimum
+   transitions or arc segments. Sharp corners crack under flex.
+
+4. ANCHOR PADS for SMT components: extend pad-side copper slightly
+   under the component body where possible, OR add small "anchor"
+   vias/pads to mechanically lock the component to the substrate.
+
+5. NO VIAS IN BEND ZONES if you can avoid them. Vias crack first.
+   If unavoidable, use larger via pads (0.6mm pad, 0.3mm drill) for
+   strength.
+
+6. STIFFENERS under all connectors. Already noted for J1 - add a
+   stiffener spec in the CAM/Gerber notes.
+
+7. EDGE.CUTS: define the outline carefully. Flex fabs sometimes
+   use a router or laser. Confirm with your fab what minimum
+   inside-corner radius they support (typically 0.5-1 mm).
+
+----------------------------------------------------------------
+MANUFACTURING NOTES
+----------------------------------------------------------------
+Suitable fabs (at length 822.5 mm):
+  - PCBWay flex service (supports up to ~750mm standard, 1m custom)
+  - Multi-CB (Germany, supports 1m+)
+  - PCBCart
+  - JLCPCB does NOT support 822mm flex (caps at ~350-500mm)
+
+Order spec to send to fab:
+  Layers:           2 (F.Cu, B.Cu)
+  Material:         Polyimide flex
+  Substrate:        0.1mm (4 mil) polyimide
+  Copper:           1 oz (35 um) both sides
+  Coverlay:         0.025mm polyimide both sides
+  Stiffener:        FR4 0.5-1mm, 15x20mm, under J1
+  Surface finish:   ENIG (best for flex - gold doesn't crack)
+                    OR HASL-LF if cost-sensitive
+  Min trace/space:  0.15 mm / 0.15 mm
+  Min via:          0.6mm pad / 0.3mm drill
+  Outline:          As drawn in Edge.Cuts (laser cut)
+  Quantity:         1-5 prototype, then 10+ for production
+
+Expected cost: $80-200 per board at qty 1-5 (specialty flex is
+expensive). Volume drops the per-piece price significantly.
+
+----------------------------------------------------------------
+ASSEMBLY NOTES
+----------------------------------------------------------------
+SMT assembly on flex is tricky. Options:
+
+OPTION A: Order with SMT assembly service from the same fab
+  Best for production. Most flex fabs offer assembly. ~$2-5/LED
+  hand-placed or ~$0.50-1/LED machine-placed.
+
+OPTION B: Hand solder
+  Possible but tedious for 60 LEDs + 60 caps. Use a hot air station,
+  solder paste, stencil. The flex must be held FLAT during reflow
+  (clamp on a rigid temporary backer).
+
+OPTION C: LED strip vendor partnership
+  Some vendors (e.g., AdaFruit DotStar/NeoPixel makers) take custom
+  PCB designs and assemble. Search "custom WS2812 strip assembly".
+
+----------------------------------------------------------------
+INSTALLATION
+----------------------------------------------------------------
+The 822mm strip will droop and not stay flat by itself. You need:
+
+  - Adhesive backing (3M VHB tape, 8-10mm wide, on the back coverlay)
+    OR
+  - Mounting in an aluminum/PVC channel (LED strip channels exist
+    in 1m lengths, typically 17mm wide x 7mm tall)
+    OR
+  - Custom 3D-printed bracket that snaps the flex into position
+    above the keys
+
+Recommend channel-mount: looks professional, protects the LEDs,
+diffuser available, easy to remove/replace.

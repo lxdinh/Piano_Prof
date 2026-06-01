@@ -1,4 +1,4 @@
-26638168492489838
+26643507778388191
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -61347,20 +61347,6 @@ One digit LED 7 segment SA39-11 SC39-11 SA39-12 SC39-12
 0
 10
 10
-ESP32-C3-MINI-1
-TO-252-2_L6.6-W5.6-P4.60-LS9.7-BR
-
-
-0
-3
-3
-ESP32-C3-MINI-1
-WIFIM-SMD_ESP32-C3-MINI-1
-
-
-0
-61
-53
 Ferrite_THT
 LairdTech_28C0236-0JW-10
 Ferrite, vertical, LairdTech 28C0236-0JW-10, https://assets.lairdtech.com/home/brandworld/files/28C0236-0JW-10.pdf, JW Miller core https://www.bourns.com/products/magnetic-products/j.w.-miller-through-hole-ferrite-beads-emi-filters
@@ -62439,6 +62425,20 @@ GDT 3R-6
 0
 3
 3
+H11L1S
+DIL6-SMD
+<b>DIL 6 SMD</b><p>Source: http://www.fairchildsemi.com/pf/4N/4N35-M.html
+
+0
+6
+6
+H11L1SM
+IC_H11L1SM
+
+
+0
+6
+6
 Heatsink
 Heatsink_35x26mm_1xFixation3mm_Fischer-SK486-35
 Heatsink, 35mm x 26mm, 1x Fixation 3mm, Fischer SK486-35
@@ -99217,6 +99217,13 @@ Logo WEEE
 0
 0
 0
+TS3USB221A
+QFN-10-RSE
+
+
+0
+10
+10
 TerminalBlock
 TerminalBlock_Altech_AK300-2_P5.00mm
 Altech AK300 terminal block, pitch 5.0mm, 45 degree angled, see http://www.mouser.com/ds/2/16/PCBMETRC-24178.pdf
@@ -106263,6 +106270,20 @@ Varistor
 Varistor_Panasonic_VF
 Panasonic VF series varistor, 6x8mm body, 3.2mm height, https://mediap.industry.panasonic.eu/assets/imported/industrial.panasonic.com/cdbs/www-data/pdf/AWA0000/AWA0000C4.pdf
 Varistor VF
+0
+2
+2
+easyeda2kicad
+AUDIO-TH_XKB_PJ-320A
+
+
+0
+6
+4
+easyeda2kicad
+R0201
+
+
 0
 2
 2
