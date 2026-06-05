@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../billing/subscription_controller.dart';
 import '../data/models/library_item.dart';
 import '../library/library_controller.dart';
+import '../services/analytics_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chunky_button.dart';
 import '../widgets/mascot_image.dart';
 import '../widgets/pp_card.dart';
+import 'paywall_screen.dart';
 import 'song_preview_screen.dart';
 
 /// Tab 1 — Optical Music Recognition. Upload PDF/photos of sheet music, group
@@ -17,6 +20,8 @@ class OmrLibraryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<LibraryController>();
+    final sub = context.watch<SubscriptionController>();
+    final analytics = context.read<AnalyticsService>();
     return Scaffold(
       backgroundColor: AppColors.cream50,
       body: SafeArea(
@@ -41,11 +46,14 @@ class OmrLibraryScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Row(
                 children: [
-                  _action(Icons.photo_camera, 'Snap', c.snapPhoto),
+                  _action(Icons.photo_camera, 'Snap',
+                      () => _upload(context, sub, analytics, c.snapPhoto, 'snap')),
                   const SizedBox(width: 10),
-                  _action(Icons.image, 'Photo', c.pickImage),
+                  _action(Icons.image, 'Photo',
+                      () => _upload(context, sub, analytics, c.pickImage, 'photo')),
                   const SizedBox(width: 10),
-                  _action(Icons.picture_as_pdf, 'PDF', c.pickPdf),
+                  _action(Icons.picture_as_pdf, 'PDF',
+                      () => _upload(context, sub, analytics, c.pickPdf, 'pdf')),
                 ],
               ),
             ),
@@ -64,6 +72,22 @@ class OmrLibraryScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// OMR uploads are a premium feature — gate behind the subscription, sending
+  /// free users to the paywall instead.
+  void _upload(BuildContext context, SubscriptionController sub,
+      AnalyticsService analytics, VoidCallback action, String source) {
+    if (sub.canUploadOmr) {
+      analytics.omrUpload(source);
+      action();
+    } else {
+      analytics.omrUploadBlocked();
+      analytics.paywallView('omr_upload');
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const PaywallScreen()),
+      );
+    }
   }
 
   Widget _action(IconData icon, String label, VoidCallback onTap) {

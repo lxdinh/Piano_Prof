@@ -53,6 +53,40 @@ class NoteMapping {
   /// (sharps/flats fold onto their natural for the simple 8-key view).
   static String whiteKeyOf(String note) => note.isEmpty ? note : note[0].toUpperCase();
 
+  // ---- hand → color (left = cyan/blue, right = orange) ------------------
+  static const String leftHandColor = 'cyan';
+  static const String rightHandColor = 'orange';
+
+  /// Middle C. In [Hand.auto], notes strictly below this are the left hand.
+  static const int middleC = 60; // C4
+
+  /// True for the five black keys in any octave (C#, D#, F#, G#, A#).
+  static bool isBlackKey(int midi) => const {1, 3, 6, 8, 10}.contains(midi % 12);
+
+  // ---- sung solfège (fixed-do, anchored to C) --------------------------
+  /// Syllable clips are synthesized once near this reference pitch; the audio
+  /// engine pitch-shifts each to the note actually played.
+  static const int solfegeRefMidi = 60; // C4
+
+  static const Map<int, String> _solfege = {
+    0: 'do', 2: 're', 4: 'mi', 5: 'fa', 7: 'sol', 9: 'la', 11: 'ti',
+  };
+
+  /// Phonetic spelling so a TTS voice pronounces the syllables as solfège
+  /// ("Mi" → "Mee", not "my"; "Re" → "Ray"; "Ti" → "Tee").
+  static const Map<String, String> solfegeSpoken = {
+    'do': 'Doh',
+    're': 'Ray',
+    'mi': 'Mee',
+    'fa': 'Fah',
+    'sol': 'Soh',
+    'la': 'Lah',
+    'ti': 'Tee',
+  };
+
+  /// "do".."ti" for a diatonic note (C major), or null for a chromatic note.
+  static String? solfegeSyllable(int midi) => _solfege[midi % 12];
+
   static const Map<String, Color> _colors = {
     'cyan': Color(0xFF00F0FF),
     'green': Color(0xFF58CC02),

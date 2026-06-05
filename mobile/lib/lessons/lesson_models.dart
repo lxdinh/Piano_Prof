@@ -16,32 +16,65 @@ class PauseSeg extends Segment {
   final int ms;
 }
 
+/// Which hand plays the notes — drives the key/LED color (left = cyan/blue,
+/// right = orange). [auto] decides per note by pitch (below middle C = left).
+enum Hand { left, right, both, auto }
+
 /// Notes played together (a chord) — lights all matching LEDs at once.
+///
+/// [hand] sets the color convention; [pedal] holds the sustain so the chord
+/// rings (released on the next clear). The legacy [color] is kept for the
+/// chord-chip accent but no longer drives key/LED color (hand does).
 class Chord extends Segment {
-  const Chord(this.notes, {this.color = 'cyan', this.waitMs = 1400});
+  const Chord(this.notes,
+      {this.color = 'cyan',
+      this.waitMs = 1400,
+      this.hand = Hand.auto,
+      this.pedal = false});
   final List<String> notes;
   final String color;
   final int waitMs;
+  final Hand hand;
+  final bool pedal;
 }
 
 /// Notes played one at a time, each cleared before the next.
+///
+/// When [solfege] is true the instructor "sings" Do-Re-Mi in tune with each
+/// note as it lights (see PianoAudio.singSolfege).
 class Seq extends Segment {
   const Seq(this.notes,
-      {this.color = 'cyan', this.delayMs = 420, this.waitMs = 500});
+      {this.color = 'cyan',
+      this.delayMs = 420,
+      this.waitMs = 500,
+      this.hand = Hand.auto,
+      this.solfege = false,
+      this.pedal = false});
   final List<String> notes;
   final String color;
   final int delayMs;
   final int waitMs;
+  final Hand hand;
+  final bool solfege;
+  final bool pedal;
 }
 
 /// Notes played one at a time but kept lit cumulatively.
 class SeqAll extends Segment {
   const SeqAll(this.notes,
-      {this.color = 'cyan', this.delayMs = 420, this.waitMs = 500});
+      {this.color = 'cyan',
+      this.delayMs = 420,
+      this.waitMs = 500,
+      this.hand = Hand.auto,
+      this.solfege = false,
+      this.pedal = false});
   final List<String> notes;
   final String color;
   final int delayMs;
   final int waitMs;
+  final Hand hand;
+  final bool solfege;
+  final bool pedal;
 }
 
 class QuizSeg extends Segment {

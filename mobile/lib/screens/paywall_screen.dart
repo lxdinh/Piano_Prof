@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../billing/subscription_controller.dart';
 import '../billing/subscription_plans.dart';
+import '../services/analytics_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chunky_button.dart';
 import '../widgets/mascot_image.dart';
@@ -22,6 +23,14 @@ class PaywallScreen extends StatefulWidget {
 class _PaywallScreenState extends State<PaywallScreen> {
   late String _region = widget.region;
   static const _regions = {'US': '🇺🇸 US', 'JP': '🇯🇵 JP', 'IN': '🇮🇳 IN', 'BR': '🇧🇷 BR'};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AnalyticsService>().paywallView('paywall_screen');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +173,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
               color: isMax ? AppColors.plum : AppColors.brand,
               shadowColor: isMax ? AppColors.plumD : AppColors.brandDark,
               onPressed: () {
+                context.read<AnalyticsService>().subscribe(plan.tier, mock: true);
                 context.read<SubscriptionController>().mockSubscribe(plan.tier);
                 Navigator.of(context).maybePop();
                 ScaffoldMessenger.of(context).showSnackBar(

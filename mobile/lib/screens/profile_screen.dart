@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../audio/voice_service.dart';
 import '../billing/subscription_controller.dart';
-import '../data/models/user_profile.dart';
-import '../data/user_repository.dart';
+import '../data/achievements.dart';
+import '../data/profile_controller.dart';
+import '../lessons/lesson_data.dart';
+import '../lessons/lesson_models.dart';
 import '../services/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chunky_button.dart';
@@ -17,7 +20,7 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repo = context.read<UserRepository>();
+    final profile = context.watch<ProfileController>();
     final sub = context.watch<SubscriptionController>();
 
     return Scaffold(
@@ -40,8 +43,9 @@ class ProfileScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('maya_keys',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                    Text(profile.handle,
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 4),
                     Container(
                       padding:
@@ -68,19 +72,16 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            StreamBuilder<UserProfile?>(
-              stream: repo.watchProfile(),
-              builder: (context, snap) {
-                final p = snap.data;
-                return Row(
-                  children: [
-                    _stat('🔥', '${p?.streakCount ?? 0}', 'STREAK'),
-                    _stat('⭐', '${p?.totalXp ?? 0}', 'XP'),
-                    _stat('💎', '${p?.gems ?? 0}', 'GEMS'),
-                    _stat('❤️', '${p?.hearts ?? 5}', 'HEARTS'),
-                  ],
-                );
-              },
+            Row(
+              children: [
+                _stat('🔥', '${profile.streakCount}', 'STREAK'),
+                _stat('⭐', '${profile.totalXp}', 'XP'),
+                _stat('💎', '${profile.gems}', 'GEMS'),
+                _stat(
+                    '❤️',
+                    profile.hearts.unlimited ? '∞' : '${profile.hearts.count}',
+                    'HEARTS'),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -130,17 +131,20 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 16),
+            _AchievementsSection(profile: profile),
+            const SizedBox(height: 16),
 
             _settingsTile(Icons.bluetooth, 'Piano Lights (LED strip)',
                 () => Navigator.of(context).push(
                       MaterialPageRoute<void>(builder: (_) => const BleConnectScreen()),
                     )),
             _settingsTile(Icons.document_scanner, 'OMR scan server', () => _omrServerDialog(context)),
+            _settingsTile(Icons.record_voice_over, 'AI Voice (Google Gemini)', () => _voiceDialog(context)),
             _settingsTile(Icons.help_outline, 'Help center', () {}),
             _settingsTile(Icons.privacy_tip_outlined, 'Terms & privacy', () {}),
             const SizedBox(height: 16),
             Center(
-              child: Text('Piano Professor v0.3.0 · made with ♥ for slow learners',
+              child: Text('Piano Professor v0.8.6 · made with ♥ for slow learners',
                   style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -219,6 +223,118 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _voiceDialog(BuildContext context) {
+    final settings = context.read<AppSettings>();
+    final voice = context.read<VoiceService>();
+    var voiceName = settings.voiceName;
+    if (!VoiceService.voices.containsValue(voiceName)) {
+      voiceName = AppSettings.defaultVoiceName;
+    }
+    var style = settings.voiceStyle;
+    if (!VoiceService.styles.containsKey(style)) {
+      style = AppSettings.defaultVoiceStyle;
+    }
+    var speed = settings.voiceSpeed;
+    var status = '';
+    showDialog<void>(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setLocal) => AlertDialog(
+          title: const Text('AI Voice'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('VOICE',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.ink500)),
+                DropdownButton<String>(
+                  value: voiceName,
+                  isExpanded: true,
+                  items: [
+                    for (final e in VoiceService.voices.entries)
+                      DropdownMenuItem(value: e.value, child: Text(e.key)),
+                  ],
+                  onChanged: (v) => setLocal(() => voiceName = v ?? voiceName),
+                ),
+                const SizedBox(height: 10),
+                const Text('TONE',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.ink500)),
+                DropdownButton<String>(
+                  value: style,
+                  isExpanded: true,
+                  items: [
+                    for (final e in VoiceService.styles.entries)
+                      DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  ],
+                  onChanged: (v) => setLocal(() => style = v ?? style),
+                ),
+                const SizedBox(height: 10),
+                const Text('SPEED',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.ink500)),
+                Row(
+                  children: [
+                    const Text('0.5×',
+                        style: TextStyle(fontSize: 12, color: AppColors.ink500)),
+                    Expanded(
+                      child: Slider(
+                        value: speed,
+                        min: 0.5,
+                        max: 2.0,
+                        divisions: 6,
+                        label: '${speed.toStringAsFixed(2)}×',
+                        onChanged: (v) => setLocal(() => speed = v),
+                      ),
+                    ),
+                    const Text('2×',
+                        style: TextStyle(fontSize: 12, color: AppColors.ink500)),
+                  ],
+                ),
+                if (status.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Text(status,
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w800)),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel')),
+            TextButton(
+              onPressed: () async {
+                await settings.setVoiceName(voiceName);
+                await settings.setVoiceStyle(style);
+                await settings.setVoiceSpeed(speed);
+                setLocal(() => status = '🔄 Testing…');
+                final err = await voice.test(settings.voiceApiKey, voiceName, style);
+                setLocal(() =>
+                    status = err ?? '✅ Voice is active.');
+                if (err == null) {
+                  await Future<void>.delayed(const Duration(milliseconds: 1400));
+                  if (context.mounted) Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Save & test'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _settingsTile(IconData icon, String label, VoidCallback onTap) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -239,6 +355,104 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Badge wall — computed live from the learner's progress (lessons, perfect
+/// runs, songs, streak, XP). Works with or without Firebase (demo mode).
+class _AchievementsSection extends StatelessWidget {
+  const _AchievementsSection({required this.profile});
+  final ProfileController profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final stars = profile.lessonStars;
+    final stats = AchievementStats(
+      lessons: stars.length,
+      perfectLessons: stars.values.where((s) => s >= 3).length,
+      songs: stars.keys
+          .where((id) => lessonKindFor(id) == LessonKind.song)
+          .length,
+      streak: profile.longestStreak,
+      xp: profile.totalXp,
+    );
+    final items = evaluateAchievements(stats);
+    final unlocked = items.where((a) => a.unlocked).length;
+
+    return PpCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.military_tech, color: AppColors.butter),
+              const SizedBox(width: 8),
+              const Text('Achievements',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              const Spacer(),
+              Text('$unlocked/${items.length}',
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.ink500)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 12,
+            children: [for (final a in items) _Badge(status: a)],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({required this.status});
+  final AchievementStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final def = status.def;
+    final on = status.unlocked;
+    return SizedBox(
+      width: 72,
+      child: Column(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: on ? def.color : AppColors.cream200,
+              border: Border.all(
+                  color: on ? def.color : AppColors.inkLine, width: 2),
+            ),
+            child: Icon(def.icon,
+                color: on ? Colors.white : AppColors.ink300, size: 26),
+          ),
+          const SizedBox(height: 4),
+          Text(def.title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  height: 1.1,
+                  color: on ? AppColors.ink900 : AppColors.ink500)),
+          if (!on)
+            Text('${status.current}/${def.threshold}',
+                style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink300)),
+        ],
       ),
     );
   }

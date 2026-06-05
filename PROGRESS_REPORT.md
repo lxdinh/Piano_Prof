@@ -1,13 +1,39 @@
 # Piano Prof — Progress Report
 
-**Document date:** 2026-05-20
-**Phase:** 1b — Hardware redesign (controller v2: add MIDI input)
+**Document date:** 2026-05-20 (software section added 2026-05-24)
+**Phase:** Hardware 1b (controller v2: add MIDI input) · Software Phase 4 (Flutter app — in progress)
 
 ---
 
 ## Summary
 
 The **octave LED strip** is finalized and ready for fab (one connector-orientation re-check pending). The **controller** was finalized as v1 (ESP32-C3, no MIDI input) but is being revised to **v2** to add MIDI input from the piano — both USB-MIDI (Host mode, for USB-B-only pianos) and TRS MIDI IN (Type A, for DIN-MIDI pianos via an included adapter). This requires swapping the MCU to ESP32-S3-MINI-1 (the C3's USB peripheral is device-only and cannot host). Fab files have not been generated yet, so the v2 changes are made before tooling cost is incurred.
+
+---
+
+## Software — Piano Professor app (`mobile/`)
+
+The app is a **Flutter** rewrite (one codebase for iOS / Android / Web) — this supersedes the original
+"web app + Capacitor" plan in earlier docs. The legacy Kotlin app in `../App/` is retired. Status (2026-05-24):
+
+| Area | Status |
+|---|---|
+| 4-tab shell (Learn · Sheet · Practice · Profile) + Duolingo-style design system | ✅ |
+| 6-level lesson path + interactive engine (speak / light keys / audio / quiz / LED sync) | ✅ |
+| Gamification — XP, daily streak, hearts (spend + refill + 0-gate), gems, per-lesson stars, lesson gating, daily-goal bar | ✅ client-authoritative v1, offline-safe |
+| Achievements (8 badges) + on-completion unlock celebration | ✅ |
+| Audio engine (SoLoud: real samples or synth, sustain pedal, reverb) | ✅ |
+| Instructor voice + sung solfège via **Google Gemini TTS** (pitch-shifted to each key) | ✅ needs a Google AI Studio key |
+| OMR import → MusicXML → chord-annotated playable preview | ✅ needs oemer server + Cloud Function |
+| BLE pairing + GATT contract (app side) | ✅ awaiting ESP32-S3 firmware |
+| Firebase anon auth + Firestore data layer | ✅ |
+| Premium feature gating + entitlement read + usage analytics (firebase_analytics) | ✅ app-side (purchases still mocked) |
+| Store purchase SDK (RevenueCat / in_app_purchase) + Crashlytics | ⬜ needs store setup + device test |
+| Local notifications (streak / daily-goal reminders) | ⬜ pending |
+| Data-driven lesson content (currently hardcoded in Dart) | ⬜ planned |
+
+Verification: `flutter analyze` clean (0 errors/warnings), unit tests pass (engagement / achievements / GATT), and
+the web build succeeds. Full architecture + run steps: `mobile/README.md`.
 
 ---
 

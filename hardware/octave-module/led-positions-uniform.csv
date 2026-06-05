@@ -1,0 +1,26 @@
+led_index,note,key_color,x_mm_from_left,y_mm_from_top,notes
+1,C,white,6.875,5.0,Chain start (DIN from left bridge pad / J1)
+2,C#,black,20.625,5.0,
+3,D,white,34.375,5.0,
+4,D#,black,48.125,5.0,
+5,E,white,61.875,5.0,
+6,F,white,75.625,5.0,
+7,F#,black,89.375,5.0,
+8,G,white,103.125,5.0,
+9,G#,black,116.875,5.0,
+10,A,white,130.625,5.0,
+11,A#,black,144.375,5.0,
+12,B,white,158.125,5.0,Chain end (DOUT -> right bridge pad)
+,,,,,
+,Uniform spacing model (fits most 164-166 mm pianos; avg/standard 165 mm),,,,
+,Pitch,,13.75,,165 / 12; x = 6.875 + n*13.75
+,Octave width,,165.0,,6.5 inch standard = measured avg = midpoint of real 164-166 range
+,Edge offset,,6.875,,half-pitch; makes the butt seam continuous at 13.75 mm
+,Cell outline,,165.0 x 25.0,,left edge x=0, right edge x=165
+,Y,,5.0,,single row; tune to your mount (top/back of keys)
+,,,,,
+,Cross-piano fit,,,,Center-anchor: standard 165 mm pianos ~0 drift; Yamaha 164 mm or
+,,,,,a 166 mm piano <= +/-2.46 mm over 5 octaves. See KEY_SPACING_FIT.md.
+,Yamaha hedge,,164.5,,If target skews heavily Yamaha use 164.5 mm / 13.708 mm pitch instead
+,Per-key centering note,,,,Uniform sits ~5-7 mm off true center at C/F/B; recovered
+,,,,,in firmware via note->LED map; hidden by diffuser.

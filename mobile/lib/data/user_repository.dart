@@ -1,7 +1,6 @@
-import 'dart:typed_data';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 
 import '../services/auth_service.dart';
 import 'firestore_refs.dart';
@@ -21,6 +20,10 @@ class UserRepository {
   bool get isReady => _ready;
   String? get uid => _auth.uid;
 
+  void _log(String op, Object e) {
+    if (kDebugMode) debugPrint('[UserRepository.$op] $e');
+  }
+
   /// Create the profile doc on first run if it doesn't exist yet.
   Future<void> ensureProfile() async {
     if (!_ready) return;
@@ -30,7 +33,7 @@ class UserRepository {
       if (!snap.exists) {
         await ref.set(UserProfile.initialDoc(uid!));
       }
-    } catch (_) {/* non-fatal during bring-up */}
+    } catch (e) {/* non-fatal during bring-up */ _log('ensureProfile', e); }
   }
 
   /// Live profile (streak / XP / gems / hearts) for the home + headers.
@@ -50,26 +53,98 @@ class UserRepository {
         .map((q) => q.docs.map((d) => d.id).toSet());
   }
 
-  /// Mark a lesson complete: award XP on the profile + record progress.
-  Future<void> completeLesson({
+  /// Per-lesson star ratings (lessonId → 0–3) for the path nodes.
+  Stream<Map<String, int>> watchLessonStars() {
+    if (!_ready) return const Stream<Map<String, int>>.empty();
+    return Db.lessonProgress(uid!).snapshots().map((q) => {
+          for (final d in q.docs)
+            d.id: ((d.data()['stars'] as num?)?.toInt() ?? 0),
+        });
+  }
+
+  /// Merge absolute gamification fields onto the user doc. The caller computes
+  /// the new values from the live profile (client-authoritative v1), so this
+  /// stays offline-safe (no transactions) and the live stream echoes the write.
+  Future<void> mergeUser(Map<String, dynamic> data) async {
+    if (!_ready) return;
+    try {
+      await Db.user(uid!).set(
+        {...data, 'updatedAt': FieldValue.serverTimestamp()},
+        SetOptions(merge: true),
+      );
+    } catch (e) {/* non-fatal during bring-up */ _log('mergeUser', e); }
+  }
+
+  /// Record a completed lesson run. Keeps the best star rating, counts attempts,
+  /// and stamps `firstCompletedAt` only once. Returns the best stars on record.
+  Future<int> recordLessonProgress({
     required String lessonId,
-    required int xp,
+    required int stars,
+    required int xpEarned,
+  }) async {
+    if (!_ready) return stars;
+    try {
+      final ref = Db.lessonProgress(uid!).doc(lessonId);
+      final prev = await ref.get();
+      final prevStars = (prev.data()?['stars'] as num?)?.toInt() ?? 0;
+      final bestStars = stars > prevStars ? stars : prevStars;
+      final firstTime = !(prev.exists && prev.data()?['firstCompletedAt'] != null);
+      await ref.set({
+        'status': 'completed',
+        'stars': bestStars,
+        'xpEarned': xpEarned,
+        'attempts': FieldValue.increment(1),
+        'lastPlayedAt': FieldValue.serverTimestamp(),
+        if (firstTime) 'firstCompletedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      return bestStars;
+    } catch (e) {
+      _log('recordLessonProgress', e);
+      return stars;
+    }
+  }
+
+  /// Bump the per-day activity bucket (powers the streak calendar + daily ring).
+  Future<void> bumpDailyActivity(
+    String day, {
+    required int xpEarned,
+    required int lessonsCompleted,
+    required bool goalMet,
   }) async {
     if (!_ready) return;
     try {
-      await Db.user(uid!).set({
-        'totalXp': FieldValue.increment(xp),
-        'currentLessonId': lessonId,
-        'updatedAt': FieldValue.serverTimestamp(),
+      await Db.dailyActivity(uid!).doc(day).set({
+        'date': day,
+        'xpEarned': FieldValue.increment(xpEarned),
+        'lessonsCompleted': FieldValue.increment(lessonsCompleted),
+        if (goalMet) 'streakMaintained': true,
       }, SetOptions(merge: true));
-      await Db.lessonProgress(uid!).doc(lessonId).set({
-        'status': 'completed',
-        'xpEarned': xp,
-        'stars': 3,
-        'lastPlayedAt': FieldValue.serverTimestamp(),
-        'firstCompletedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    } catch (_) {/* non-fatal during bring-up */}
+    } catch (e) {/* non-fatal */ _log('bumpDailyActivity', e); }
+  }
+
+  /// XP already earned today (to initialise the daily-goal ring on launch).
+  Future<int> readDailyXp(String day) async {
+    if (!_ready) return 0;
+    try {
+      final snap = await Db.dailyActivity(uid!).doc(day).get();
+      return (snap.data()?['xpEarned'] as num?)?.toInt() ?? 0;
+    } catch (e) {
+      _log('readDailyXp', e);
+      return 0;
+    }
+  }
+
+  /// Live entitlement (read-only; written by the store webhook → Cloud Function,
+  /// per firestore.rules — clients can read but never write `private/`).
+  Stream<({String tier, String status})> watchSubscription() {
+    if (!_ready) return const Stream<({String tier, String status})>.empty();
+    return Db.subscription(uid!).snapshots().map((s) {
+      final d = s.data() ?? const <String, dynamic>{};
+      return (
+        tier: d['tier'] as String? ?? 'free',
+        status: d['status'] as String? ?? 'none',
+      );
+    });
   }
 
   /// Uploaded sheet-music library (newest first).
@@ -108,7 +183,7 @@ class UserRepository {
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-    } catch (_) {/* non-fatal during bring-up */}
+    } catch (e) {/* non-fatal during bring-up */ _log('uploadSheet', e); }
   }
 
   /// Persist a paired LED module under users/{uid}/devices (called on connect).
@@ -129,6 +204,6 @@ class UserRepository {
     );
     try {
       await Db.device(uid!, docId).set(device.toMap(), SetOptions(merge: true));
-    } catch (_) {/* non-fatal during bring-up */}
+    } catch (e) {/* non-fatal during bring-up */ _log('savePairedDevice', e); }
   }
 }

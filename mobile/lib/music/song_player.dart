@@ -24,6 +24,7 @@ class SongPlayer extends ChangeNotifier {
   bool _disposed = false;
   double _beat = 0;
   final Set<int> _sounding = {};
+  final Map<int, String> _litColors = {}; // midi -> color (cyan LH / orange RH)
 
   // Onset slices reached so far — drives the notation cursor (one step per
   // distinct musical onset, matching OSMD's cursor which steps per timestamp).
@@ -33,6 +34,10 @@ class SongPlayer extends ChangeNotifier {
 
   bool get playing => _playing;
   Set<int> get sounding => _sounding;
+
+  /// midi → color name for the on-screen keyboard (cyan = left/bass staff,
+  /// orange = right/treble staff).
+  Map<int, String> get litColors => _litColors;
   double get progress =>
       score.totalBeats <= 0 ? 0 : (_beat / score.totalBeats).clamp(0.0, 1.0);
   int get totalBars => score.barCount;
@@ -53,8 +58,8 @@ class SongPlayer extends ChangeNotifier {
     final msPerBeat = 60000 / score.tempoBpm;
     final acts = <_NoteAct>[];
     for (final n in score.notes) {
-      acts.add(_NoteAct(n.startBeat, true, n.midi));
-      acts.add(_NoteAct(n.endBeat, false, n.midi));
+      acts.add(_NoteAct(n.startBeat, true, n.midi, n.staff));
+      acts.add(_NoteAct(n.endBeat, false, n.midi, n.staff));
     }
     // sort by time; at the same instant, release before strike
     acts.sort((a, b) {
@@ -79,9 +84,13 @@ class SongPlayer extends ChangeNotifier {
           _lastOnsetBeat = a.beat;
         }
         _sounding.add(a.midi);
+        _litColors[a.midi] = a.staff == 2
+            ? NoteMapping.leftHandColor
+            : NoteMapping.rightHandColor;
         audio?.noteOn(a.midi);
       } else {
         _sounding.remove(a.midi);
+        _litColors.remove(a.midi);
         audio?.noteOff(a.midi);
       }
       _writeLeds();
@@ -100,6 +109,7 @@ class SongPlayer extends ChangeNotifier {
       audio?.noteOff(m);
     }
     _sounding.clear();
+    _litColors.clear();
     _clearLeds();
     _playing = false;
     _beat = 0;
@@ -118,12 +128,13 @@ class SongPlayer extends ChangeNotifier {
       return;
     }
     final leds = <({int index, int r, int g, int b})>[];
-    for (final m in _sounding) {
+    _litColors.forEach((m, col) {
       final i = m - NoteMapping.ledBaseMidi;
       if (i >= 0 && i < NoteMapping.ledCount) {
-        leds.add((index: i, r: 88, g: 204, b: 2));
+        final (r, g, b) = NoteMapping.rgb(col);
+        leds.add((index: i, r: r, g: g, b: b));
       }
-    }
+    });
     try {
       p.writeLed(PianoProfessorGatt.setMany(leds));
     } catch (_) {}
@@ -150,8 +161,9 @@ class SongPlayer extends ChangeNotifier {
 }
 
 class _NoteAct {
-  _NoteAct(this.beat, this.on, this.midi);
+  _NoteAct(this.beat, this.on, this.midi, this.staff);
   final double beat;
   final bool on;
   final int midi;
+  final int staff; // 1 = right hand (treble), 2 = left hand (bass)
 }

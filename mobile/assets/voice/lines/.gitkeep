@@ -1,0 +1,2 @@
+# Generated instructor voice clips (<id>.ogg) land here.
+# Run: dart run tool/dump_lines.dart  then  python ../backend/tts/generate_voice.py

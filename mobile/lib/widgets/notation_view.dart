@@ -16,6 +16,7 @@ class NotationController {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFFFBF5E4))
       ..addJavaScriptChannel('PP', onMessageReceived: (m) {
+        if (_disposed) return; // ignore late messages after the screen is gone
         if (m.message == 'init') {
           _ready = true;
           for (final js in _pending) {
@@ -29,14 +30,27 @@ class NotationController {
 
   final WebViewController web = WebViewController();
   bool _ready = false;
+  bool _disposed = false;
   final List<String> _pending = [];
 
   void _run(String js) {
+    if (_disposed) return;
     if (_ready) {
       web.runJavaScript(js);
     } else {
       _pending.add(js);
     }
+  }
+
+  /// Stop the OSMD engine + free the rendered SVG/DOM and ignore any further JS
+  /// callbacks. (webview_flutter has no controller.dispose(); the native view is
+  /// released with the WebViewWidget — this frees the heavy page content.)
+  void dispose() {
+    _disposed = true;
+    _pending.clear();
+    try {
+      web.loadHtmlString('<!doctype html><html></html>');
+    } catch (_) {}
   }
 
   /// Render a MusicXML score (passed base64 to avoid any string-escaping issues).

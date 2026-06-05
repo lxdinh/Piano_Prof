@@ -1,122 +1,146 @@
 # Piano Professor — Flutter app (`mobile/`)
 
-Cross-platform (iOS / Android / Web) Flutter app. This ships the full **3-step BLE pairing flow** (discover →
-calibrate → connected) for the ESP32 "Piano-Prof" LED module, plus **Firebase init + anonymous auth + a Firestore
-data layer** that persists the paired device. Other screens, MIDI/mic input, and OMR come later.
+Cross-platform (iOS / Android / Web) **gamified piano-learning app** — the active product in this repo. A
+Duolingo-style lesson path teaches piano; an instructor mascot speaks (Google Gemini TTS) and sings the solfège
+in tune with each key; the on-screen keyboard and a physical **ESP32 "Piano-Prof" LED strip** (over BLE) light the
+notes to play. Sheet music can be imported and turned into a playable, chord-annotated lesson via OMR.
+
+> The legacy native Android app lives in `../App/` (Kotlin/Gradle) and predates this Flutter rewrite. **All current
+> software work happens here in `mobile/`.** (`../App/mobile` is a symlink back to this folder.)
+
+## What the app does
+
+- **Learn** — a 6-level path (Kindergarten → Master, ~23 lessons). An interactive lesson engine speaks, lights the
+  keys, plays audio, sings solfège, runs quizzes, and drives the LED strip in sync.
+- **Gamification (client-authoritative v1)** — XP, daily streaks, hearts (spent on mistakes, refill over time),
+  gems, per-lesson stars, lesson gating/locks, a daily-goal ring, and achievement badges. See
+  `backend/firebase/firestore.rules` (rules deliberately allow client writes for v1).
+- **Sheet (OMR)** — upload a PDF/photo → Cloud Storage → a Cloud Function runs OMR → MusicXML → a faithful,
+  chord-analyzed preview you can learn by chords.
+- **Practice** — note input via the BLE LED module (USB-MIDI / TRS-MIDI) or on-screen keyboard.
+- **Profile** — stats, achievements, subscription, and settings (LED module, OMR server, AI voice).
+
+## Architecture
+
+State is plain **Provider / ChangeNotifier**. Engagement logic is **pure + unit-tested** and persists through one
+controller, so it runs fully **in-memory when Firebase isn't configured** (demo mode).
 
 ```
-mobile/
-├─ pubspec.yaml
-├─ analysis_options.yaml
-├─ assets/mascots/            # Maestro Penguini stickers (copied from the design)
-└─ lib/
-   ├─ main.dart               # Firebase init + anon sign-in + providers; home = pairing flow
-   ├─ theme/app_theme.dart    # design tokens (cream/ink/brand…) + Nunito
-   ├─ widgets/                # ChunkyButton, PpCard, StatPill, MascotImage, LedStripArt
-   ├─ services/
-   │  ├─ firebase_bootstrap.dart     # graceful Firebase.initializeApp()
-   │  └─ auth_service.dart           # anonymous sign-in (guarded if unconfigured)
-   ├─ data/
-   │  ├─ firestore_refs.dart         # central collection paths (match SCHEMA.md)
-   │  ├─ models/user_profile.dart    # users/{uid} mapping
-   │  ├─ models/paired_device.dart   # users/{uid}/devices/{id} mapping
-   │  └─ user_repository.dart        # ensureProfile / watchProfile / savePairedDevice
-   ├─ ble/
-   │  ├─ piano_professor_gatt.dart   # the app↔ESP32 GATT contract (UUIDs + frame codecs)
-   │  ├─ ble_transport.dart          # abstract transport + platform factory
-   │  ├─ ble_transport_io.dart       # native impl (flutter_blue_plus)
-   │  ├─ ble_transport_web.dart      # web impl (flutter_web_bluetooth / Web Bluetooth)
-   │  └─ ble_controller.dart         # sealed BleState + ChangeNotifier
-   └─ screens/
-      ├─ ble_connect_screen.dart     # step 1 · discover + pair (persists device on connect)
-      ├─ calibration_screen.dart     # step 2 · light keys + detect note events
-      └─ connected_screen.dart       # step 3 · "your piano just woke up"
+lib/
+├─ main.dart                 # Firebase init + anon sign-in + providers; home = HomeShell (4 tabs)
+├─ theme/app_theme.dart      # design tokens (cream/ink/brand…) + Nunito
+├─ screens/
+│  ├─ home_shell.dart        # bottom nav: Learn · Sheet · Practice · Profile
+│  ├─ lesson_path_screen.dart# the path: XP/streak/gems/hearts header, daily-goal bar, stars, gating
+│  ├─ lesson_screen.dart     # in-lesson: mascot, keyboard, hearts, reward + achievement card
+│  ├─ omr_library_screen.dart, song_preview_screen.dart
+│  ├─ practice_screen.dart, profile_screen.dart, paywall_screen.dart
+│  └─ ble_connect_screen.dart → calibration_screen.dart → connected_screen.dart
+├─ data/
+│  ├─ engagement.dart        # PURE math: streaks, hearts, stars, XP, gems (unit-tested)
+│  ├─ achievements.dart      # PURE badge catalog + evaluation (unit-tested)
+│  ├─ profile_controller.dart# single live profile + engagement orchestration (offline-safe)
+│  ├─ user_repository.dart   # Firestore read/writes (no-op when unconfigured)
+│  ├─ firestore_refs.dart    # central collection paths (match backend/firebase/SCHEMA.md)
+│  └─ models/                # user_profile, paired_device, library_item
+├─ lessons/                  # lesson_data (content), lesson_controller (engine), models, note_mapping
+├─ audio/
+│  ├─ piano_audio.dart       # SoLoud polyphony: samples or synth, sustain, reverb, sung solfège
+│  ├─ voice_service.dart     # Google Gemini TTS (instructor voice + solfège syllables)
+│  ├─ sample_bank.dart, tone_synth.dart, voice_line_id.dart
+├─ music/                    # musicxml parser, song_analyzer (chords), song_player
+├─ omr/omr_service.dart      # upload → self-hosted oemer server
+├─ input/note_input_service.dart   # BLE note events → lesson input
+├─ ble/                      # GATT contract + transport (native/web) + BleController
+└─ widgets/                  # ChunkyButton, PpCard, StatPill, MascotImage, PpKeyboard, NotationView…
 ```
 
-The flow: **discover** auto-scans (native) / shows a chooser (web); on PAIR the controller connects, the device is
-written to `users/{uid}/devices`, and the app pushes **calibration** (lights LEDs via the LED-Command
-characteristic, advances on Note-Event notifications), then **connected**.
+### Gamification design (where to extend)
+- Put **pure logic** in `data/engagement.dart` / `data/achievements.dart` and unit-test it (`test/`).
+- Route **persistence** through `ProfileController` → `UserRepository` using **absolute merge-writes** (offline-safe,
+  no transactions; the Firestore stream simply echoes them). Keep the no-Firebase demo path working.
+- Align fields to `backend/firebase/SCHEMA.md` (`users/{uid}`, `lessonProgress`, `dailyActivity/{YYYY-MM-DD}`,
+  `achievements`). v1 is client-authoritative; the pure functions can move to Cloud Functions later unchanged.
+
+### AI instructor voice (Google Gemini TTS)
+`voice_service.dart` calls the **Generative Language API** (`generativelanguage.googleapis.com`, model
+`gemini-2.5-flash-preview-tts`), wraps the returned 24 kHz PCM in a WAV header, and plays it via SoLoud. The same
+service synthesizes the **solfège syllables**, which `piano_audio.dart` caches and **pitch-shifts to the played
+key** (the piano carries the exact pitch). Set the key in **Profile → AI Voice** (a **Google AI Studio** key from
+aistudio.google.com). No key → lessons fall back to on-screen text + a timed wait, so the app always runs.
 
 ## 1. Prerequisites
-Flutter is **not installed on this machine** — install it first:
-- Flutter SDK ≥ 3.19 (Dart ≥ 3.3): https://docs.flutter.dev/get-started/install
-- Then: `flutter doctor`
+- Flutter SDK ≥ 3.19 (Dart ≥ 3.3). On this machine the SDK is at `C:\Users\thaih\flutter\bin` (not on PATH —
+  prepend it, e.g. PowerShell: `$env:Path += ";C:\Users\thaih\flutter\bin"`).
+- `flutter doctor`
 
 ## 2. One-time bootstrap (generates the native shells)
-`lib/`, `pubspec.yaml`, `analysis_options.yaml`, and `assets/` are already authored. Run `flutter create` **inside
-this folder** to generate the `android/`, `ios/`, and `web/` platform projects — it will **not** overwrite the
-files that already exist:
+`lib/`, `pubspec.yaml`, `analysis_options.yaml`, and `assets/` are authored. If `android/`, `ios/`, `web/` are
+missing, generate them (won't overwrite existing files):
 ```bash
 cd mobile
 flutter create . --org com.pianoprofessor --project-name piano_professor --platforms=android,ios,web
 flutter pub get
 ```
 
-## 3. Apply native config (after bootstrap)
+## 3. Native config (after bootstrap)
 
 ### Android — `android/app/src/main/AndroidManifest.xml`
-Add inside `<manifest>` (above `<application>`):
 ```xml
+<uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
 <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-<!-- legacy / pre-Android-12 -->
 <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
 <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
 ```
-In `android/app/build.gradle` (or `.kts`) set `minSdk = 23` (flutter_blue_plus + `neverForLocation`).
+Set `minSdk = 23` (flutter_blue_plus + `neverForLocation`).
 
 ### iOS — `ios/Runner/Info.plist`
 ```xml
 <key>NSBluetoothAlwaysUsageDescription</key>
-<string>Piano Professor uses Bluetooth to connect to your Piano Lights LED strip.</string>
-<key>NSBluetoothPeripheralUsageDescription</key>
-<string>Piano Professor uses Bluetooth to connect to your Piano Lights LED strip.</string>
+<string>Piano Professor connects to your Piano Lights LED strip over Bluetooth.</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>Piano Professor can listen to your playing for practice feedback.</string>
 ```
-In `ios/Podfile` set `platform :ios, '13.0'`.
+Set `platform :ios, '13.0'` in `ios/Podfile`.
 
-### Web — `web/index.html`
-No permission entries are needed, but note: **Web Bluetooth requires HTTPS (or `localhost`) and a user gesture**,
-and is supported in **Chrome/Edge** (not Firefox/Safari). On web the app cannot list devices silently — the PAIR
-flow opens the browser's device chooser (`requestDevice`) filtered to `Piano-Prof-…`; this is handled by
-`ble_transport_web.dart` and surfaced as a "Choose device" button.
+### Web
+Web Bluetooth needs HTTPS (or `localhost`) + a user gesture, and works in Chrome/Edge only. The PAIR flow opens the
+browser device chooser filtered to `Piano-Prof-…` (`ble_transport_web.dart`).
 
-## 3b. Firebase setup (optional — the app runs without it)
-The BLE flow works even if Firebase isn't configured (`initializeFirebase()` fails gracefully and the data layer
-no-ops). To enable anonymous auth + Firestore persistence of the paired device:
+## 4. Firebase (optional — the app runs without it)
+Without Firebase, auth/Firestore no-op and the gamification loop runs in-memory (demo mode). To enable sync:
 ```bash
 dart pub global activate flutterfire_cli
-flutterfire configure        # generates lib/firebase_options.dart + native config
+flutterfire configure        # generates lib/firebase_options.dart
 ```
-Then switch `lib/services/firebase_bootstrap.dart` to
-`Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)`, enable **Anonymous** sign-in in the
-Firebase console, and deploy the rules from `backend/firebase/`
-(`firebase deploy --only firestore:rules,storage`).
+Enable **Anonymous** auth, then deploy rules: `firebase deploy --only firestore:rules,storage` (from
+`backend/firebase/`).
 
-## 4. Run
+## 5. Run & verify
 ```bash
-flutter analyze              # static check
-flutter run -d chrome        # web — tap "Choose device" → browser BLE chooser
-flutter run                  # Android/iOS device — live scan list
+flutter analyze
+flutter test                 # pure engagement/achievements/GATT unit tests
+flutter run -d chrome        # web (BLE via "Choose device")
+flutter run                  # Android/iOS device
 ```
+Golden path: complete a lesson → XP rises on the home header, streak increments, stars render on the node, gems are
+awarded, hearts drop on wrong answers (and gate at 0), locked lessons reject taps, the daily-goal bar advances, and
+new achievement badges appear on the completion card + Profile.
 
-## 5. Verify pairing without hardware (no firmware exists yet)
-Use **nRF Connect** (Nordic, free on Android/iOS) as a BLE **peripheral simulator**:
-1. In nRF Connect → *Advertiser/GATT server*, create a server advertising:
-   - Device name: `Piano-Prof-SIM`
-   - Service UUID: `f0a1d2c3-0001-4a5b-8c9d-1a2b3c4d5e6f`
-   - Characteristics:
-     - `…0002…` LED-Command — Write Without Response
-     - `…0003…` Note-Event — Notify
-     - `…0004…` Device-Status — Read (value e.g. `3C 00 01 00` → 60 LEDs, fw 0.1, USB)
-2. Start advertising.
-3. In the app, the device appears in the scanning list → tap **PAIR** → it connects, reads LED count, and
-   subscribes to notifications. Push a Note-Event value from nRF Connect to confirm the notify pipe.
+### Pairing without hardware (no firmware yet)
+Use **nRF Connect** as a BLE peripheral simulator advertising name `Piano-Prof-SIM`, service
+`f0a1d2c3-0001-4a5b-8c9d-1a2b3c4d5e6f`, with characteristics `…0002…` (LED-Command, Write-No-Response), `…0003…`
+(Note-Event, Notify), `…0004…` (Device-Status, Read, e.g. `3C 00 01 00` → 60 LEDs, fw 0.1, USB). The GATT contract
+in `ble/piano_professor_gatt.dart` is the source of truth for the upcoming ESP32-S3 firmware.
 
 ## Notes / follow-ups
-- `google_fonts` fetches **Nunito** at runtime (needs network on first launch); bundle the TTF in `assets/fonts/`
-  later for fully-offline first run.
-- The GATT UUIDs + frame formats in `piano_professor_gatt.dart` are the source of truth for the upcoming ESP32-S3
-  firmware (Phase 3) — keep both in sync.
-- `ble_transport_web.dart` targets `flutter_web_bluetooth` ^0.3; if you install a different version, a couple of
-  method names may need adjusting (the native path is the primary tested one).
+- `google_fonts` fetches **Nunito** at runtime (network on first launch); bundle the TTF later for offline first run.
+- Premium **feature gating** (OMR uploads, unlimited hearts, AI feedback by tier) + **usage analytics**
+  (`firebase_analytics`, no-op until Firebase is configured) are wired. The **store purchase SDK** (RevenueCat
+  recommended — it verifies entitlements without your own backend) and **Crashlytics** still need store/native
+  setup + device testing; purchases are currently mocked via the paywall. **Local notifications** are planned.
+- Lesson content is currently hardcoded in `lessons/lesson_data.dart` (a move to data-driven JSON/Firestore is a
+  planned follow-up).

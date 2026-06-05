@@ -1,0 +1,25 @@
+{
+  "_comment": "Rename to manifest.json once you add the matching .ogg files. midi = the pitch each file was recorded at (C4 = 60). The app plays the nearest sample and pitch-shifts it to the exact note.",
+  "samples": [
+    { "midi": 36, "file": "C2.ogg" },
+    { "midi": 39, "file": "Eb2.ogg" },
+    { "midi": 42, "file": "Gb2.ogg" },
+    { "midi": 45, "file": "A2.ogg" },
+    { "midi": 48, "file": "C3.ogg" },
+    { "midi": 51, "file": "Eb3.ogg" },
+    { "midi": 54, "file": "Gb3.ogg" },
+    { "midi": 57, "file": "A3.ogg" },
+    { "midi": 60, "file": "C4.ogg" },
+    { "midi": 63, "file": "Eb4.ogg" },
+    { "midi": 66, "file": "Gb4.ogg" },
+    { "midi": 69, "file": "A4.ogg" },
+    { "midi": 72, "file": "C5.ogg" },
+    { "midi": 75, "file": "Eb5.ogg" },
+    { "midi": 78, "file": "Gb5.ogg" },
+    { "midi": 81, "file": "A5.ogg" },
+    { "midi": 84, "file": "C6.ogg" },
+    { "midi": 88, "file": "E6.ogg" },
+    { "midi": 91, "file": "G6.ogg" },
+    { "midi": 95, "file": "B6.ogg" }
+  ]
+}

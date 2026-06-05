@@ -14,7 +14,7 @@ import '../theme/app_theme.dart';
 import '../widgets/chunky_button.dart';
 import '../widgets/notation_view.dart';
 import '../widgets/pp_card.dart';
-import '../widgets/range_piano.dart';
+import '../widgets/pp_keyboard.dart';
 import 'lesson_screen.dart';
 
 /// Preview a song produced by OMR: hear it played faithfully (both hands) on the
@@ -98,6 +98,7 @@ class _SongPreviewScreenState extends State<SongPreviewScreen> {
   void dispose() {
     _player?.removeListener(_syncCursor);
     _player?.dispose();
+    _notation.dispose();
     super.dispose();
   }
 
@@ -184,7 +185,7 @@ class _SongPreviewScreenState extends State<SongPreviewScreen> {
         const SizedBox(height: 12),
         NotationView(controller: _notation, height: 200),
         const SizedBox(height: 10),
-        RangePiano(lowMidi: _lowMidi, highMidi: _highMidi, litMidis: p.sounding, height: 96),
+        PpKeyboard(lowMidi: _lowMidi, highMidi: _highMidi, litColors: p.litColors, height: 110),
         const SizedBox(height: 10),
         Center(
           child: Text(

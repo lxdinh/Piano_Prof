@@ -1,7 +1,7 @@
 name: piano_professor
 description: "Piano Professor — gamified piano lessons with real-time LED guidance over BLE."
 publish_to: "none"
-version: 0.6.0+7
+version: 0.8.6+16
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -29,6 +29,7 @@ dependencies:
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
   firebase_storage: ^12.3.4
+  firebase_analytics: ^11.3.0   # usage events (no-op until Firebase is configured)
 
   # OMR upload (Tab 1): pick PDF/photo, snap a picture.
   file_picker: ^8.1.0
@@ -37,13 +38,18 @@ dependencies:
   # MusicXML parsing (OMR output → playable score).
   xml: ^6.5.0
 
-  # Audio — low-latency polyphonic piano playback (synth tone; .sf2 later).
+  # Audio — low-latency polyphonic piano playback: real samples (pitch-shifted)
+  # with a synth fallback, sustain pedal + reverb, and the sung-solfège voice.
   flutter_soloud: ^3.1.0
+
+  # Stable ids for pre-baked instructor voice clips (shared app/tooling hash).
+  crypto: ^3.0.3
 
   # Notation rendering (OpenSheetMusicDisplay in a WebView) + OMR networking.
   webview_flutter: ^4.7.0
   http: ^1.2.0
   shared_preferences: ^2.3.0
+  path_provider: ^2.1.0      # on-disk cache dir for TTS clips (no re-fetch)
 
   # Design system.
   google_fonts: ^6.2.0      # Nunito (matches the design prototype)
@@ -59,3 +65,11 @@ flutter:
   assets:
     - assets/mascots/
     - assets/songs/
+    # Pre-baked Gemini instructor voice + sung solfège (generated off-device;
+    # see backend/tts/). Absent until generated → app falls back to text.
+    - assets/voice/
+    - assets/voice/lines/
+    - assets/voice/solfege/
+    # Real piano sample pack (drop in a manifest.json + samples; see README).
+    # Absent until installed → app uses the built-in synth.
+    - assets/piano_samples/

@@ -20,6 +20,13 @@ class Db {
   static CollectionReference<Map<String, dynamic>> lessonProgress(String uid) =>
       user(uid).collection('lessonProgress');
 
+  /// One doc per active local day (`YYYY-MM-DD`) — streak calendar + daily ring.
+  static CollectionReference<Map<String, dynamic>> dailyActivity(String uid) =>
+      user(uid).collection('dailyActivity');
+
+  static CollectionReference<Map<String, dynamic>> achievements(String uid) =>
+      user(uid).collection('achievements');
+
   static CollectionReference<Map<String, dynamic>> library(String uid) =>
       user(uid).collection('library');
 
