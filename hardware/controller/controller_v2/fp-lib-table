@@ -1,4 +1,9 @@
 (fp_lib_table
   (version 7)
-  (lib (name "ESP32-C3-MINI-1")(type "KiCad")(uri "G:/Other computers/My Computer/Downloads/Piano Prof/hardware/shared-libs/ESP32-C3-MINI-1.pretty")(options "")(descr ""))
+  (lib (name "ESP32-C3-MINI-1")(type "KiCad")(uri "G:/Other computers/My Computer/Downloads/Piano_Prof/hardware/shared-libs/ESP32-C3-MINI-1.pretty")(options "")(descr ""))
+  (lib (name "TS3USB221A")(type "KiCad")(uri "C:/Users/landi/Downloads/TS3USB221A")(options "")(descr ""))
+  (lib (name "H11L1S")(type "KiCad")(uri "C:/Users/landi/Downloads/H11L1S")(options "")(descr ""))
+  (lib (name "H11L1SM")(type "KiCad")(uri "C:/Users/landi/Downloads/H11L1SM")(options "")(descr ""))
+  (lib (name "easyeda2kicad")(type "KiCad")(uri "C:/Users/landi/Documents/KiCad/easyeda2kicad/easyeda2kicad.pretty")(options "")(descr ""))
+  (lib (name "WS2812B-2020")(type "KiCad")(uri "${KIPRJMOD}/../../shared-libs/WS2812B-2020.pretty")(options "")(descr ""))
 )

@@ -66,7 +66,8 @@ USBLC6-2SC6 (D3) details:
   Pin 6 (I/O1)  -> U3 port B D-   (same net as pin 1 - device pair)
 
 ----------------------------------------------------------------
-USB MUX (U3 - TS3USB221A, SON-10)
+USB MUX (U3 - TS3USB221A, UQFN-10 RSE 2.0x1.5mm)
+LCSC: C128396 (TS3USB221ARSER) - matches QFN-10-RSE footprint
 ----------------------------------------------------------------
 This chip routes the ESP32-S3's single USB pin pair to either
 the USB-C connector (for programming) or the USB-A connector
@@ -137,11 +138,13 @@ to fetch the correct symbol and footprint.
 Pin 1   ANODE    -> TRS Ring (LED+, receives current from piano)
 Pin 2   CATHODE  -> R8 (220R) -> TRS Tip (LED-, current returns to piano)
 Pin 3   NC       -> NC
-Pin 4   GND      -> GND  (controller side)
-Pin 5   OUTPUT   -> ESP32-S3 IO5 (UART1 RX)
+Pin 4   OUTPUT   -> ESP32-S3 IO5 (UART1 RX, label MIDI_RX)
                     (logic output - H11L1 has internal pull-up,
                     no external pull-up needed)
+Pin 5   GND      -> GND  (controller side)
 Pin 6   VCC      -> +3V3  (decoupled by C17, 0.1uF)
+        [CORRECTED: H11L1 datasheet pinout is pin4=OUTPUT, pin5=GND,
+         pin6=VCC - matches the KiCad Isolator:H11L1 symbol]
 
 ----------------------------------------------------------------
 3V3 REGULATOR (U4 - AMS1117-3.3) -- unchanged
@@ -187,7 +190,7 @@ DESIGNATED FUNCTION PINS:
                         R10 (10k) pull-down to GND (boot default = USB-C)
                         (Was originally IO3 in early draft - moved to IO10
                         because IO3 is a strapping pin.)
-  IO5 (UART1 RX)     -> U5 pin 5 (H11L1 logic output - drives directly)
+  IO5 (UART1 RX)     -> U5 pin 4 (H11L1 logic output - drives directly)
   IO4                -> U2 (74AHCT1G125) pin 2 (LED data, 3V3 -> 5V level shift)
   IO9                -> R4 (1k) -> D2 anode (status LED)
                         D2 cathode -> GND
