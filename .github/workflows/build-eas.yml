@@ -16,8 +16,30 @@ on:
   workflow_dispatch:       # manual trigger from GitHub UI
 
 jobs:
+  # Quality gate: a design adoption (or any change) that breaks typecheck,
+  # the shell/core import boundary, token sync, or tests never reaches EAS.
+  verify:
+    name: Verify (typecheck + boundaries + tokens + tests)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run verify
+        run: npm run verify
+
   build:
     name: EAS Android Preview Build
+    needs: verify
     runs-on: ubuntu-latest
     permissions:
       contents: write      # needed to commit logs back to repo

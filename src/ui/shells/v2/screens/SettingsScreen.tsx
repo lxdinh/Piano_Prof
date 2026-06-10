@@ -63,7 +63,7 @@ export default function SettingsScreen() {
           <Row icon="🆔" label="User ID" value={(profile?.uid ?? '').slice(0, 14)} />
         </View>
 
-        <Text style={styles.footer}>Piano Professor v{require('../../app.json').expo.version}</Text>
+        <Text style={styles.footer}>Piano Professor v{require('../../../../../app.json').expo.version}</Text>
         <View style={{ height: Spacing['2xl'] }} />
       </ScrollView>
     </SafeAreaView>
