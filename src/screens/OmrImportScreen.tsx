@@ -228,7 +228,7 @@ export default function OmrImportScreen() {
             autoCorrect={false}
             style={styles.input}
           />
-          <Text style={styles.hint}>Self-host the free oemer service (see backend/omr). Leave blank to disable import.</Text>
+          <Text style={styles.hint}>Self-host the free homr OMR service (see backend/omr). Leave blank to disable import.</Text>
         </PpCard>
 
         <PpCard style={styles.card}>

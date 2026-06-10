@@ -37,3 +37,4 @@ expo-env.d.ts
 
 # KiCad VS Code history sidecar (its own git repos)
 **/.history/
+__pycache__/

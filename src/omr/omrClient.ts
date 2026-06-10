@@ -1,7 +1,8 @@
 import { getString } from '../storage/settings';
 import { PickedImage } from './pickImage';
 
-// Calls the self-hosted oemer service (backend/omr/app.py): multipart POST of
+// Calls the self-hosted OMR service (backend/omr/app.py, homr engine):
+// multipart POST of
 // the image to `<server>/omr`, returns MusicXML text. The server URL is set in
 // Settings; when unset we surface a clear error so the UI can fall back to the
 // bundled demo score.

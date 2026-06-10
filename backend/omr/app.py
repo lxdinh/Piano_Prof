@@ -21,7 +21,13 @@ from typing import List
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import Response
 
-app = FastAPI(title="Piano Professor OMR (oemer)")
+app = FastAPI(title="Piano Professor OMR")
+
+# Engine: homr (transformer-based, much more robust on phone photos) by
+# default; set OMR_ENGINE=oemer to fall back to the previous engine.
+ENGINE = os.environ.get("OMR_ENGINE", "homr")
+# Photo cleanup (perspective/deskew/lighting — see preprocess.py); OMR_PREPROCESS=0 disables.
+PREPROCESS = os.environ.get("OMR_PREPROCESS", "1") != "0"
 
 XML_MEDIA_TYPE = "application/vnd.recordare.musicxml+xml"
 PART_RE = re.compile(r"<part\s[^>]*>[\s\S]*?</part>")
@@ -30,7 +36,7 @@ MEASURE_RE = re.compile(r"<measure[\s\S]*?</measure>")
 
 @app.get("/health")
 def health():
-    return {"ok": True, "engine": "oemer"}
+    return {"ok": True, "engine": ENGINE, "preprocess": PREPROCESS}
 
 
 def _save_upload(workdir: str, file: UploadFile, data: bytes, index: int = 0) -> str:
@@ -55,18 +61,23 @@ def _expand_pdf(workdir: str, path: str) -> List[str]:
 
 
 def _run_oemer(workdir: str, image_path: str) -> str:
-    """Run oemer on one page image; return its MusicXML."""
-    outdir = tempfile.mkdtemp(prefix="page_", dir=workdir)
-    proc = subprocess.run(
-        ["oemer", image_path, "-o", outdir],
-        capture_output=True, text=True, timeout=600,
-    )
-    xmls = glob.glob(os.path.join(outdir, "*.musicxml")) + \
-        glob.glob(os.path.join(outdir, "*.xml"))
+    """Run the configured OMR engine on one page image; return its MusicXML."""
+    pagedir = tempfile.mkdtemp(prefix="page_", dir=workdir)
+    if ENGINE == "oemer":
+        cmd = ["oemer", image_path, "-o", pagedir]
+    else:
+        # homr writes <input>.musicxml next to its input — give it a private
+        # dir so concurrent pages can't clobber each other.
+        local = os.path.join(pagedir, os.path.basename(image_path))
+        shutil.copy(image_path, local)
+        cmd = ["homr", local]
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+    xmls = glob.glob(os.path.join(pagedir, "*.musicxml")) + \
+        glob.glob(os.path.join(pagedir, "*.xml"))
     if not xmls:
         raise HTTPException(
             status_code=422,
-            detail=f"OMR produced no MusicXML for {os.path.basename(image_path)}. "
+            detail=f"OMR ({ENGINE}) produced no MusicXML for {os.path.basename(image_path)}. "
                    f"stderr: {proc.stderr[-500:]}",
         )
     with open(xmls[0], "r", encoding="utf-8") as f:
@@ -114,11 +125,26 @@ def merge_musicxml(pages: List[str]) -> str:
     return PART_RE.sub(splice, base)
 
 
+def _maybe_preprocess(path: str) -> str:
+    """Flatten/deskew/de-shadow a photographed page (see preprocess.py).
+    Best-effort: any failure falls back to the raw image."""
+    if not PREPROCESS:
+        return path
+    try:
+        from preprocess import preprocess_page
+        return preprocess_page(path, os.path.splitext(path)[0] + "_clean.png")
+    except Exception:
+        return path
+
+
 async def _pages_from_upload(workdir: str, file: UploadFile, index: int) -> List[str]:
     data = await file.read()
     path = _save_upload(workdir, file, data, index)
     is_pdf = (file.content_type or "").endswith("pdf") or path.lower().endswith(".pdf")
-    return _expand_pdf(workdir, path) if is_pdf else [path]
+    if is_pdf:
+        # PDF renders are already flat and evenly lit — skip the photo cleanup.
+        return _expand_pdf(workdir, path)
+    return [_maybe_preprocess(path)]
 
 
 @app.post("/omr")
