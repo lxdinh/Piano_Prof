@@ -28,6 +28,8 @@ app = FastAPI(title="Piano Professor OMR")
 ENGINE = os.environ.get("OMR_ENGINE", "homr")
 # Photo cleanup (perspective/deskew/lighting — see preprocess.py); OMR_PREPROCESS=0 disables.
 PREPROCESS = os.environ.get("OMR_PREPROCESS", "1") != "0"
+# Musical sanity pass (range/quantize/notation — see postprocess.py); OMR_POSTPROCESS=0 disables.
+POSTPROCESS = os.environ.get("OMR_POSTPROCESS", "1") != "0"
 
 XML_MEDIA_TYPE = "application/vnd.recordare.musicxml+xml"
 PART_RE = re.compile(r"<part\s[^>]*>[\s\S]*?</part>")
@@ -36,7 +38,7 @@ MEASURE_RE = re.compile(r"<measure[\s\S]*?</measure>")
 
 @app.get("/health")
 def health():
-    return {"ok": True, "engine": ENGINE, "preprocess": PREPROCESS}
+    return {"ok": True, "engine": ENGINE, "preprocess": PREPROCESS, "postprocess": POSTPROCESS}
 
 
 def _save_upload(workdir: str, file: UploadFile, data: bytes, index: int = 0) -> str:
@@ -125,6 +127,17 @@ def merge_musicxml(pages: List[str]) -> str:
     return PART_RE.sub(splice, base)
 
 
+def _maybe_postprocess(xml: str) -> str:
+    """Musical sanity pass (see postprocess.py). Best-effort: falls back to raw XML."""
+    if not POSTPROCESS:
+        return xml
+    try:
+        from postprocess import clean_musicxml
+        return clean_musicxml(xml)
+    except Exception:
+        return xml
+
+
 def _maybe_preprocess(path: str) -> str:
     """Flatten/deskew/de-shadow a photographed page (see preprocess.py).
     Best-effort: any failure falls back to the raw image."""
@@ -153,7 +166,7 @@ async def omr(file: UploadFile = File(...)):
     workdir = tempfile.mkdtemp(prefix="omr_")
     try:
         images = await _pages_from_upload(workdir, file, 0)
-        xml = merge_musicxml([_run_oemer(workdir, img) for img in images])
+        xml = _maybe_postprocess(merge_musicxml([_run_oemer(workdir, img) for img in images]))
         return Response(content=xml, media_type=XML_MEDIA_TYPE)
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
@@ -170,7 +183,7 @@ async def omr_score(files: List[UploadFile] = File(...)):
             images.extend(await _pages_from_upload(workdir, f, i))
         if not images:
             raise HTTPException(status_code=400, detail="No pages received.")
-        xml = merge_musicxml([_run_oemer(workdir, img) for img in images])
+        xml = _maybe_postprocess(merge_musicxml([_run_oemer(workdir, img) for img in images]))
         return Response(content=xml, media_type=XML_MEDIA_TYPE)
     finally:
         shutil.rmtree(workdir, ignore_errors=True)

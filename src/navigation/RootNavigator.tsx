@@ -11,6 +11,7 @@ import LessonCompleteScreen from '../screens/LessonCompleteScreen';
 import BLEPairingRoute from '../screens/BLEPairingRoute';
 import VoiceSettingsScreen from '../screens/VoiceSettingsScreen';
 import OmrImportScreen from '../screens/OmrImportScreen';
+import ReviewScoreScreen from '../screens/ReviewScoreScreen';
 import SongPlayerScreen from '../screens/SongPlayerScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import SettingsScreen from '../screens/SettingsScreen';
@@ -56,6 +57,12 @@ export default function RootNavigator() {
         name="LessonComplete"
         component={LessonCompleteScreen}
         options={{ gestureEnabled: false, animation: 'fade' }}
+      />
+      {/* Review imported notation (fix title/tempo, spot OMR errors), then play */}
+      <Stack.Screen
+        name="ReviewScore"
+        component={ReviewScoreScreen}
+        options={{ animation: 'fade', animationDuration: 200 }}
       />
       {/* Full-screen falling-notes player for imported songs */}
       <Stack.Screen

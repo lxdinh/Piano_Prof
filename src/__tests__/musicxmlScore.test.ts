@@ -58,6 +58,13 @@ describe('parseMusicXmlScore', () => {
     expect(fSharp?.midi).toBe(66);
   });
 
+  it('drops notes outside the piano range (OMR artifacts)', () => {
+    const xml = PAGE().replace('<step>C</step><octave>4</octave>', '<step>C</step><octave>9</octave>');
+    const score = parseMusicXmlScore(xml);
+    expect(score.events.some((e) => e.note === 'C9')).toBe(false);
+    expect(score.events.some((e) => e.note === 'E4')).toBe(true);
+  });
+
   it('reports range + total duration and skips rests', () => {
     const score = parseMusicXmlScore(PAGE());
     expect(score.events.some((e) => Number.isNaN(e.midi))).toBe(false);

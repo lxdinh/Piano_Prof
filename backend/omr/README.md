@@ -14,10 +14,14 @@ recognition.
 - `preprocess.py` — OpenCV photo cleanup: page detection + perspective correction, staff-line
   deskew (Hough), illumination flattening (shadow/glare removal). Every step is conservative —
   clean scans pass through untouched.
+- `postprocess.py` — musical sanity pass (music21): drops "notes" outside the piano's A0..C8
+  range, quantizes onsets/durations to a 16th + triplet grid (stops OMR duration drift), and
+  rebuilds notation. Best-effort: unparseable engine output passes through unchanged.
 - `Dockerfile` — builds the service with model weights baked in (`homr --init`).
 
 Env vars: `OMR_ENGINE` (`homr` default; `oemer` if you build it into the image),
-`OMR_PREPROCESS` (`1` default; `0` disables photo cleanup).
+`OMR_PREPROCESS` (`1` default; `0` disables photo cleanup),
+`OMR_POSTPROCESS` (`1` default; `0` disables the musical sanity pass).
 
 ## Run locally
 ```bash

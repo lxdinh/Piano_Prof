@@ -129,7 +129,7 @@ function parsePart(partXml: string): RawEvent[] {
       const alter = Number(/<alter>\s*(-?\d+)\s*<\/alter>/.exec(tok)?.[1] ?? '0');
       const acc = alter > 0 ? '#'.repeat(alter) : alter < 0 ? 'b'.repeat(-alter) : '';
       const midi = STEP_TO_SEMI[step] + alter + (Number(octave) + 1) * 12;
-      if (midi < 0 || midi > 127) continue;
+      if (midi < 21 || midi > 108) continue; // outside the piano (A0..C8) → OMR artifact
       out.push({
         midi,
         note: `${step}${acc}${octave}`,

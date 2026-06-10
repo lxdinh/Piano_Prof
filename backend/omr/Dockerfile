@@ -10,9 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# homr = the OMR engine (brings onnxruntime + opencv); plus the web wrapper.
+# homr = the OMR engine (brings onnxruntime + opencv); music21 = the musical
+# sanity pass (postprocess.py); plus the web wrapper.
 RUN pip install --no-cache-dir \
         homr \
+        music21 \
         fastapi \
         "uvicorn[standard]" \
         python-multipart

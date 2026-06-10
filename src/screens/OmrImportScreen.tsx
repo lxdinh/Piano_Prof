@@ -10,14 +10,13 @@ import { Colors, Fonts, Radii, Spacing } from '../theme/tokens';
 import ChunkyButton from '../components/ChunkyButton';
 import PpCard from '../components/PpCard';
 import { pickFromLibrary, pickPagesFromLibrary, capturePhoto, PickedImage } from '../omr/pickImage';
-import { runOmrPages, getOmrServer, OmrNotConfiguredError } from '../omr/omrClient';
+import { runOmr, getOmrServer, OmrNotConfiguredError } from '../omr/omrClient';
 import { mergeMusicXml } from '../omr/mergeMusicXml';
 import { parseMusicXmlScore } from '../omr/musicxmlScore';
 import { registerImportedSong, newSongId } from '../omr/importedSongs';
 import { setString, getString } from '../storage/settings';
 import {
-  saveSongToFirebase, listSavedSongs, downloadSongXml, getFirebaseConfig,
-  SavedSong, FirebaseNotConfiguredError,
+  listSavedSongs, downloadSongXml, getFirebaseConfig, SavedSong,
 } from '../services/firebaseSync';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -29,11 +28,13 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function OmrImportScreen() {
   const nav = useNavigation<Nav>();
   const [pages, setPages] = useState<PickedImage[]>([]);
+  // OMR result per page uri — re-converting only scans pages that changed,
+  // which is also how "re-scan just page 3" works (↻ clears one entry).
+  const [pageXmls, setPageXmls] = useState<Record<string, string>>({});
   const [title, setTitle] = useState('');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
 
   // server + firebase config
   const [server, setServerState] = useState('');
@@ -85,16 +86,31 @@ export default function OmrImportScreen() {
     const img = await capturePhoto();
     if (img) setPages((p) => [...p, img]);
   };
-  const removePage = (i: number) => setPages((p) => p.filter((_, j) => j !== i));
+  const removePage = (i: number) => {
+    const uri = pages[i]?.uri;
+    setPages((p) => p.filter((_, j) => j !== i));
+    if (uri) setPageXmls(({ [uri]: _gone, ...rest }) => rest);
+  };
+  const rescanPage = (uri: string) => setPageXmls(({ [uri]: _gone, ...rest }) => rest);
 
   const convert = async () => {
     if (!pages.length) return;
     setError('');
-    setNotice('');
     setBusy(true);
     try {
-      // 1) OMR every page in order
-      const xmls = await runOmrPages(pages, (i, n) => setProgress(`Reading page ${i} of ${n}…`));
+      // 1) OMR every page in order (already-scanned pages come from the cache)
+      const xmls: string[] = [];
+      const cache = { ...pageXmls };
+      for (let i = 0; i < pages.length; i++) {
+        let xml = cache[pages[i].uri];
+        if (!xml) {
+          setProgress(`Reading page ${i + 1} of ${pages.length}…`);
+          xml = await runOmr(pages[i]);
+          cache[pages[i].uri] = xml;
+          setPageXmls({ ...cache });
+        }
+        xmls.push(xml);
+      }
       // 2) merge into one whole-song MusicXML
       setProgress('Stitching pages into one score…');
       const xml = mergeMusicXml(xmls);
@@ -107,19 +123,8 @@ export default function OmrImportScreen() {
       const song = { id: newSongId(), title: songTitle, xml, score, pageCount: pages.length };
       registerImportedSong(song);
 
-      // 4) persist to Firebase when configured (skip silently when it isn't)
-      try {
-        setProgress('Saving to your Firebase library…');
-        await saveSongToFirebase(songTitle, xml, pages.length);
-        setNotice('Saved to your Firebase library ✓');
-        void refreshSaved();
-      } catch (e) {
-        if (!(e instanceof FirebaseNotConfiguredError)) {
-          setNotice(`Converted, but Firebase save failed: ${e instanceof Error ? e.message : 'unknown error'}`);
-        }
-      }
-
-      nav.navigate('SongPlayer', { songId: song.id });
+      // 4) review (check notation, fix title/tempo) → play / save to Firebase
+      nav.navigate('ReviewScore', { songId: song.id });
     } catch (e) {
       if (e instanceof OmrNotConfiguredError) {
         setError('Set your OMR server URL below first, then try again.');
@@ -154,7 +159,8 @@ export default function OmrImportScreen() {
         <Text style={styles.title}>Import sheet music</Text>
         <Text style={styles.body}>
           Add every page of the song (photos or images, in order). We'll read them all, build one
-          score, and open it as falling notes over the piano.
+          score, and show you the notation to check before playing or saving. Tap ↻ on a page to
+          re-scan just that page.
         </Text>
 
         <TextInput
@@ -170,10 +176,17 @@ export default function OmrImportScreen() {
             {pages.map((p, i) => (
               <View key={`${p.uri}-${i}`} style={styles.pageThumbWrap}>
                 <Image source={{ uri: p.uri }} style={styles.pageThumb} resizeMode="cover" />
-                <Text style={styles.pageNum}>Page {i + 1}</Text>
+                <Text style={styles.pageNum}>
+                  Page {i + 1}{pageXmls[p.uri] ? ' ✓' : ''}
+                </Text>
                 <Pressable style={styles.pageRemove} hitSlop={8} onPress={() => removePage(i)}>
                   <Text style={styles.pageRemoveText}>✕</Text>
                 </Pressable>
+                {pageXmls[p.uri] && (
+                  <Pressable style={styles.pageRescan} hitSlop={8} onPress={() => rescanPage(p.uri)}>
+                    <Text style={styles.pageRemoveText}>↻</Text>
+                  </Pressable>
+                )}
               </View>
             ))}
           </View>
@@ -199,7 +212,6 @@ export default function OmrImportScreen() {
         )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
         {/* Saved library (Firebase) */}
         {(saved.length > 0 || savedLoading) && (
@@ -286,12 +298,15 @@ const styles = StyleSheet.create({
     position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 11,
     backgroundColor: Colors.error, alignItems: 'center', justifyContent: 'center',
   },
+  pageRescan: {
+    position: 'absolute', top: -6, left: -6, width: 22, height: 22, borderRadius: 11,
+    backgroundColor: Colors.sky, alignItems: 'center', justifyContent: 'center',
+  },
   pageRemoveText: { color: '#FFFFFF', fontSize: 11, fontWeight: Fonts.weight.black },
   actions: { gap: Spacing.md },
   busy: { alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.xl },
   busyText: { fontSize: Fonts.md, color: Colors.ink700, fontWeight: Fonts.weight.heavy },
   error: { fontSize: Fonts.base, color: Colors.error, fontWeight: Fonts.weight.heavy, textAlign: 'center' },
-  notice: { fontSize: Fonts.base, color: Colors.brandDark, fontWeight: Fonts.weight.heavy, textAlign: 'center' },
   card: { gap: Spacing.sm },
   label: { fontSize: Fonts.sm, fontWeight: Fonts.weight.bold, color: Colors.ink500, textTransform: 'uppercase', letterSpacing: 1 },
   savedRow: {
