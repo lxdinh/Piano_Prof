@@ -13,14 +13,14 @@ import {
 } from './achievements';
 import { logEvent, Events } from '../services/analytics';
 
-interface CompleteLessonInput {
+export interface CompleteLessonInput {
   lessonId: string;
   stars: number;
   accuracy: number;
   xp: number;
 }
 
-interface UserContextValue {
+export interface UserContextValue {
   ready: boolean;
   profile: UserProfile | null;
   lessonProgress: Record<string, LessonProgress>;
