@@ -1,44 +1,70 @@
 // Piano Professor — design tokens (React Native)
-// Mirrors CSS custom properties in pp-styles.css
+//
+// The design drop's CSS is the 100% authoritative palette. Color values come
+// from tokens.generated.ts (machine-synced from designs/<v>/project/pp-styles.css
+// via `npm run tokens`). This file only maps generated names to the app's token
+// vocabulary and adds RN-specific extras the CSS doesn't define (status colors,
+// dark stage palette, fonts, spacing, shadows, motion). Never hand-edit a color
+// here that exists in the design CSS — fix the design instead.
+import { CssColors } from './tokens.generated';
 
 export const Colors = {
   // brand
-  brand:      '#58CC02',
-  brandDark:  '#46A302',
-  brandLight: '#7CE62A',
+  brand:      CssColors.brand,
+  brandDark:  CssColors.brandDark,
+  brandDeep:  CssColors.brandDeep,
+  brandSoft:  CssColors.brandSoft,
+  brandLight: '#7CE62A',            // RN extra (not in design CSS)
 
   // sky (Bluetooth / info)
-  sky:        '#5BB8E3',
-  skyDark:    '#3A9EC9',
-  skyLight:   '#A3D8F0',
+  sky:        CssColors.sky,
+  skyDark:    CssColors.skyDark,
+  skyLight:   '#A3D8F0',            // RN extra
 
   // cream / paper
-  cream50:    '#FFFAEC',
-  cream100:   '#FFF3CC',
-  paper:      '#FFFAEC',
+  cream50:    CssColors.cream50,
+  cream100:   CssColors.cream100,
+  cream200:   CssColors.cream200,
+  cream300:   CssColors.cream300,
+  paper:      CssColors.cream50,
 
   // butter / warning
-  butter:     '#F5B800',
-  butterDark: '#C99300',
-  butterBg:   '#FFE6BA',
+  butter:     CssColors.butter,
+  butterDark: CssColors.butterD,
+  butterBg:   '#FFE6BA',            // RN extra
 
   // rust / danger
-  rust:       '#C2410C',
-  rustLight:  '#FF7A52',
+  rust:       CssColors.rust,
+  rustDark:   CssColors.rustDark,
+  rustLight:  '#FF7A52',            // RN extra
+
+  // accents (mascot palette)
+  coral:      CssColors.coral,
+  coralDark:  CssColors.coralD,
+  plum:       CssColors.plum,
+  plumDark:   CssColors.plumD,
+  leaf:       CssColors.leaf,
 
   // ink scale
-  ink900:     '#2A1D11',
-  ink700:     '#4A3728',
-  ink500:     '#7A6250',
-  ink300:     '#B09E8C',
-  inkLine:    '#E8D9BC',
+  ink900:     CssColors.ink900,
+  ink700:     CssColors.ink700,
+  ink500:     CssColors.ink500,
+  ink300:     CssColors.ink300,
+  ink100:     CssColors.ink100,
+  inkLine:    CssColors.inkLine,
 
-  // status
-  success:    '#58CC02',
+  // piano / staff
+  staff:      CssColors.staff,
+  staffSoft:  CssColors.staffSoft,
+  pianoBlack: CssColors.pianoBlack,
+  pianoWhite: CssColors.pianoWhite,
+
+  // status — RN extras
+  success:    CssColors.brand,
   error:      '#FF4B4B',
-  warning:    '#F5B800',
+  warning:    CssColors.butter,
 
-  // dark theme (connected screen)
+  // dark theme (connected screen) — RN extras
   darkBg:     '#0F1117',
   darkSurface:'rgba(255,255,255,0.06)',
   darkBorder: 'rgba(255,255,255,0.12)',
@@ -61,7 +87,7 @@ export const Fonts = {
     black: '900' as const,
     heavy: '700' as const,
   },
-  // Nunito family names loaded in App.tsx (@expo-google-fonts/nunito). Use these
+  // Nunito family names loaded in ShellRoot.tsx (@expo-google-fonts/nunito). Use these
   // so text actually renders in Nunito — matching the legacy web UI — instead of
   // the system default. Pair each with the matching numeric weight above.
   family: {
