@@ -30,10 +30,14 @@ service firebase.storage {
         && isImageOrPdf();
     }
 
-    // OMR-synthesized MusicXML — owner READ only; written by the Function
+    // OMR-synthesized MusicXML — owner read+write, ≤5MB. The app runs OMR
+    // client-side (page photos → oemer server → merged MusicXML) and uploads
+    // the result itself, so owners may write here too.
     match /users/{uid}/musicxml/{file=**} {
       allow read: if isOwner(uid);
-      allow write: if false;
+      allow write: if isOwner(uid)
+        && request.resource.size < 5 * 1024 * 1024
+        && isMusicXml();
     }
 
     // optional custom avatar — owner read+write, ≤5MB image

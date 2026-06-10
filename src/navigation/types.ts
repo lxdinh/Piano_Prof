@@ -15,6 +15,7 @@ export type RootStackParamList = {
   BLEPairing: undefined;
   VoiceSettings: undefined;
   OmrImport: undefined;
+  SongPlayer: { songId: string };
   Paywall: undefined;
   Settings: undefined;
 };

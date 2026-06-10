@@ -11,15 +11,21 @@ Or build the Docker image (see Dockerfile) and deploy to Cloud Run / a VM.
 Then set the URL in the app: Profile → OMR scan server.
 """
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 import glob
+from typing import List
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import Response
 
 app = FastAPI(title="Piano Professor OMR (oemer)")
+
+XML_MEDIA_TYPE = "application/vnd.recordare.musicxml+xml"
+PART_RE = re.compile(r"<part\s[^>]*>[\s\S]*?</part>")
+MEASURE_RE = re.compile(r"<measure[\s\S]*?</measure>")
 
 
 @app.get("/health")
@@ -27,30 +33,118 @@ def health():
     return {"ok": True, "engine": "oemer"}
 
 
+def _save_upload(workdir: str, file: UploadFile, data: bytes, index: int = 0) -> str:
+    name = file.filename or f"page{index}.png"
+    path = os.path.join(workdir, f"{index:03d}_{os.path.basename(name)}")
+    with open(path, "wb") as f:
+        f.write(data)
+    return path
+
+
+def _expand_pdf(workdir: str, path: str) -> List[str]:
+    """Render each PDF page to PNG (poppler's pdftoppm ships in the image)."""
+    prefix = os.path.join(workdir, os.path.basename(path) + "_pg")
+    subprocess.run(
+        ["pdftoppm", "-r", "200", "-png", path, prefix],
+        capture_output=True, text=True, timeout=300, check=False,
+    )
+    pages = sorted(glob.glob(prefix + "*.png"))
+    if not pages:
+        raise HTTPException(status_code=422, detail="Could not render the PDF.")
+    return pages
+
+
+def _run_oemer(workdir: str, image_path: str) -> str:
+    """Run oemer on one page image; return its MusicXML."""
+    outdir = tempfile.mkdtemp(prefix="page_", dir=workdir)
+    proc = subprocess.run(
+        ["oemer", image_path, "-o", outdir],
+        capture_output=True, text=True, timeout=600,
+    )
+    xmls = glob.glob(os.path.join(outdir, "*.musicxml")) + \
+        glob.glob(os.path.join(outdir, "*.xml"))
+    if not xmls:
+        raise HTTPException(
+            status_code=422,
+            detail=f"OMR produced no MusicXML for {os.path.basename(image_path)}. "
+                   f"stderr: {proc.stderr[-500:]}",
+        )
+    with open(xmls[0], "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def merge_musicxml(pages: List[str]) -> str:
+    """Merge per-page MusicXML docs into one continuous score.
+
+    Mirrors src/omr/mergeMusicXml.ts: page 1 is the base document; later pages'
+    measures are appended to the matching part (by position) and measure
+    numbers are renumbered sequentially. Each page keeps its own opening
+    <attributes>, which is valid MusicXML and preserves per-page divisions.
+    """
+    usable = [p for p in pages if PART_RE.search(p)]
+    if not usable:
+        raise HTTPException(status_code=422, detail="No readable MusicXML pages to merge.")
+    if len(usable) == 1:
+        return usable[0]
+
+    base = usable[0]
+    base_parts = PART_RE.findall(base)
+    extra: List[List[str]] = [[] for _ in base_parts]
+    for page in usable[1:]:
+        for i, part in enumerate(PART_RE.findall(page)):
+            if i < len(extra):
+                extra[i].extend(MEASURE_RE.findall(part))
+
+    state = {"i": 0}
+
+    def splice(m: "re.Match[str]") -> str:
+        part_xml = m.group(0)
+        extras = extra[state["i"]] if state["i"] < len(extra) else []
+        state["i"] += 1
+        if extras:
+            part_xml = re.sub(r"</part>\s*$", "\n".join(extras) + "\n</part>", part_xml)
+        counter = {"n": 0}
+
+        def renumber(mm: "re.Match[str]") -> str:
+            counter["n"] += 1
+            return f'{mm.group(1)}{counter["n"]}{mm.group(2)}'
+
+        return re.sub(r'(<measure\b[^>]*?\bnumber=")[^"]*(")', renumber, part_xml)
+
+    return PART_RE.sub(splice, base)
+
+
+async def _pages_from_upload(workdir: str, file: UploadFile, index: int) -> List[str]:
+    data = await file.read()
+    path = _save_upload(workdir, file, data, index)
+    is_pdf = (file.content_type or "").endswith("pdf") or path.lower().endswith(".pdf")
+    return _expand_pdf(workdir, path) if is_pdf else [path]
+
+
 @app.post("/omr")
 async def omr(file: UploadFile = File(...)):
-    """Accept an image/PDF page, run oemer, return MusicXML."""
+    """One image (or PDF) in → MusicXML out. Multi-page PDFs are merged."""
     workdir = tempfile.mkdtemp(prefix="omr_")
     try:
-        in_path = os.path.join(workdir, file.filename or "page.png")
-        with open(in_path, "wb") as f:
-            f.write(await file.read())
+        images = await _pages_from_upload(workdir, file, 0)
+        xml = merge_musicxml([_run_oemer(workdir, img) for img in images])
+        return Response(content=xml, media_type=XML_MEDIA_TYPE)
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
 
-        # oemer writes <name>.musicxml next to the input (or in -o output dir).
-        # `oemer <image> -o <dir>` → produces a .musicxml in <dir>.
-        proc = subprocess.run(
-            ["oemer", in_path, "-o", workdir],
-            capture_output=True, text=True, timeout=600,
-        )
-        xmls = glob.glob(os.path.join(workdir, "*.musicxml")) + \
-            glob.glob(os.path.join(workdir, "*.xml"))
-        if not xmls:
-            raise HTTPException(
-                status_code=422,
-                detail=f"OMR produced no MusicXML. stderr: {proc.stderr[-500:]}",
-            )
-        with open(xmls[0], "r", encoding="utf-8") as f:
-            xml = f.read()
-        return Response(content=xml, media_type="application/vnd.recordare.musicxml+xml")
+
+@app.post("/omr/score")
+async def omr_score(files: List[UploadFile] = File(...)):
+    """Whole-song endpoint: every page of the score (images and/or PDFs, in
+    order) in one request → ONE merged MusicXML for the full song."""
+    workdir = tempfile.mkdtemp(prefix="omr_")
+    try:
+        images: List[str] = []
+        for i, f in enumerate(files):
+            images.extend(await _pages_from_upload(workdir, f, i))
+        if not images:
+            raise HTTPException(status_code=400, detail="No pages received.")
+        xml = merge_musicxml([_run_oemer(workdir, img) for img in images])
+        return Response(content=xml, media_type=XML_MEDIA_TYPE)
     finally:
         shutil.rmtree(workdir, ignore_errors=True)

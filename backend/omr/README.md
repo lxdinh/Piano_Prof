@@ -4,7 +4,11 @@ Free Optical Music Recognition (photo of sheet music → MusicXML), so you don't
 Wraps **[oemer](https://github.com/BreezeWhite/oemer)** (open-source, MIT, deep-learning OMR) in a
 tiny FastAPI service that the app calls.
 
-- `app.py` — `POST /omr` (multipart `file`) → returns MusicXML. Matches `mobile/lib/omr/omr_service.dart`.
+- `app.py` —
+  - `POST /omr` (multipart `file`): one image **or PDF** → MusicXML (multi-page PDFs are
+    rendered with `pdftoppm`, OMR'd page-by-page, and merged into one score).
+  - `POST /omr/score` (multipart `files`, repeated): **every page of a song** in one request →
+    ONE merged MusicXML for the whole piece (klang.io-style whole-song conversion).
 - `Dockerfile` — builds the service.
 
 ## Run locally
@@ -30,8 +34,7 @@ for local testing, or your deployed HTTPS URL). Leave it blank to use the offlin
 ## Notes / limits
 - Best input: a **clear photo or PNG/JPG** of *typeset* sheet music. Handwriting/very skewed photos
   are weaker (true of all free OMR).
-- **PDF**: oemer expects images. To accept PDFs, convert to PNG first (poppler is installed —
-  `pdftoppm`); add that step in `app.py` if you need PDF input.
+- **PDF** input is handled in `app.py` (rendered to PNG via poppler's `pdftoppm` at 200 dpi).
 - First scan is slow (model download + TF warm-up); later scans are faster.
 - Accuracy is good but not Klang.io-grade. The app's pipeline (group → MusicXML → notation +
   highlight → chord lesson) is identical regardless of engine, so you can swap engines later.

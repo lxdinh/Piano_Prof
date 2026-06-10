@@ -12,6 +12,14 @@ const KEYS = {
   reminderEnabled: 'pp.reminderEnabled',
   onboarded: 'pp.onboarded',
   omrServerUrl: 'pp.omrServerUrl',
+  // Firebase (REST) — project config + cached anonymous-auth session
+  firebaseApiKey: 'pp.fb.apiKey',
+  firebaseProjectId: 'pp.fb.projectId',
+  firebaseBucket: 'pp.fb.bucket',
+  firebaseUid: 'pp.fb.uid',
+  firebaseIdToken: 'pp.fb.idToken',
+  firebaseRefreshToken: 'pp.fb.refreshToken',
+  firebaseTokenExpiry: 'pp.fb.tokenExpiry',
 } as const;
 
 export async function getString(key: keyof typeof KEYS): Promise<string | null> {

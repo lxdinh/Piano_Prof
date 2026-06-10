@@ -11,6 +11,7 @@ import LessonCompleteScreen from '../screens/LessonCompleteScreen';
 import BLEPairingRoute from '../screens/BLEPairingRoute';
 import VoiceSettingsScreen from '../screens/VoiceSettingsScreen';
 import OmrImportScreen from '../screens/OmrImportScreen';
+import SongPlayerScreen from '../screens/SongPlayerScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
@@ -55,6 +56,12 @@ export default function RootNavigator() {
         name="LessonComplete"
         component={LessonCompleteScreen}
         options={{ gestureEnabled: false, animation: 'fade' }}
+      />
+      {/* Full-screen falling-notes player for imported songs */}
+      <Stack.Screen
+        name="SongPlayer"
+        component={SongPlayerScreen}
+        options={{ animation: 'fade', animationDuration: 200 }}
       />
       <Stack.Group screenOptions={{ presentation: 'modal', animation: 'slide_from_bottom' }}>
         <Stack.Screen name="BLEPairing" component={BLEPairingRoute} />

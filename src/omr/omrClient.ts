@@ -37,3 +37,20 @@ export async function runOmr(image: PickedImage): Promise<string> {
   }
   return resp.text();
 }
+
+/**
+ * Run OMR over every page of a multi-page score, in order. Pages go through
+ * the existing single-image `/omr` endpoint one at a time (so any deployed
+ * server keeps working); the caller merges the per-page MusicXML afterwards.
+ */
+export async function runOmrPages(
+  pages: PickedImage[],
+  onProgress?: (pageIndex: number, pageCount: number) => void,
+): Promise<string[]> {
+  const xmls: string[] = [];
+  for (let i = 0; i < pages.length; i++) {
+    onProgress?.(i + 1, pages.length);
+    xmls.push(await runOmr(pages[i]));
+  }
+  return xmls;
+}

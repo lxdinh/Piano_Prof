@@ -59,13 +59,14 @@ service cloud.firestore {
       }
       match /library/{itemId} {
         allow read: if isOwner(uid);
-        // client may create/edit metadata + the original upload pointer, but the
-        // synthesized MusicXML path + final status are set by the OMR Function.
+        // OMR runs client-side, so the client may register finished songs too —
+        // but only pointing at its OWN storage tree (no cross-user paths).
         allow create: if isOwner(uid)
-          && request.resource.data.musicXmlPath == null
-          && request.resource.data.status in ['uploaded', 'processing'];
+          && (request.resource.data.musicXmlPath == null
+              || string(request.resource.data.musicXmlPath).matches('users/' + uid + '/musicxml/.*'));
         allow update: if isOwner(uid)
-          && request.resource.data.musicXmlPath == resource.data.musicXmlPath; // can't self-grant output
+          && (request.resource.data.musicXmlPath == resource.data.musicXmlPath
+              || string(request.resource.data.musicXmlPath).matches('users/' + uid + '/musicxml/.*'));
         allow delete: if isOwner(uid);
       }
     }

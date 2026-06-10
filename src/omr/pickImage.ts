@@ -16,6 +16,25 @@ export async function pickFromLibrary(): Promise<PickedImage | null> {
   return toPicked(res);
 }
 
+/** Pick several pages at once (multi-page scores). Order = selection order. */
+export async function pickPagesFromLibrary(): Promise<PickedImage[]> {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted) return [];
+  const res = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 0.9,
+    allowsMultipleSelection: true,
+    selectionLimit: 20,
+    orderedSelection: true,
+  });
+  if (res.canceled || !res.assets?.length) return [];
+  return res.assets.map((a, i) => ({
+    uri: a.uri,
+    mimeType: a.mimeType ?? 'image/jpeg',
+    fileName: a.fileName ?? `sheet-${Date.now()}-${i + 1}.jpg`,
+  }));
+}
+
 export async function capturePhoto(): Promise<PickedImage | null> {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) return null;
