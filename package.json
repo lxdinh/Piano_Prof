@@ -8,7 +8,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "tokens": "node scripts/extract-tokens.mjs --css designs/v2/project/pp-styles.css --out src/ui/shells/v2/theme/tokens.generated.ts"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.3.0",
