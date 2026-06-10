@@ -20,16 +20,24 @@ and commits the install URL to `.build-info/last-build-url.txt`.
 
 ## Source map (`src/`)
 
+> **UI shells (2026-06 restructure).** Everything visual lives in a *versioned UI
+> shell* — `src/ui/shells/v2/{screens,components,navigation,theme}` — selected by the
+> one-line switch `src/ui/activeShell.ts`. Shells may import core logic **only** via
+> `src/core/contract.ts` (enforced by `npm run check:imports`). Design drops from
+> claude.ai/design land in `designs/<version>/`. See `docs/UI_MASTER_PLAN.md` and
+> `docs/DESIGN_ADOPTION_PLAYBOOK.md` for how a new design is adopted.
+
 | Area | Files | Notes |
 |---|---|---|
-| Theme | `theme/tokens.ts`, `theme/ThemeContext.tsx` | colors / fonts / spacing; `useTheme()` |
-| Components | `components/*` | `ChunkyButton`, `PpCard`, `StatChip`, `HeartsRow`, `XpBar`, `DailyGoalBar`, `GradeBadge`, `MascotImage`, `LedStripArt`, `PianoKeyboard`, `TopStatsBar`, `PremiumGate` |
-| Navigation | `navigation/RootNavigator.tsx`, `navigation/MainTabs.tsx`, `navigation/types.ts` | 5 tabs (Learn / Path / Songbook / Profile / Settings) + modal stack |
-| Screens | `screens/*` | Onboarding, Learn, Path, Songbook, Profile, Settings, Lesson, LessonComplete, VoiceSettings, OmrImport, Paywall, BLE pairing |
+| Theme | `ui/shells/v2/theme/tokens.ts`, `…/theme/ThemeContext.tsx` | colors / fonts / spacing; `useTheme()` |
+| Components | `ui/shells/v2/components/*` | `ChunkyButton`, `PpCard`, `StatChip`, `HeartsRow`, `XpBar`, `DailyGoalBar`, `GradeBadge`, `MascotImage`, `LedStripArt`, `PianoKeyboard`, `TopStatsBar`, `PremiumGate`, `AchievementCelebration` |
+| Navigation | `ui/shells/v2/navigation/RootNavigator.tsx`, `…/MainTabs.tsx`, `…/types.ts` | 5 tabs (Learn / Path / Songbook / Profile / Settings) + modal stack |
+| Screens | `ui/shells/v2/screens/*` | Onboarding, Learn, Path, Songbook, Profile, Settings, Lesson, LessonComplete, VoiceSettings, OmrImport, Paywall, BLE pairing |
+| UI contract | `core/contract.ts` | the only core surface shells may import |
 | Lessons | `lessons/schema.ts`, `lessons/engine.ts`, `lessons/loader.ts`, `lessons/data/grade*.json`, `lessons/noteToMidi.ts`, `lessons/colors.ts`, `lessons/midiToLed.ts` | **data-driven** lesson content; `useLessonEngine()` orchestrates voice + audio + LEDs + quiz |
 | Audio | `audio/pianoSamples.ts`, `audio/pitchShift.ts`, `audio/instructorVoice.ts` | sample playback (pitch-shift from anchors) + ElevenLabs/expo-speech narration |
 | BLE | `ble/*` (`useBLE`, `protocol`, `constants`, `BLEContext`) | pre-existing GATT contract; pairing screen + lesson engine share one `BLEProvider` instance |
-| Gamification | `gamification/UserProvider.tsx`, `gamification/hearts.ts`, `gamification/achievements.ts`, `gamification/AchievementCelebration.tsx` | XP / streak / hearts / gems / 8 badges, with unlock celebration |
+| Gamification | `gamification/UserProvider.tsx`, `gamification/hearts.ts`, `gamification/achievements.ts` | XP / streak / hearts / gems / 8 badges (unlock celebration UI lives in the shell) |
 | Data layer | `services/*` (`types`, `ProgressBackend`, `localBackend`, `dateKey`, `analytics`) | local-authoritative store; field names mirror `backend/firebase/SCHEMA.md` |
 | OMR | `omr/pickImage.ts`, `omr/omrClient.ts`, `omr/musicxmlToLesson.ts` | photo → oemer service (`backend/omr/`) → MusicXML → playable preview |
 | Billing | `billing/entitlement.ts` | local entitlement read; paywall purchase mocked for v1 |
