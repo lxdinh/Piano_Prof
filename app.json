@@ -2,7 +2,7 @@
   "expo": {
     "name": "Piano Professor",
     "slug": "piano-professor",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.lxdinh.pianoprofessor",
-      "versionCode": 7,
+      "versionCode": 8,
       "permissions": [
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",

@@ -9,7 +9,7 @@ import { RootStackParamList } from '../navigation/types';
 import { Colors, Fonts, Radii, Spacing } from '../theme/tokens';
 import ChunkyButton from '../components/ChunkyButton';
 import PpCard from '../components/PpCard';
-import { pickFromLibrary, pickPagesFromLibrary, pickPdf, capturePhoto, PickedImage } from '../omr/pickImage';
+import { pickPagesFromLibrary, pickPdf, capturePhoto, PickedImage } from '../omr/pickImage';
 import { saveLocalSong } from '../omr/songLibrary';
 import { runOmr, getOmrServer, OmrNotConfiguredError } from '../omr/omrClient';
 import { mergeMusicXml } from '../omr/mergeMusicXml';
@@ -78,10 +78,6 @@ export default function OmrImportScreen() {
   const addPages = async () => {
     const picked = await pickPagesFromLibrary();
     if (picked.length) setPages((p) => [...p, ...picked]);
-  };
-  const addSinglePage = async () => {
-    const img = await pickFromLibrary();
-    if (img) setPages((p) => [...p, img]);
   };
   const addPhoto = async () => {
     const img = await capturePhoto();

@@ -74,6 +74,12 @@ describe('analyzeSong', () => {
     expect(analysis.chords[1].shape).toBe('1-♭3-5');
   });
 
+  it('voices chords stacked UP from the root (what a 5-3-1 left hand plays)', () => {
+    expect(analysis.chords[0].lhNotes).toEqual(['C3', 'E3', 'G3']);
+    expect(analysis.chords[3].lhNotes).toEqual(['G3', 'B3', 'D4']); // D above the root, not below
+    expect(analysis.chords[1].lhNotes).toEqual(['A3', 'C4', 'E4']);
+  });
+
   it('finds the repeating chord loop', () => {
     expect(analysis.loop).toEqual({ labels: ['C', 'Am', 'F', 'G'], repeats: 2 });
   });

@@ -188,11 +188,12 @@ export function detectChords(score: SongScore, key: KeyInfo, source: NoteEvent[]
       continue;
     }
     const rootName = pcName(best.root, key.fifths);
+    // Voice the triad stacked UP from a root near C3 — the exact keys a left
+    // hand plays with 5-3-1, and the exact notes the chord quiz expects.
+    const rootMidi = 48 + ((best.root + 12) % 12); // C3..B3
     const lhNotes = best.t.intervals.map((iv) => {
-      const pc = (best!.root + iv) % 12;
-      // voice the chord just below middle C for a comfortable left hand
-      const midi = 48 + ((pc - 0 + 12) % 12); // C3..B3
-      return `${pcName(pc, key.fifths)}${Math.floor(midi / 12) - 1}`;
+      const midi = rootMidi + iv;
+      return `${pcName(midi % 12, key.fifths)}${Math.floor(midi / 12) - 1}`;
     });
     out.push({
       measure: m,
