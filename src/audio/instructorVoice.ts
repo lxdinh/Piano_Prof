@@ -2,6 +2,8 @@ import * as Speech from 'expo-speech';
 import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
 import { getVoiceSettings } from '../storage/settings';
+import { voiceKey } from './voiceLines';
+import { VoiceLineMap } from './voiceLineMap.generated';
 
 // Instructor voice.
 //
@@ -40,13 +42,43 @@ export interface SpeakOptions {
 
 /** Speak a line and resolve when playback finishes. */
 export async function speak(text: string, opts: SpeakOptions = {}): Promise<void> {
+  // 1) Pre-generated studio clip bundled with the app (free, offline,
+  //    consistent across devices) — see scripts/gen-voice-lines.mjs.
+  const bundled = VoiceLineMap[voiceKey(text)];
+  if (bundled !== undefined) {
+    const ok = await playClipAndWait(bundled, opts);
+    if (ok) return;
+  }
+  // 2) Live ElevenLabs synthesis if the user saved an API key in settings.
   const { apiKey, voiceId } = await getVoiceSettings();
   if (apiKey) {
     const ok = await speakElevenLabs(text, apiKey, voiceId, opts);
     if (ok) return;
-    // fall through to device TTS on any failure
   }
+  // 3) On-device TTS — always available, needs no setup.
   await speakDevice(text, opts);
+}
+
+/** Play a bundled module or file URI to completion. */
+async function playClipAndWait(
+  source: number | { uri: string },
+  opts: SpeakOptions,
+): Promise<boolean> {
+  try {
+    const { sound } = await Audio.Sound.createAsync(
+      source,
+      { shouldPlay: true, rate: opts.rate ?? 1.0, shouldCorrectPitch: true },
+    );
+    await new Promise<void>((resolve) => {
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) resolve();
+      });
+    });
+    await sound.unloadAsync();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function speakDevice(text: string, opts: SpeakOptions): Promise<void> {
@@ -103,17 +135,7 @@ async function speakElevenLabs(
       });
     }
 
-    const { sound } = await Audio.Sound.createAsync(
-      { uri: fileUri },
-      { shouldPlay: true, rate: opts.rate ?? 1.0, shouldCorrectPitch: true },
-    );
-    await new Promise<void>((resolve) => {
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) resolve();
-      });
-    });
-    await sound.unloadAsync();
-    return true;
+    return await playClipAndWait({ uri: fileUri }, opts);
   } catch {
     return false;
   }

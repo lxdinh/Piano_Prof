@@ -1,0 +1,162 @@
+#!/usr/bin/env node
+/**
+ * gen-voice-lines.mjs — pre-generate the instructor's spoken lines with
+ * Google Cloud Text-to-Speech, so lessons use one consistent studio voice,
+ * offline and free at runtime. Full setup: docs/SERVICES_SETUP.md.
+ *
+ * What it does:
+ *   1. Collects every `say` line from src/lessons/data/*.json
+ *      (+ optional extra lines, one per line, in scripts/voice-extra-lines.txt)
+ *   2. Synthesizes each line to assets/audio/voice/<key>.mp3 (skips ones that
+ *      already exist — re-running only bills new/changed lines)
+ *   3. Regenerates src/audio/voiceLineMap.generated.ts; speak() plays these
+ *      clips first and falls back to live TTS for anything unmapped.
+ *
+ * Usage:
+ *   GOOGLE_TTS_API_KEY=... npm run voice
+ *   npm run voice -- --dry-run          # list lines/keys, no API calls
+ *   npm run voice -- --voice en-US-Neural2-D --rate 0.95
+ *   npm run voice -- --force            # re-synthesize everything
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+
+const ROOT = process.cwd();
+const DATA_DIR = path.join(ROOT, 'src', 'lessons', 'data');
+const EXTRA_FILE = path.join(ROOT, 'scripts', 'voice-extra-lines.txt');
+const OUT_DIR = path.join(ROOT, 'assets', 'audio', 'voice');
+const MAP_FILE = path.join(ROOT, 'src', 'audio', 'voiceLineMap.generated.ts');
+
+const args = process.argv.slice(2);
+const flag = (name) => args.includes(name);
+const opt = (name, dflt) => {
+  const i = args.indexOf(name);
+  return i === -1 ? dflt : args[i + 1];
+};
+
+const DRY = flag('--dry-run');
+const FORCE = flag('--force');
+const VOICE = opt('--voice', 'en-US-Neural2-F');
+const RATE = Number(opt('--rate', '1.0'));
+const API_KEY = process.env.GOOGLE_TTS_API_KEY;
+
+// ── identical to src/audio/voiceLines.ts (shared test vector in
+//    voiceLines.test.ts: 'Hello!' -> '1etxlfe') ─────────────────
+const normalize = (s) => s.trim().replace(/\s+/g, ' ');
+function voiceKey(text) {
+  const s = normalize(text);
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
+// ── collect lines ───────────────────────────────────────────────
+const lines = new Map(); // key -> text
+function addLine(text) {
+  const t = normalize(text);
+  if (!t) return;
+  const k = voiceKey(t);
+  if (lines.has(k) && lines.get(k) !== t) {
+    console.error(`voiceKey collision: '${lines.get(k)}' vs '${t}' — add punctuation to differentiate.`);
+    process.exit(1);
+  }
+  lines.set(k, t);
+}
+
+for (const file of fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json'))) {
+  const grade = JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8'));
+  for (const lesson of grade.lessons ?? []) {
+    for (const step of lesson.steps ?? []) {
+      for (const seg of step.segments ?? []) {
+        if (seg.type === 'say' && seg.text) addLine(seg.text);
+      }
+    }
+  }
+}
+if (fs.existsSync(EXTRA_FILE)) {
+  for (const l of fs.readFileSync(EXTRA_FILE, 'utf8').split('\n')) addLine(l);
+}
+
+const entries = [...lines.entries()].sort(([a], [b]) => (a < b ? -1 : 1));
+console.log(`Found ${entries.length} unique instructor lines.`);
+
+if (DRY) {
+  for (const [k, t] of entries) console.log(`  ${k}  "${t}"`);
+  process.exit(0);
+}
+
+if (!API_KEY) {
+  console.error(
+    '\nGOOGLE_TTS_API_KEY is not set.\n' +
+    'Create one (free tier covers this easily): docs/SERVICES_SETUP.md → "Pre-generated Google voice".\n' +
+    'Then: GOOGLE_TTS_API_KEY=AIza... npm run voice\n',
+  );
+  process.exit(1);
+}
+
+// ── synthesize ──────────────────────────────────────────────────
+fs.mkdirSync(OUT_DIR, { recursive: true });
+
+async function synth(text, file) {
+  const resp = await fetch(
+    `https://texttospeech.googleapis.com/v1/text:synthesize?key=${API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        input: { text },
+        voice: { languageCode: VOICE.split('-').slice(0, 2).join('-'), name: VOICE },
+        audioConfig: { audioEncoding: 'MP3', speakingRate: RATE },
+      }),
+    },
+  );
+  if (!resp.ok) {
+    throw new Error(`TTS ${resp.status}: ${(await resp.text()).slice(0, 300)}`);
+  }
+  const { audioContent } = await resp.json();
+  fs.writeFileSync(file, Buffer.from(audioContent, 'base64'));
+}
+
+let made = 0;
+let kept = 0;
+for (const [k, t] of entries) {
+  const file = path.join(OUT_DIR, `${k}.mp3`);
+  if (!FORCE && fs.existsSync(file)) { kept++; continue; }
+  process.stdout.write(`  ${k}  "${t.slice(0, 60)}" ... `);
+  await synth(t, file);
+  console.log('ok');
+  made++;
+}
+
+// Remove clips for lines that no longer exist (keeps assets/ tidy).
+let pruned = 0;
+for (const f of fs.readdirSync(OUT_DIR).filter((f) => f.endsWith('.mp3'))) {
+  if (!lines.has(f.replace(/\.mp3$/, ''))) {
+    fs.unlinkSync(path.join(OUT_DIR, f));
+    pruned++;
+  }
+}
+
+// ── emit the map ────────────────────────────────────────────────
+const out = [];
+out.push('// AUTO-GENERATED by scripts/gen-voice-lines.mjs — DO NOT EDIT.');
+out.push('// Maps voiceKey(text) -> bundled audio module for pre-generated instructor');
+out.push(`// lines. ${entries.length} lines, voice ${VOICE}. Regenerate: npm run voice`);
+out.push('');
+out.push('/** TTS voice the bundled clips were synthesized with. */');
+out.push(`export const VOICE_NAME = '${VOICE}';`);
+out.push('');
+out.push('export const VoiceLineMap: Record<string, number> = {');
+for (const [k, t] of entries) {
+  out.push(`  // "${t.replace(/"/g, '\\"')}"`);
+  out.push(`  '${k}': require('../../assets/audio/voice/${k}.mp3'),`);
+}
+out.push('};');
+out.push('');
+fs.writeFileSync(MAP_FILE, out.join('\n'));
+
+console.log(
+  `\nDone: ${made} synthesized, ${kept} reused, ${pruned} pruned.` +
+  `\nWrote ${path.relative(ROOT, MAP_FILE)} — commit it together with assets/audio/voice/.` +
+  `\nRun \`npm run verify\` (the asset gate confirms every mapped mp3 exists).`,
+);

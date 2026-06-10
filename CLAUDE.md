@@ -44,6 +44,7 @@ Read `docs/UI_MASTER_PLAN.md` for what each screen is supposed to be.
 
 - `npm run verify` — typecheck + import boundaries + token drift + all tests
 - `npm run tokens` — re-sync palette from the current design's CSS
+- `npm run voice` — pre-generate instructor voice clips (docs/SERVICES_SETUP.md)
 - `npm test` / `npx jest --selectProjects ui` — all tests / UI smoke only
 - APK: push to `main` → `.github/workflows/build-eas.yml` runs verify, then
   EAS builds; install link lands in `.build-info/last-build-url.txt`
