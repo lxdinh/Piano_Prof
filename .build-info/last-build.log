@@ -8,23 +8,23 @@ No environment variables with visibility "Plain text" and "Sensitive" found for 
 
 Compressing project files and uploading to EAS Build. Learn more: https://expo.fyi/eas-build-archive
 - Compressing project files
-Your project archive is 220 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
-- Uploading to EAS Build (0 / 220 MB)
+Your project archive is 231 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
+- Uploading to EAS Build (0 / 231 MB)
 ✔ Uploaded to EAS 1s
 - Computing project fingerprint
 ✔ Computed project fingerprint
 
-See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/1cbcee88-cafe-4ef6-96cc-f60b16b09f1d
+See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/9401bc7f-ed92-4297-89cd-2e1d8741ec0b
 
 [
   {
-    "id": "1cbcee88-cafe-4ef6-96cc-f60b16b09f1d",
+    "id": "9401bc7f-ed92-4297-89cd-2e1d8741ec0b",
     "status": "NEW",
     "platform": "ANDROID",
     "artifacts": {},
     "fingerprint": {
-      "id": "019e73ed-1942-7ede-9bdf-9cb4b9e99616",
-      "hash": "dac92aaa632c942cda807661778353e729dc10ef"
+      "id": "019eb1fc-7c43-7def-aa04-983a65e540fa",
+      "hash": "4e83f8f7a7285cf87a05e39c1ff7b077dbef2705"
     },
     "initiatingActor": {
       "id": "5c2cd7db-c8da-460c-935c-f67522076ae0",
@@ -43,14 +43,14 @@ See logs: https://expo.dev/accounts/htdinh/projects/piano-professor/builds/1cbce
     "distribution": "INTERNAL",
     "buildProfile": "preview",
     "sdkVersion": "52.0.0",
-    "appVersion": "0.6.0",
-    "appBuildVersion": "7",
-    "gitCommitHash": "00fc98d44f1ec9e72efa33387e2c02e6ec840b20",
-    "gitCommitMessage": "Fix piano keyboard + add penguin-guided chord library (#3)\n\n* Fix piano keyboard: real multi-touch polyphony, reliable sound + haptics\n\nThe on-screen keyboard rendered one <Pressable> per key in an absolute-\npositioned overlay. React Native's gesture-responder system only grants the\nactive responder to one or two overlapping views at a time, which caused the\nreported bugs:\n  - couldn't sound more than ~2 notes at once, so chords were impossible\n  - many keys (notably the black keys overlapping the white tap targets) never\n    fired their press handler -> no sound AND no haptic on those keys\n  - constant responder hand-off between dozens of Pressables made the keyboard\n    feel laggy/buggy\n\nReplace the per-key Pressable overlay with a single touch surface\n(pointerEvents=\"box-only\") that reads every active finger from\nnativeEvent.touches and hit-tests each one to a key (black keys win the upper\nregion, white keys below). This gives true polyphony, glissando, and a\nreliable tap -> sound + haptic on every white and black key.\n\nPublic props, the audio engine, and the SVG rendering (LED strip, octave\nlabels, lit-note glow) are all unchanged.\n\nhttps://claude.ai/code/session_01J4JRpRUmttWRgFiWVUpbMk\n\n* Practice tab: penguin-guided chord library with full chord tree\n\nReplaces the 4 hard-coded demo chips with a complete, browsable chord library\non the Practice tab, guided by Maestro Penguini (the same mascot used in\nlessons). It uses the multi-touch keyboard fixed earlier, so picked chords\nlight up and every key plays/buzzes.\n\nFlow (the \"music tree\"):\n  1. Pick a root letter (C D E F G A B).\n  2. Pick the accidental (b / natural / #) and the chord quality.\n  3. The chord lights on the keyboard, rolls out so each note is heard, and\n     the penguin explains its notes + character. Tap the lit keys to play it\n     yourself.\n\nNew src/music/chords.ts holds every common chord grouped into a theory tree:\n  - Triads: maj, min, dim, aug, sus2, sus4, power\n  - Sixths: 6, m6\n  - Sevenths: 7, maj7, m7, mMaj7, dim7, m7b5, 7#5\n  - Extensions: add9, 9, maj9, m9, 11, 13\nNotes are spelled by scale degree (Cm7 = C-Eb-G-Bb, C°7 = C-Eb-Gb-Bbb), not\nraw chromatics, so the labels teach correct theory. Voicings are octave-placed\nso even a 13th stays inside the C2..B6 keyboard.\n\nCovered by src/__tests__/chords.test.ts (root math, degree spelling, range).\n\nhttps://claude.ai/code/session_01J4JRpRUmttWRgFiWVUpbMk\n\n---------\n\nCo-authored-by: Claude <noreply@anthropic.com>",
+    "appVersion": "0.7.0",
+    "appBuildVersion": "8",
+    "gitCommitHash": "d83f58188c2e8ad75b4fd6d3a48a01a3e80840b4",
+    "gitCommitMessage": "QC fixes: stack chord voicings up from the root; drop dead code; v0.7.0\n\n- detectChords voiced triads C3..B3 by pitch class, so chords like G\n  major came out G3-B3-D3 (the fifth BELOW the root) — and the chord\n  quiz would reject a student correctly playing G3-B3-D4 with 5-3-1.\n  Now stacked root-up; regression test added.\n- Removed unused single-image picker path from the import screen.\n- Bump to 0.7.0 / versionCode 8 for the new APK.\n\nhttps://claude.ai/code/session_01KpFkifpxn7B2F5xpDUMRx4",
     "priority": "NORMAL",
-    "createdAt": "2026-05-31T00:03:47.374Z",
-    "updatedAt": "2026-05-31T00:03:47.374Z",
-    "expirationDate": "2026-06-14T00:03:47.420Z",
+    "createdAt": "2026-06-10T14:42:54.619Z",
+    "updatedAt": "2026-06-10T14:42:54.619Z",
+    "expirationDate": "2026-06-24T14:42:54.652Z",
     "isForIosSimulator": false
   }
 ]
