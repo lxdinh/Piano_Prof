@@ -13,7 +13,7 @@ import PianoKeyboard from '../components/PianoKeyboard';
 import { getImportedSong } from '../omr/importedSongs';
 import { NoteEvent } from '../omr/musicxmlScore';
 import { playMidi, stopAll } from '../audio/pianoEngine';
-import { musicXmlToLesson } from '../omr/musicxmlToLesson';
+import { generateSongLesson } from '../omr/songLessonGenerator';
 import { registerImportedLesson } from '../lessons/importedLessons';
 
 // Synthesia-style "piano drop" player: the whole imported song scrolls down
@@ -74,9 +74,11 @@ export default function SongPlayerScreen() {
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [speedIdx, setSpeedIdx] = useState(2); // 1×
+  const [metronome, setMetronome] = useState(false);
   const timeRef = useRef(0);
   const playingRef = useRef(false);
   const speedRef = useRef(1);
+  const metronomeRef = useRef(false);
   const audioIdxRef = useRef(0); // next event to sound (events sorted by start)
 
   const events: NoteEvent[] = song?.score.events ?? [];
@@ -91,8 +93,18 @@ export default function SongPlayerScreen() {
       const dt = (now - last) / 1000;
       last = now;
       if (!playingRef.current) return;
-      const t = Math.min(timeRef.current + dt * speedRef.current, durationSec + 0.75);
+      const prev = timeRef.current;
+      const t = Math.min(prev + dt * speedRef.current, durationSec + 0.75);
       timeRef.current = t;
+      // metronome: click on every beat we just crossed; accent beat 1 of a bar
+      if (metronomeRef.current && song) {
+        const spb = 60 / song.score.tempoBpm;
+        const beat = Math.floor(t / spb);
+        if (beat > Math.floor(prev / spb)) {
+          const accent = beat % song.score.beatsPerMeasure === 0;
+          void playMidi(accent ? 103 : 96, accent ? 0.5 : 0.28);
+        }
+      }
       // sound every event whose onset we just crossed
       while (audioIdxRef.current < events.length && events[audioIdxRef.current].start <= t) {
         void playMidi(events[audioIdxRef.current].midi, 0.85);
@@ -106,7 +118,7 @@ export default function SongPlayerScreen() {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [events, durationSec]);
+  }, [events, durationSec, song]);
 
   useEffect(() => () => { void stopAll(); }, []);
 
@@ -130,12 +142,17 @@ export default function SongPlayerScreen() {
     speedRef.current = SPEEDS[next];
   }, [speedIdx]);
 
-  const practiceAsLesson = useCallback(() => {
+  const learnAtoZ = useCallback(() => {
     if (!song) return;
-    const lesson = musicXmlToLesson(song.xml, song.title);
+    const lesson = generateSongLesson(song);
     registerImportedLesson(lesson);
     nav.navigate('Lesson', { gradeId: 0, lessonId: lesson.id });
   }, [song, nav]);
+
+  const toggleMetronome = useCallback(() => {
+    metronomeRef.current = !metronomeRef.current;
+    setMetronome(metronomeRef.current);
+  }, []);
 
   // ── Derived frame state ─────────────────────────────────────────────────────
   const keyboardH = 150;
@@ -187,6 +204,13 @@ export default function SongPlayerScreen() {
             {song.pageCount} page{song.pageCount === 1 ? '' : 's'} · {song.score.events.length} notes · {Math.round(song.score.tempoBpm)} BPM
           </Text>
         </View>
+        <Pressable
+          onPress={toggleMetronome}
+          style={[styles.speedChip, metronome && styles.chipOn]}
+          hitSlop={8}
+        >
+          <Text style={styles.speedText}>🕰 {metronome ? 'on' : 'off'}</Text>
+        </Pressable>
         <Pressable onPress={cycleSpeed} style={styles.speedChip} hitSlop={8}>
           <Text style={styles.speedText}>{SPEEDS[speedIdx]}×</Text>
         </Pressable>
@@ -249,7 +273,7 @@ export default function SongPlayerScreen() {
       <View style={styles.controls}>
         <ChunkyButton label="⏮ Restart" variant="secondary" onPress={() => seekTo(0)} style={{ flex: 1 }} />
         <ChunkyButton label={playing ? '⏸ Pause' : '▶ Play'} onPress={togglePlay} style={{ flex: 1.4 }} />
-        <ChunkyButton label="🎹 Practice" variant="sky" onPress={practiceAsLesson} style={{ flex: 1 }} />
+        <ChunkyButton label="🎓 Learn A→Z" variant="sky" onPress={learnAtoZ} style={{ flex: 1 }} />
       </View>
 
       <View style={styles.legend}>
@@ -274,6 +298,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md, paddingVertical: 6,
   },
   speedText: { color: '#FFFFFF', fontWeight: Fonts.weight.bold, fontSize: Fonts.base },
+  chipOn: { backgroundColor: Colors.brandDark },
   canvas: { flex: 1, backgroundColor: '#1A1612', overflow: 'hidden' },
   seekRow: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,

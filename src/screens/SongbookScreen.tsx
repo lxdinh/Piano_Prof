@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Animated } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Animated, Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +12,8 @@ import PpCard from '../components/PpCard';
 import ChunkyButton from '../components/ChunkyButton';
 import { useEntrance } from '../feedback/motion';
 import * as haptics from '../feedback/haptics';
+import { listLocalSongs, loadLocalSong, deleteLocalSong, LocalSongMeta } from '../omr/songLibrary';
+import { registerImportedSong } from '../omr/importedSongs';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -42,6 +45,41 @@ export default function SongbookScreen() {
   const nav = useNavigation<Nav>();
   const importEntrance = useEntrance(0);
   const listEntrance = useEntrance(150);
+  const [mySongs, setMySongs] = useState<LocalSongMeta[]>([]);
+  const [openingId, setOpeningId] = useState('');
+
+  useFocusEffect(useCallback(() => {
+    listLocalSongs().then(setMySongs);
+  }, []));
+
+  const openSong = async (meta: LocalSongMeta) => {
+    haptics.tap();
+    setOpeningId(meta.id);
+    try {
+      const song = await loadLocalSong(meta.id);
+      if (!song) throw new Error('missing');
+      registerImportedSong(song);
+      nav.navigate('ReviewScore', { songId: song.id });
+    } catch {
+      Alert.alert('Could not open', 'This song file is missing — re-import it.');
+    } finally {
+      setOpeningId('');
+    }
+  };
+
+  const removeSong = (meta: LocalSongMeta) => {
+    Alert.alert('Delete song?', `Remove "${meta.title}" from this device? (A Firebase copy, if you saved one, is kept.)`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteLocalSong(meta.id);
+          setMySongs(await listLocalSongs());
+        },
+      },
+    ]);
+  };
 
   return (
     <View style={styles.bg}>
@@ -61,6 +99,33 @@ export default function SongbookScreen() {
               <ChunkyButton label="Import a score" variant="sky" fullWidth haptic="bump" onPress={() => nav.navigate('OmrImport')} />
             </PpCard>
           </Animated.View>
+
+          {mySongs.length > 0 && (
+            <Animated.View
+              style={{ opacity: listEntrance.opacity, transform: [{ translateY: listEntrance.translateY }] }}
+            >
+              <Text style={styles.sectionTitle}>My songs</Text>
+              {mySongs.map((s) => (
+                <Pressable
+                  key={s.id}
+                  onPress={() => openSong(s)}
+                  onLongPress={() => removeSong(s)}
+                  disabled={!!openingId}
+                  style={({ pressed }) => [styles.songRow, pressed && { transform: [{ scale: 0.98 }] }]}
+                >
+                  <LinearGradient colors={COVER_GRADIENTS[0]} style={styles.cover}>
+                    <Text style={styles.coverText}>🎼</Text>
+                  </LinearGradient>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.songTitle} numberOfLines={1}>{s.title}</Text>
+                    <Text style={styles.songMeta} numberOfLines={1}>
+                      {openingId === s.id ? 'Opening…' : `Imported · ${s.pageCount} page${s.pageCount === 1 ? '' : 's'} · hold to delete`}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </Animated.View>
+          )}
 
           <Animated.View
             style={{ opacity: listEntrance.opacity, transform: [{ translateY: listEntrance.translateY }] }}

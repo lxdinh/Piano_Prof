@@ -10,6 +10,9 @@ import ChunkyButton from '../components/ChunkyButton';
 import PpCard from '../components/PpCard';
 import { getImportedSong, registerImportedSong } from '../omr/importedSongs';
 import { parseMusicXmlScore } from '../omr/musicxmlScore';
+import { generateSongLesson } from '../omr/songLessonGenerator';
+import { registerImportedLesson } from '../lessons/importedLessons';
+import { renameLocalSong } from '../omr/songLibrary';
 import { saveSongToFirebase, FirebaseNotConfiguredError } from '../services/firebaseSync';
 
 // Review step between OMR and the player (klang.io's "Edit Mode", v1): the
@@ -75,12 +78,21 @@ export default function ReviewScoreScreen() {
       score: parseMusicXmlScore(song.xml, tempo),
     };
     registerImportedSong(updated);
+    void renameLocalSong(updated.id, updated.title); // keep the on-device library in sync
     return updated;
   }, [song, title, tempo]);
 
   const play = useCallback(() => {
     const updated = applyEdits();
     if (updated) nav.navigate('SongPlayer', { songId: updated.id });
+  }, [applyEdits, nav]);
+
+  const learn = useCallback(() => {
+    const updated = applyEdits();
+    if (!updated) return;
+    const lesson = generateSongLesson(updated);
+    registerImportedLesson(lesson);
+    nav.navigate('Lesson', { gradeId: 0, lessonId: lesson.id });
   }, [applyEdits, nav]);
 
   const save = useCallback(async () => {
@@ -168,13 +180,14 @@ export default function ReviewScoreScreen() {
         {status ? <Text style={styles.status}>{status}</Text> : null}
 
         <View style={styles.actions}>
-          <ChunkyButton label="▶ Play" onPress={play} style={{ flex: 1 }} />
+          <ChunkyButton label="🎓 Learn A→Z" onPress={learn} style={{ flex: 1.2 }} />
+          <ChunkyButton label="▶ Play" variant="secondary" onPress={play} style={{ flex: 0.9 }} />
           <ChunkyButton
-            label={saving ? 'Saving…' : '☁️ Save'}
+            label={saving ? '…' : '☁️ Save'}
             variant="sky"
             onPress={save}
             disabled={saving}
-            style={{ flex: 1 }}
+            style={{ flex: 0.9 }}
           />
         </View>
       </ScrollView>

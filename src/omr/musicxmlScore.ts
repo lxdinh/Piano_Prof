@@ -14,6 +14,12 @@ export interface NoteEvent {
   duration: number;
   /** MusicXML staff: 1 = treble/right hand, 2 = bass/left hand */
   staff: number;
+  /** 0-based measure index within the merged song */
+  measure: number;
+  /** onset in beats from the start of the song (tempo-independent) */
+  startBeats: number;
+  /** length in beats */
+  durBeats: number;
 }
 
 export interface SongScore {
@@ -23,6 +29,12 @@ export interface SongScore {
   tempoBpm: number;
   minMidi: number;
   maxMidi: number;
+  /** number of measures in the longest part */
+  measureCount: number;
+  /** key signature as MusicXML fifths (-7..7), or null if the score has none */
+  fifths: number | null;
+  /** beats per measure from the time signature (default 4) */
+  beatsPerMeasure: number;
 }
 
 interface RawEvent {
@@ -31,6 +43,7 @@ interface RawEvent {
   startBeats: number;
   durBeats: number;
   staff: number;
+  measure: number;
   tieStart: boolean;
   tieStop: boolean;
 }
@@ -43,6 +56,9 @@ export function parseMusicXmlScore(xml: string, tempoOverride?: number): SongSco
   const tempoBpm =
     tempoOverride ??
     (Number(/<sound[^>]*\btempo="([\d.]+)"/.exec(xml)?.[1] ?? NaN) || DEFAULT_TEMPO);
+  const fifthsMatch = /<fifths>\s*(-?\d+)\s*<\/fifths>/.exec(xml);
+  const fifths = fifthsMatch ? Number(fifthsMatch[1]) : null;
+  const beatsPerMeasure = Number(/<beats>\s*(\d+)\s*<\/beats>/.exec(xml)?.[1] ?? '4') || 4;
 
   const raw: RawEvent[] = [];
   const parts = xml.match(/<part\s[^>]*>[\s\S]*?<\/part>/g) ?? [];
@@ -62,10 +78,14 @@ export function parseMusicXmlScore(xml: string, tempoOverride?: number): SongSco
     const prev = open.get(key);
     if (r.tieStop && prev && Math.abs(prev.start + prev.duration - start) < secPerBeat * 0.25) {
       prev.duration += duration;
+      prev.durBeats += r.durBeats;
       if (!r.tieStart) open.delete(key);
       continue;
     }
-    const ev: NoteEvent = { midi: r.midi, note: r.note, start, duration, staff: r.staff };
+    const ev: NoteEvent = {
+      midi: r.midi, note: r.note, start, duration, staff: r.staff,
+      measure: r.measure, startBeats: r.startBeats, durBeats: r.durBeats,
+    };
     events.push(ev);
     if (r.tieStart) open.set(key, ev);
   }
@@ -74,13 +94,15 @@ export function parseMusicXmlScore(xml: string, tempoOverride?: number): SongSco
   let durationSec = 0;
   let minMidi = 127;
   let maxMidi = 0;
+  let measureCount = 0;
   for (const e of events) {
     durationSec = Math.max(durationSec, e.start + e.duration);
     minMidi = Math.min(minMidi, e.midi);
     maxMidi = Math.max(maxMidi, e.midi);
+    measureCount = Math.max(measureCount, e.measure + 1);
   }
   if (events.length === 0) { minMidi = 60; maxMidi = 60; }
-  return { events, durationSec, tempoBpm, minMidi, maxMidi };
+  return { events, durationSec, tempoBpm, minMidi, maxMidi, measureCount, fifths, beatsPerMeasure };
 }
 
 function parsePart(partXml: string): RawEvent[] {
@@ -89,7 +111,8 @@ function parsePart(partXml: string): RawEvent[] {
   let measureStart = 0; // absolute beats at the start of the current measure
 
   const measures = partXml.match(/<measure[\s\S]*?<\/measure>/g) ?? [];
-  for (const measure of measures) {
+  for (let measureIndex = 0; measureIndex < measures.length; measureIndex++) {
+    const measure = measures[measureIndex];
     let cursor = 0; // beats from measure start
     let maxCursor = 0;
     let lastOnset = 0; // onset of the previous non-chord note (for <chord/>)
@@ -136,6 +159,7 @@ function parsePart(partXml: string): RawEvent[] {
         startBeats: measureStart + onset,
         durBeats,
         staff: Number(/<staff>\s*(\d+)\s*<\/staff>/.exec(tok)?.[1] ?? '1'),
+        measure: measureIndex,
         tieStart: /<tie[^>]*type="start"/.test(tok),
         tieStop: /<tie[^>]*type="stop"/.test(tok),
       });

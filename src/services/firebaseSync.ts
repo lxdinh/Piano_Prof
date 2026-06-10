@@ -192,6 +192,23 @@ export async function listSavedSongs(): Promise<SavedSong[]> {
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
+/** Delete a saved song: its library entry and the stored MusicXML. */
+export async function deleteSavedSong(id: string, musicXmlPath: string): Promise<void> {
+  const cfg = await getFirebaseConfig();
+  if (!cfg) throw new FirebaseNotConfiguredError();
+  const { uid, idToken } = await ensureSignedIn(cfg);
+  const auth = { Authorization: `Firebase ${idToken}` };
+  const doc = await fetch(libraryDocsUrl(cfg, uid, id), { method: 'DELETE', headers: auth });
+  if (!doc.ok && doc.status !== 404) {
+    throw new Error(`Delete failed (${doc.status}).`);
+  }
+  if (musicXmlPath) {
+    await fetch(`${STORAGE_API}/${cfg.bucket}/o/${encodeURIComponent(musicXmlPath)}`, {
+      method: 'DELETE', headers: auth,
+    }).catch(() => undefined); // index entry is gone; object cleanup is best-effort
+  }
+}
+
 /** Download a saved song's MusicXML back from Cloud Storage. */
 export async function downloadSongXml(musicXmlPath: string): Promise<string> {
   const cfg = await getFirebaseConfig();

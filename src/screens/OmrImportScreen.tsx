@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, TextInput, Pressable,
+  View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, TextInput, Pressable, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -9,14 +9,15 @@ import { RootStackParamList } from '../navigation/types';
 import { Colors, Fonts, Radii, Spacing } from '../theme/tokens';
 import ChunkyButton from '../components/ChunkyButton';
 import PpCard from '../components/PpCard';
-import { pickFromLibrary, pickPagesFromLibrary, capturePhoto, PickedImage } from '../omr/pickImage';
+import { pickFromLibrary, pickPagesFromLibrary, pickPdf, capturePhoto, PickedImage } from '../omr/pickImage';
+import { saveLocalSong } from '../omr/songLibrary';
 import { runOmr, getOmrServer, OmrNotConfiguredError } from '../omr/omrClient';
 import { mergeMusicXml } from '../omr/mergeMusicXml';
 import { parseMusicXmlScore } from '../omr/musicxmlScore';
 import { registerImportedSong, newSongId } from '../omr/importedSongs';
 import { setString, getString } from '../storage/settings';
 import {
-  listSavedSongs, downloadSongXml, getFirebaseConfig, SavedSong,
+  listSavedSongs, downloadSongXml, deleteSavedSong, getFirebaseConfig, SavedSong,
 } from '../services/firebaseSync';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -86,6 +87,10 @@ export default function OmrImportScreen() {
     const img = await capturePhoto();
     if (img) setPages((p) => [...p, img]);
   };
+  const addPdf = async () => {
+    const pdf = await pickPdf();
+    if (pdf) setPages((p) => [...p, pdf]);
+  };
   const removePage = (i: number) => {
     const uri = pages[i]?.uri;
     setPages((p) => p.filter((_, j) => j !== i));
@@ -122,6 +127,7 @@ export default function OmrImportScreen() {
       const songTitle = title.trim() || 'Imported song';
       const song = { id: newSongId(), title: songTitle, xml, score, pageCount: pages.length };
       registerImportedSong(song);
+      void saveLocalSong(song); // on-device library — survives restarts
 
       // 4) review (check notation, fix title/tempo) → play / save to Firebase
       nav.navigate('ReviewScore', { songId: song.id });
@@ -175,7 +181,14 @@ export default function OmrImportScreen() {
           <View style={styles.pageGrid}>
             {pages.map((p, i) => (
               <View key={`${p.uri}-${i}`} style={styles.pageThumbWrap}>
-                <Image source={{ uri: p.uri }} style={styles.pageThumb} resizeMode="cover" />
+                {p.mimeType === 'application/pdf' ? (
+                  <View style={[styles.pageThumb, styles.pdfThumb]}>
+                    <Text style={styles.pdfIcon}>📄</Text>
+                    <Text style={styles.pdfName} numberOfLines={2}>{p.fileName}</Text>
+                  </View>
+                ) : (
+                  <Image source={{ uri: p.uri }} style={styles.pageThumb} resizeMode="cover" />
+                )}
                 <Text style={styles.pageNum}>
                   Page {i + 1}{pageXmls[p.uri] ? ' ✓' : ''}
                 </Text>
@@ -200,6 +213,7 @@ export default function OmrImportScreen() {
         ) : (
           <View style={styles.actions}>
             <ChunkyButton label="🖼️ Add pages from library" variant="sky" onPress={addPages} fullWidth />
+            <ChunkyButton label="📄 Add a PDF" variant="violet" onPress={addPdf} fullWidth />
             <ChunkyButton label="📷 Photograph a page" variant="secondary" onPress={addPhoto} fullWidth />
             {pages.length > 0 && (
               <ChunkyButton
@@ -219,10 +233,32 @@ export default function OmrImportScreen() {
             <Text style={styles.label}>My saved songs</Text>
             {savedLoading && <ActivityIndicator color={Colors.brand} />}
             {saved.map((s) => (
-              <Pressable key={s.id} style={styles.savedRow} onPress={() => openSaved(s)} disabled={!!openingId}>
+              <Pressable
+                key={s.id}
+                style={styles.savedRow}
+                onPress={() => openSaved(s)}
+                onLongPress={() => {
+                  Alert.alert('Delete from Firebase?', `Remove "${s.title}" from your cloud library?`, [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await deleteSavedSong(s.id, s.musicXmlPath);
+                          void refreshSaved();
+                        } catch (e) {
+                          setError(e instanceof Error ? e.message : 'Delete failed.');
+                        }
+                      },
+                    },
+                  ]);
+                }}
+                disabled={!!openingId}
+              >
                 <Text style={styles.savedTitle} numberOfLines={1}>🎼 {s.title}</Text>
                 <Text style={styles.savedMeta}>
-                  {openingId === s.id ? 'Opening…' : `${s.pageCount} pg`}
+                  {openingId === s.id ? 'Opening…' : `${s.pageCount} pg · hold to delete`}
                 </Text>
               </Pressable>
             ))}
@@ -294,6 +330,9 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: Colors.inkLine,
   },
   pageNum: { fontSize: Fonts.sm, color: Colors.ink500, textAlign: 'center', marginTop: 2, fontWeight: Fonts.weight.heavy },
+  pdfThumb: { alignItems: 'center', justifyContent: 'center', gap: 4, padding: 6 },
+  pdfIcon: { fontSize: 28 },
+  pdfName: { fontSize: Fonts.xs, color: Colors.ink500, textAlign: 'center' },
   pageRemove: {
     position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 11,
     backgroundColor: Colors.error, alignItems: 'center', justifyContent: 'center',
