@@ -75,6 +75,43 @@ firebase deploy --only firestore:rules,firestore:indexes,storage
 (Local testing without touching production: `firebase emulators:start` in
 `backend/firebase` — UI at http://localhost:4000.)
 
+### Can I run Firebase at home / deploy it myself, like the OMR server?
+
+Half yes — the two halves of the OMR model map like this:
+
+- **"Test at home" → yes: the Emulator Suite** (already configured in
+  `backend/firebase/firebase.json`). `firebase emulators:start` runs local
+  Auth + Firestore + Storage with a browser UI at `:4000`, enforcing the same
+  `firestore.rules` as production. Useful extras:
+  - No Google account needed for pure-local work: use a project id starting
+    with `demo-`, e.g. `firebase emulators:start --project demo-piano-prof`.
+  - Emulator data is **wiped on exit** unless you keep it:
+    `firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-data`.
+  - To reach it from your phone (same Wi-Fi), add `"host": "0.0.0.0"` to each
+    emulator in `firebase.json` and use `http://<your-LAN-IP>:8080` etc. —
+    the JS SDK connects via `connectFirestoreEmulator(db, '<LAN-IP>', 8080)` /
+    `connectAuthEmulator(auth, 'http://<LAN-IP>:9099')`. (Only do this on a
+    network you trust; the emulator has no protection.)
+  - Until `FirestoreBackend` is wired into the app (Step 4 below), the
+    emulator is for verifying rules/schema — the app itself still runs on
+    local storage.
+
+- **"Real deployment" → there is nothing to deploy.** Firebase *is* the
+  hosted deployment — Google runs Firestore/Auth for you; there's no
+  container image like `pp-omr` to push to Cloud Run, and Firestore can't be
+  self-hosted in production. The only thing you ever "deploy" is your rules
+  (Step 2). The Spark free tier plays the same role as Cloud Run's
+  scale-to-zero: ~$0 at your scale.
+
+- **Emulator ≠ production.** No backups, no durability guarantees, anyone on
+  the network can write to it — development only.
+
+- If you ever truly need a production backend you host yourself (the full
+  OMR model), the app's `ProgressBackend` interface makes that swap possible
+  (e.g. a self-hosted Supabase/PocketBase implementing the same interface) —
+  but that's a different stack from this repo's Firestore schema/rules, and
+  not worth it while the free tier covers you.
+
 ### Step 3 — get the app config
 In **Project settings (gear) → Your apps**:
 
