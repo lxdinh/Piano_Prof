@@ -57,6 +57,13 @@ interface Props {
   lit?: Record<number, string>;
   labels?: Record<number, string>;
   onPlay?: (midi: number) => void;
+  /** True key-hold events (multi-touch chords). When set, onPlay is not used. */
+  onPressIn?: (midi: number) => void;
+  onPressOut?: (midi: number) => void;
+  /** Externally-driven held keys (e.g. professor demo playback). */
+  downs?: Record<number, boolean>;
+  /** Show C2…C7 octave markers on the C keys. */
+  octaveLabels?: boolean;
   height?: number;
   led?: boolean;
   interactive?: boolean;
@@ -64,7 +71,8 @@ interface Props {
 }
 
 export default function Piano({
-  low = 55, high = 84, lit = {}, labels = {}, onPlay,
+  low = 55, high = 84, lit = {}, labels = {}, onPlay, onPressIn, onPressOut,
+  downs = {}, octaveLabels = false,
   height = 200, led = true, interactive = true, hideNoteNames = false,
 }: Props) {
   const { whites, blacks } = buildKeys(low, high);
@@ -97,37 +105,50 @@ export default function Piano({
           {/* white keys */}
           <View style={{ flexDirection: 'row', height: '100%', gap: 2 }}>
             {whites.map((m) => {
-              const c = lit[m]; const isP = pressed[m];
+              const c = lit[m]; const isP = pressed[m] || downs[m];
+              const octLabel = octaveLabels && m % 12 === 0 ? `C${Math.floor(m / 12) - 1}` : null;
               return (
-                <Pressable key={m} onPress={() => hit(m)} style={{
-                  flex: 1, borderTopLeftRadius: 3, borderTopRightRadius: 3, borderBottomLeftRadius: 8, borderBottomRightRadius: 8,
-                  backgroundColor: c ? c : isP ? '#e4dcc0' : '#fffef9', overflow: 'hidden',
-                  justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 8,
-                  shadowColor: c || '#000', shadowOpacity: c ? 0.7 : 0, shadowRadius: c ? 10 : 0, elevation: c ? 5 : 0,
-                }}>
+                <Pressable
+                  key={m} onPress={() => hit(m)}
+                  onPressIn={onPressIn && interactive ? () => { haptics.tap(); onPressIn(m); } : undefined}
+                  onPressOut={onPressOut && interactive ? () => onPressOut(m) : undefined}
+                  style={{
+                    flex: 1, borderTopLeftRadius: 3, borderTopRightRadius: 3, borderBottomLeftRadius: 8, borderBottomRightRadius: 8,
+                    backgroundColor: c ? c : isP ? '#CDEFAC' : '#fffef9', overflow: 'hidden',
+                    justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 8,
+                    shadowColor: c || '#000', shadowOpacity: c ? 0.7 : 0, shadowRadius: c ? 10 : 0, elevation: c ? 5 : 0,
+                    transform: isP ? [{ translateY: 2 }] : undefined,
+                  }}>
                   {c ? <LinearGradient colors={['#ffffff', c]} style={StyleSheet.absoluteFill} pointerEvents="none" /> : null}
-                  {(labels[m] || (c && !hideNoteNames)) && (
+                  {(labels[m] || (c && !hideNoteNames)) ? (
                     <Text style={{ fontSize: 13, fontFamily: Fonts.family.black, fontWeight: '900', color: c ? '#2a6b00' : '#B6AC8C' }}>
                       {labels[m] ?? midiName(m)}
                     </Text>
-                  )}
+                  ) : octLabel ? (
+                    <Text style={{ fontSize: 10, fontFamily: Fonts.family.black, fontWeight: '900', color: isP ? '#46A302' : '#C9BFA2' }}>{octLabel}</Text>
+                  ) : null}
                 </Pressable>
               );
             })}
           </View>
           {/* black keys */}
           {w > 0 && blacks.map((b) => {
-            const c = lit[b.midi]; const isP = pressed[b.midi];
+            const c = lit[b.midi]; const isP = pressed[b.midi] || downs[b.midi];
             const center = boundaryCenter(b.leftWhite);
             return (
-              <Pressable key={b.midi} onPress={() => hit(b.midi)} style={{
-                position: 'absolute', top: 0, height: '62%',
-                left: center - blackW / 2, width: blackW,
-                borderTopLeftRadius: 2, borderTopRightRadius: 2, borderBottomLeftRadius: 6, borderBottomRightRadius: 6,
-                backgroundColor: c ? c : isP ? '#111' : '#161616', overflow: 'hidden',
-                justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 6,
-                shadowColor: c || '#000', shadowOpacity: c ? 0.8 : 0.5, shadowRadius: c ? 8 : 3, elevation: 6,
-              }}>
+              <Pressable
+                key={b.midi} onPress={() => hit(b.midi)}
+                onPressIn={onPressIn && interactive ? () => { haptics.tap(); onPressIn(b.midi); } : undefined}
+                onPressOut={onPressOut && interactive ? () => onPressOut(b.midi) : undefined}
+                style={{
+                  position: 'absolute', top: 0, height: '62%',
+                  left: center - blackW / 2, width: blackW,
+                  borderTopLeftRadius: 2, borderTopRightRadius: 2, borderBottomLeftRadius: 6, borderBottomRightRadius: 6,
+                  backgroundColor: c ? c : isP ? '#58CC02' : '#161616', overflow: 'hidden',
+                  justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 6,
+                  shadowColor: c || '#000', shadowOpacity: c ? 0.8 : 0.5, shadowRadius: c ? 8 : 3, elevation: 6,
+                  transform: isP ? [{ translateY: 2 }] : undefined,
+                }}>
                 {c && !hideNoteNames && (
                   <Text style={{ fontSize: 9, fontFamily: Fonts.family.black, fontWeight: '900', color: '#fff' }}>{midiName(b.midi)}</Text>
                 )}
