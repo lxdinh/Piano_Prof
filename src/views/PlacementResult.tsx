@@ -1,0 +1,34 @@
+// Piano Professor — placement result (assigned level reveal).
+import React from 'react';
+import { View, Text } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useAppTheme } from '../theme/AppTheme';
+import { useRouter } from '../nav/Router';
+import { Fonts } from '../theme/tokens';
+import Maestro from '../ui/Maestro';
+import PPButton from '../ui/PPButton';
+import { levelFromScore } from '../data/content';
+
+export default function PlacementResult() {
+  const { colors, isDark } = useAppTheme();
+  const { params, go } = useRouter();
+  const level = levelFromScore(params.score ?? 0);
+
+  return (
+    <LinearGradient colors={isDark ? ['#16273F', '#0A1320'] : ['#FFFDF6', '#FFF3D6']} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 }}>
+      <Maestro mood="trophy" size={140} bg={colors.surface} ring={5} ringColor="#fff" float />
+      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 17, color: colors.inkSoft, marginTop: 8 }}>You're placed in</Text>
+
+      <View style={{ alignItems: 'center', gap: 6, marginVertical: 6 }}>
+        <View style={{ width: 96, height: 96, borderRadius: 24, backgroundColor: level.color, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 34, color: '#fff' }}>{level.short}</Text>
+        </View>
+        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 30, color: colors.ink }}>{level.name}</Text>
+        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15, color: colors.inkFaint }}>Grade {level.grade}</Text>
+      </View>
+
+      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 16, color: colors.inkSoft, textAlign: 'center', maxWidth: 440 }}>{level.blurb}</Text>
+      <PPButton label="Continue" size="lg" variant="green" onPress={() => go('coursePath', { levelId: level.id })} style={{ marginTop: 12 }} />
+    </LinearGradient>
+  );
+}

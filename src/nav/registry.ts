@@ -5,10 +5,12 @@ import Who from '../views/Who';
 import Home from '../views/Home';
 import Lesson from '../views/Lesson';
 import Complete from '../views/Complete';
-import {
-  Songs, Practice, ProfileScreen, CreateProfile, Onboarding, Placement,
-  PlacementResult, CoursePath, Paywall, Pair, Settings,
-} from '../views/stubs';
+import CreateProfile from '../views/CreateProfile';
+import Onboarding from '../views/Onboarding';
+import Placement from '../views/Placement';
+import PlacementResult from '../views/PlacementResult';
+import CoursePath from '../views/CoursePath';
+import { Songs, Practice, ProfileScreen, Paywall, Pair, Settings } from '../views/stubs';
 
 export const registry: ScreenRegistry = {
   splash: Splash,
