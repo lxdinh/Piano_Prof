@@ -3,9 +3,11 @@ import { ScreenRegistry } from './Router';
 import Splash from '../views/Splash';
 import Who from '../views/Who';
 import Home from '../views/Home';
+import Lesson from '../views/Lesson';
+import Complete from '../views/Complete';
 import {
   Songs, Practice, ProfileScreen, CreateProfile, Onboarding, Placement,
-  PlacementResult, CoursePath, Lesson, LessonComplete, Paywall, Pair, Settings,
+  PlacementResult, CoursePath, Paywall, Pair, Settings,
 } from '../views/stubs';
 
 export const registry: ScreenRegistry = {
@@ -22,7 +24,7 @@ export const registry: ScreenRegistry = {
   placementResult: PlacementResult,
   coursePath: CoursePath,
   lesson: Lesson,
-  complete: LessonComplete,
+  complete: Complete,
   paywall: Paywall,
   pair: Pair,
   settings: Settings,
