@@ -111,26 +111,22 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setActiveId((cur) => (cur === id ? null : cur));
   }, []);
 
+  // NOTE: read activeId from closure (deps) — never call setProfiles inside a
+  // setActiveId updater; updaters must stay pure (dev mode double-invokes them).
   const updateActive = useCallback((patch: Partial<Profile>) => {
-    setActiveId((id) => {
-      if (id) setProfiles((ps) => ps.map((p) => (p.id === id ? { ...p, ...patch } : p)));
-      return id;
-    });
-  }, []);
+    if (!activeId) return;
+    setProfiles((ps) => ps.map((p) => (p.id === activeId ? { ...p, ...patch } : p)));
+  }, [activeId]);
 
   const loseHeart = useCallback(() => {
-    setActiveId((id) => {
-      if (id) setProfiles((ps) => ps.map((p) => (p.id === id ? { ...p, hearts: Math.max(0, p.hearts - 1) } : p)));
-      return id;
-    });
-  }, []);
+    if (!activeId) return;
+    setProfiles((ps) => ps.map((p) => (p.id === activeId ? { ...p, hearts: Math.max(0, p.hearts - 1) } : p)));
+  }, [activeId]);
 
   const refillHearts = useCallback(() => {
-    setActiveId((id) => {
-      if (id) setProfiles((ps) => ps.map((p) => (p.id === id ? { ...p, hearts: 5 } : p)));
-      return id;
-    });
-  }, []);
+    if (!activeId) return;
+    setProfiles((ps) => ps.map((p) => (p.id === activeId ? { ...p, hearts: 5 } : p)));
+  }, [activeId]);
 
   const setLed = useCallback((patch: Partial<LedState>) => {
     setLedState((cur) => ({ ...cur, ...patch }));

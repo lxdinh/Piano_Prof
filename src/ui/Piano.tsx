@@ -2,7 +2,7 @@
 // White keys flex evenly; black keys are absolutely positioned by measured
 // width. `lit` maps MIDI → glow color (LED guidance). onPlay fires per press.
 import React, { useState } from 'react';
-import { View, Text, Pressable, LayoutChangeEvent } from 'react-native';
+import { View, Text, Pressable, LayoutChangeEvent, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Fonts } from '../theme/tokens';
 import * as haptics from '../feedback/haptics';
@@ -19,11 +19,22 @@ function buildKeys(low: number, high: number) {
   return { whites, blacks };
 }
 
+const KEY_GAP = 2; // px between white keys — geometry below must match
+
+// Gap-aware geometry shared by the LED strip and the black keys, so dots and
+// black keys stay centred on key boundaries across the whole width.
+function keyGeometry(width: number, whiteCount: number) {
+  const kw = (width - (whiteCount - 1) * KEY_GAP) / whiteCount;
+  const whiteCenter = (i: number) => i * (kw + KEY_GAP) + kw / 2;
+  const boundaryCenter = (leftWhite: number) => (leftWhite + 1) * (kw + KEY_GAP) - KEY_GAP / 2;
+  return { kw, whiteCenter, boundaryCenter };
+}
+
 export function LedStrip({ low, high, lit, width }: {
   low: number; high: number; lit: Record<number, string>; width: number;
 }) {
   const { whites, blacks } = buildKeys(low, high);
-  const whiteW = width / whites.length;
+  const { whiteCenter, boundaryCenter } = keyGeometry(width, whites.length);
   const Dot = ({ x, c }: { x: number; c?: string }) => (
     <View style={{
       position: 'absolute', top: 6, left: x - 6,
@@ -34,9 +45,9 @@ export function LedStrip({ low, high, lit, width }: {
     }} />
   );
   return (
-    <View style={{ height: 24, marginHorizontal: 6, marginBottom: 4, borderRadius: 8, backgroundColor: '#201a14', overflow: 'hidden' }}>
-      {whites.map((m, i) => <Dot key={`w${m}`} x={(i + 0.5) * whiteW} c={lit[m]} />)}
-      {blacks.map((b) => <Dot key={`b${b.midi}`} x={(b.leftWhite + 1) * whiteW} c={lit[b.midi]} />)}
+    <View style={{ height: 24, marginHorizontal: 5, marginBottom: 4, borderRadius: 8, backgroundColor: '#201a14', overflow: 'hidden' }}>
+      {whites.map((m, i) => <Dot key={`w${m}`} x={whiteCenter(i)} c={lit[m]} />)}
+      {blacks.map((b) => <Dot key={`b${b.midi}`} x={boundaryCenter(b.leftWhite)} c={lit[b.midi]} />)}
     </View>
   );
 }
@@ -60,8 +71,9 @@ export default function Piano({
   const [w, setW] = useState(0);
   const [pressed, setPressed] = useState<Record<number, boolean>>({});
   const onLayout = (e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width);
-  const whiteW = w > 0 ? w / whites.length : 0;
-  const blackW = whiteW * 0.62;
+  const innerW = Math.max(0, w - 10); // container has 5px horizontal padding
+  const { kw, boundaryCenter } = keyGeometry(innerW, whites.length);
+  const blackW = kw * 0.62;
   const keyH = height - (led ? 28 : 0) - 8;
 
   const hit = (m: number) => {
@@ -74,7 +86,7 @@ export default function Piano({
 
   return (
     <View style={{ width: '100%' }}>
-      {led && w > 0 && <LedStrip low={low} high={high} lit={lit} width={w - 12} />}
+      {led && w > 0 && <LedStrip low={low} high={high} lit={lit} width={innerW} />}
       <View onLayout={onLayout} style={{
         height: keyH + 8, borderRadius: 16, overflow: 'hidden',
         backgroundColor: '#2f271e', paddingHorizontal: 5, paddingBottom: 6,
@@ -93,7 +105,7 @@ export default function Piano({
                   justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 8,
                   shadowColor: c || '#000', shadowOpacity: c ? 0.7 : 0, shadowRadius: c ? 10 : 0, elevation: c ? 5 : 0,
                 }}>
-                  {c ? <LinearGradient colors={['#ffffff', c]} style={{ position: 'absolute', inset: 0 } as any} /> : null}
+                  {c ? <LinearGradient colors={['#ffffff', c]} style={StyleSheet.absoluteFill} pointerEvents="none" /> : null}
                   {(labels[m] || (c && !hideNoteNames)) && (
                     <Text style={{ fontSize: 13, fontFamily: Fonts.family.black, fontWeight: '900', color: c ? '#2a6b00' : '#B6AC8C' }}>
                       {labels[m] ?? midiName(m)}
@@ -106,7 +118,7 @@ export default function Piano({
           {/* black keys */}
           {w > 0 && blacks.map((b) => {
             const c = lit[b.midi]; const isP = pressed[b.midi];
-            const center = (b.leftWhite + 1) * whiteW;
+            const center = boundaryCenter(b.leftWhite);
             return (
               <Pressable key={b.midi} onPress={() => hit(b.midi)} style={{
                 position: 'absolute', top: 0, height: '62%',

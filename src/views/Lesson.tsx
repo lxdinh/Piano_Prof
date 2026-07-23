@@ -27,6 +27,17 @@ export default function Lesson() {
   const [idx, setIdx] = useState(0);
   const [mood, setMood] = useState('teach');
   const [hearts, setHearts] = useState(activeProfile?.hearts ?? 5);
+
+  // Stay in sync with the profile — e.g. the upsell screen refills hearts and
+  // navigates back here; without this the local count would stay at 0.
+  const profileHearts = activeProfile?.hearts ?? 5;
+  useEffect(() => { setHearts(profileHearts); }, [profileHearts]);
+
+  // Silence narration + notes when the lesson unmounts (close mid-step).
+  useEffect(() => () => {
+    instructorVoice.stopSpeaking();
+    pianoEngine.stopAll().catch(() => {});
+  }, []);
   const got = useRef<Set<number>>(new Set());
   const seqPtr = useRef(0);
   const step: LessonStep = steps[idx];

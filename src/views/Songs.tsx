@@ -3,7 +3,6 @@ import React from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '../theme/AppTheme';
-import { useApp } from '../state/AppState';
 import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Shell from '../nav/Shell';

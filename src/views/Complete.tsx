@@ -2,7 +2,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAppTheme } from '../theme/AppTheme';
 import { useApp } from '../state/AppState';
 import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
@@ -21,7 +20,6 @@ function Tile({ emoji, value, label }: { emoji: string; value: string; label: st
 }
 
 export default function Complete() {
-  const { colors } = useAppTheme();
   const { activeProfile } = useApp();
   const { params, go } = useRouter();
   const stars: number = params.stars ?? 3;

@@ -28,7 +28,9 @@ export default function CreateProfile() {
 
   const start = () => {
     updateActive({ name: name.trim() || 'Player', avatar: avatar.mood, bg: avatar.bg, color: colors.green, lang });
-    go('onboarding');
+    // New profiles continue into onboarding; editing a placed profile just saves.
+    if (activeProfile?.placed) back();
+    else go('onboarding');
   };
 
   return (
@@ -65,7 +67,7 @@ export default function CreateProfile() {
             </View>
           </View>
 
-          <PPButton label={t('create.start')} size="lg" variant="green" full onPress={start} style={{ marginTop: 8 }} />
+          <PPButton label={activeProfile?.placed ? 'Save' : t('create.start')} size="lg" variant="green" full onPress={start} style={{ marginTop: 8 }} />
         </View>
       </ScrollView>
     </View>
