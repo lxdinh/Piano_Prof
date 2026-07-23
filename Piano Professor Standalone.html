@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Piano Professor — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --green: #58CC02; --green-dark: #46A302;
+    --cream: #FFFAEC; --gold: #F5B800; --sky: #5BB8E3;
+    --streak: #FF7A52; --streak-dark: #C2410C; --error: #FF4B4B;
+    --ink: #2D2A26; --line: #EAE0C4;
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: Nunito, sans-serif; }
+  body {
+    background: #17140f;
+    background-image: radial-gradient(60% 80% at 50% 0%, #2a2419 0%, #17140f 70%);
+    overflow: hidden;
+  }
+  #pp-stage { position: fixed; inset: 0; display: grid; place-items: center; }
+  #pp-canvas {
+    position: absolute; left: 50%; top: 50%;
+    width: 1280px; height: 800px; transform-origin: center center;
+    background: var(--cream); border-radius: 26px; overflow: hidden;
+    box-shadow: 0 30px 80px #000a, 0 0 0 10px #0c0a07, 0 0 0 12px #2a2419;
+  }
+  #pp-root { width: 100%; height: 100%; }
+
+  /* hide scrollbars but keep scroll */
+  .pp-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  .pp-scroll { scrollbar-width: none; }
+
+  /* transitions */
+  @keyframes pp-in-fwd { from { transform: translateX(46px); } to { transform: none; } }
+  @keyframes pp-in-back { from { transform: translateX(-46px); } to { transform: none; } }
+  @keyframes pp-in-modal { from { transform: scale(.96); } to { transform: none; } }
+  .pp-enter-fwd { animation: pp-in-fwd .32s cubic-bezier(.2,.8,.2,1) both; }
+  .pp-enter-back { animation: pp-in-back .32s cubic-bezier(.2,.8,.2,1) both; }
+  .pp-enter-modal { animation: pp-in-modal .32s cubic-bezier(.2,.9,.3,1) both; }
+
+  /* shared keyframes used by components */
+  @keyframes pp-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  @keyframes pp-pop { 0% { transform: scale(.7); } 100% { transform: scale(1); } }
+  @keyframes pp-slide-up { from { transform: translateY(22px); } to { transform: none; } }
+  @keyframes pp-twinkle { 0%,100% { transform: scale(.6); opacity: .3; } 50% { transform: scale(1.1); opacity: 1; } }
+  @keyframes pp-jiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+  @keyframes pp-toast { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  @keyframes pp-pulse { 0%,100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.06); opacity: 1; } }
+  @keyframes pp-spin { to { transform: rotate(360deg); } }
+  @keyframes pp-ring { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(2.2); opacity: 0; } }
+  @keyframes pp-shimmer { 0% { background-position: -300px 0; } 100% { background-position: 300px 0; } }
+
+  /* screen launcher (review aid, lives in stage chrome) */
+  #pp-launch {
+    position: fixed; right: 16px; bottom: 16px; z-index: 1000;
+    font-family: Nunito, sans-serif;
+  }
+  #pp-launch-btn {
+    display: flex; align-items: center; gap: 8px; padding: 11px 18px; border: none; cursor: pointer;
+    background: #fff; color: var(--ink); border-radius: 999px; font-weight: 900; font-size: 14px;
+    box-shadow: 0 6px 20px #0006;
+  }
+  #pp-launch-panel {
+    position: absolute; right: 0; bottom: 56px; width: 280px; max-height: 70vh; overflow-y: auto;
+    background: #fff; border-radius: 18px; padding: 14px; box-shadow: 0 12px 40px #0007; display: none;
+  }
+  #pp-launch-panel.open { display: block; }
+  .pp-lg { font-size: 11px; font-weight: 900; color: #A99F82; text-transform: uppercase; letter-spacing: .8px; margin: 12px 6px 6px; }
+  .pp-li { display: block; width: 100%; text-align: left; border: none; background: #F7F1DE; margin: 4px 0; padding: 9px 12px; border-radius: 10px; font-family: Nunito; font-weight: 800; font-size: 14px; color: var(--ink); cursor: pointer; }
+  .pp-li:hover { background: #EAF8DC; }
+
+</style>
+  <meta name="ext-resource-dependency" content="assets/maestro/astronaut.png" data-resource-id="astronaut" />
+  <meta name="ext-resource-dependency" content="assets/maestro/cheer.png" data-resource-id="cheer" />
+  <meta name="ext-resource-dependency" content="assets/maestro/chef.png" data-resource-id="chef" />
+  <meta name="ext-resource-dependency" content="assets/maestro/classical.png" data-resource-id="classical" />
+  <meta name="ext-resource-dependency" content="assets/maestro/conduct.png" data-resource-id="conduct" />
+  <meta name="ext-resource-dependency" content="assets/maestro/confused.png" data-resource-id="confused" />
+  <meta name="ext-resource-dependency" content="assets/maestro/cool.png" data-resource-id="cool" />
+  <meta name="ext-resource-dependency" content="assets/maestro/drummer.png" data-resource-id="drummer" />
+  <meta name="ext-resource-dependency" content="assets/maestro/epiphany.png" data-resource-id="epiphany" />
+  <meta name="ext-resource-dependency" content="assets/maestro/exhausted.png" data-resource-id="exhausted" />
+  <meta name="ext-resource-dependency" content="assets/maestro/futurist.png" data-resource-id="futurist" />
+  <meta name="ext-resource-dependency" content="assets/maestro/idea.png" data-resource-id="idea" />
+  <meta name="ext-resource-dependency" content="assets/maestro/love.png" data-resource-id="love" />
+  <meta name="ext-resource-dependency" content="assets/maestro/magician.png" data-resource-id="magician" />
+  <meta name="ext-resource-dependency" content="assets/maestro/nature.png" data-resource-id="nature" />
+  <meta name="ext-resource-dependency" content="assets/maestro/nervous.png" data-resource-id="nervous" />
+  <meta name="ext-resource-dependency" content="assets/maestro/painter.png" data-resource-id="painter" />
+  <meta name="ext-resource-dependency" content="assets/maestro/rebel.png" data-resource-id="rebel" />
+  <meta name="ext-resource-dependency" content="assets/maestro/sad.png" data-resource-id="sad" />
+  <meta name="ext-resource-dependency" content="assets/maestro/showman.png" data-resource-id="showman" />
+  <meta name="ext-resource-dependency" content="assets/maestro/sob.png" data-resource-id="sob" />
+  <meta name="ext-resource-dependency" content="assets/maestro/star.png" data-resource-id="star" />
+  <meta name="ext-resource-dependency" content="assets/maestro/swoon.png" data-resource-id="swoon" />
+  <meta name="ext-resource-dependency" content="assets/maestro/teach.png" data-resource-id="teach" />
+  <meta name="ext-resource-dependency" content="assets/maestro/tired.png" data-resource-id="tired" />
+  <meta name="ext-resource-dependency" content="assets/maestro/trophy.png" data-resource-id="trophy" />
+  <meta name="ext-resource-dependency" content="assets/maestro/violin.png" data-resource-id="violin" />
+  <meta name="ext-resource-dependency" content="assets/maestro/welcome-piano.png" data-resource-id="welcome-piano" />
+  <meta name="ext-resource-dependency" content="assets/maestro/wow.png" data-resource-id="wow" />
+  <meta name="ext-resource-dependency" content="assets/maestro/zen.png" data-resource-id="zen" />
+</head>
+<body>
+  <template id="__bundler_thumbnail" data-bg-color="#0c0a07">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100" height="100" rx="20" fill="#58CC02"/>
+      <rect x="30" y="34" width="40" height="32" rx="4" fill="#FFFAEC"/>
+      <rect x="36" y="34" width="3" height="32" fill="#2D2A26"/>
+      <rect x="46" y="34" width="3" height="32" fill="#2D2A26"/>
+      <rect x="56" y="34" width="3" height="32" fill="#2D2A26"/>
+      <rect x="48" y="34" width="6" height="20" rx="2" fill="#F5B800"/>
+    </svg>
+  </template>
+
+  <div id="pp-stage">
+    <div id="pp-canvas"><div id="pp-root"></div></div>
+  </div>
+
+  <div id="pp-launch">
+    <button id="pp-launch-btn">☰ Screens</button>
+    <div id="pp-launch-panel"></div>
+  </div>
+
+
+
+  <!-- React + Babel -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- App modules -->
+  <script type="text/babel" src="app/ds-core.jsx"></script>
+  <script type="text/babel" src="app/ds-piano.jsx"></script>
+  <script type="text/babel" src="app/data.jsx"></script>
+  <script type="text/babel" src="app/i18n.jsx"></script>
+  <script type="text/babel" src="app/chord-library.jsx"></script>
+  <script type="text/babel" src="app/chord-ui.jsx"></script>
+  <script type="text/babel" src="app/screens-onboarding.jsx"></script>
+  <script type="text/babel" src="app/screens-placement.jsx"></script>
+  <script type="text/babel" src="app/screens-home.jsx"></script>
+  <script type="text/babel" src="app/screens-lesson.jsx"></script>
+  <script type="text/babel" src="app/screens-library.jsx"></script>
+  <script type="text/babel" src="app/screens-money.jsx"></script>
+  <script type="text/babel" src="app/screens-hardware.jsx"></script>
+  <script type="text/babel" src="app/screens-settings.jsx"></script>
+  <script type="text/babel" src="app/app.jsx"></script>
+
+  <!-- Tablet scaling -->
+  <script>
+    (function () {
+      var canvas = document.getElementById("pp-canvas");
+      function fit() {
+        var s = Math.min(window.innerWidth / 1280, window.innerHeight / 800);
+        canvas.style.transform = "translate(-50%,-50%) scale(" + s + ")";
+      }
+      window.addEventListener("resize", fit);
+      fit();
+    })();
+    // global click-sound + haptic for every button / tappable (piano keys excluded)
+    document.addEventListener("pointerdown", function (e) {
+      if (!window.PP_Audio) return;
+      if (e.target.closest && e.target.closest("[data-noclk]")) return;
+      var el = e.target, hit = false;
+      for (var i = 0; i < 5 && el && el.nodeType === 1; i++) {
+        if (el.tagName === "BUTTON") { hit = true; break; }
+        try { if (getComputedStyle(el).cursor === "pointer") { hit = true; break; } } catch (_) {}
+        el = el.parentElement;
+      }
+      if (hit) window.PP_Audio.tap();
+    }, true);
+  </script>
+
+  <!-- Screen launcher -->
+  <script>
+    (function () {
+      var SCREENS = [
+        ["Core flow", [
+          ["Splash", "splash"], ["Who's playing?", "who"], ["Create profile", "createProfile"],
+          ["Onboarding", "onboarding"], ["Placement test", "placement"],
+          ["Placement result", "placementResult", { levelId: "el" }], ["Course path", "coursePath", { levelId: "el" }],
+          ["Home / Learn", "home"], ["Lesson player", "lesson", { item: { title: "Pop Chords I", kind: "lesson" } }], ["Lesson complete", "complete", { item: { title: "Pop Chords I" }, stars: 3, xp: 40 }],
+        ]],
+        ["Library", [["Song library", "songs"], ["Song preview", "songPreview", { song: { id: "s1", title: "Perfect", artist: "Ed Sheeran", hue: 12, level: "Elementary" } }], ["Import sheet music", "import"], ["Practice", "practice"]]],
+        ["Monetization", [["Paywall / plans", "paywall"], ["Upsell (out of hearts)", "upsell", { reason: "hearts" }], ["Manage subscription", "manageSub"]]],
+        ["Hardware", [["BLE pairing", "pair"], ["Calibration", "calibration"], ["LED settings", "ledSettings"], ["Settings", "settings"]]],
+        ["Profile", [["Profile & stats", "profile"]]],
+        ["States — Home", [["Home · empty (new learner)", "home", { state: "empty" }], ["Home · loading", "home", { state: "loading" }], ["Home · error", "home", { state: "error" }]]],
+        ["States — Lesson", [["Lesson · loading", "lesson", { state: "loading", item: { title: "Pop Chords I" } }], ["Lesson · LED dropped (error)", "lesson", { state: "error", item: { title: "Pop Chords I" } }]]],
+        ["States — Paywall", [["Paywall · processing", "paywall", { state: "loading" }], ["Paywall · payment error", "paywall", { state: "error" }]]],
+        ["States — Pairing", [["Pairing · no strip found (error)", "pair", { state: "error" }]]],
+      ];
+      var btn = document.getElementById("pp-launch-btn");
+      var panel = document.getElementById("pp-launch-panel");
+      SCREENS.forEach(function (grp) {
+        var h = document.createElement("div"); h.className = "pp-lg"; h.textContent = grp[0]; panel.appendChild(h);
+        grp[1].forEach(function (it) {
+          var b = document.createElement("button"); b.className = "pp-li"; b.textContent = it[0];
+          b.onclick = function () { if (window.PPGo) window.PPGo(it[1], it[2] || {}); panel.classList.remove("open"); };
+          panel.appendChild(b);
+        });
+      });
+      btn.onclick = function () { panel.classList.toggle("open"); };
+      document.addEventListener("click", function (e) {
+        if (!document.getElementById("pp-launch").contains(e.target)) panel.classList.remove("open");
+      });
+    })();
+  </script>
+</body>
+</html>
