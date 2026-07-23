@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Piano Professor — Phone (Landscape)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --green: #58CC02; --green-dark: #46A302;
+    --cream: #FFFAEC; --gold: #F5B800; --sky: #5BB8E3;
+    --streak: #FF7A52; --streak-dark: #C2410C; --error: #FF4B4B;
+    --ink: #2D2A26; --line: #EAE0C4;
+    --surface: #ffffff; --surface-2: #F7F1DE;
+    --ink-soft: #79735F; --ink-faint: #A99F82;
+    --nav-active: #E3F3FB; --seg-track: #EFE7CC; --seg-active: #ffffff;
+    --sel-gold: #FFF7E0; --sel-green: #F1FCE6; --sel-sky: #EAF6FC;
+    --lesson-bg: linear-gradient(180deg,#FFFDF6,#FFF3D6);
+  }
+  [data-theme="dark"] {
+    --cream: #0E1A2C; --ink: #EAF2FC; --line: #2A4267;
+    --surface: #16263E; --surface-2: #20375A;
+    --ink-soft: #AEC2DE; --ink-faint: #6E88AD;
+    --nav-active: #123C56; --seg-track: #182B45; --seg-active: #2B4670;
+    --sel-gold: #33301B; --sel-green: #15331F; --sel-sky: #123247;
+    --lesson-bg: radial-gradient(130% 120% at 50% 0%, #16273F 0%, #0A1424 72%);
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: Nunito, sans-serif; }
+  body {
+    background: #17140f;
+    background-image: radial-gradient(60% 80% at 50% 0%, #2a2419 0%, #17140f 70%);
+    overflow: hidden;
+  }
+  #ph-stage { position: fixed; inset: 0; display: grid; place-items: center; }
+  /* device bezel */
+  #ph-device {
+    position: absolute; left: 50%; top: 50%; transform-origin: center center;
+    width: 932px; height: 474px; border-radius: 56px;
+    background: #0c0a07;
+    box-shadow: 0 30px 90px #000b, inset 0 0 0 2px #2a2419;
+    padding: 40px;
+    display: grid; place-items: center;
+  }
+  #ph-canvas {
+    width: 852px; height: 394px; border-radius: 22px; overflow: hidden;
+    background: var(--cream); position: relative;
+    box-shadow: inset 0 0 0 3px #000;
+  }
+  [data-theme="dark"] #ph-canvas { background: #0E1A2C; }
+  /* notch / camera (landscape: on the left short edge) */
+  #ph-device::before {
+    content: ""; position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    width: 12px; height: 90px; border-radius: 8px; background: #1c1812;
+  }
+  #ph-device::after {
+    content: ""; position: absolute; left: 17px; top: 50%; transform: translateY(-50%);
+    width: 6px; height: 6px; border-radius: 50%; background: #2e2a20;
+    box-shadow: 0 0 0 1px #000;
+  }
+  #ph-root { width: 100%; height: 100%; }
+
+  .pp-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  .pp-scroll { scrollbar-width: none; }
+
+  /* dark-mode override for brand/celebration scenes — midnight south-pole night */
+  [data-theme="dark"] .pp-dark-scene {
+    background:
+      radial-gradient(95% 65% at 50% 116%, rgba(86,150,212,.40) 0%, transparent 60%),
+      radial-gradient(120% 120% at 50% -8%, #173251 0%, #0A1320 72%) !important;
+    position: relative;
+  }
+  [data-theme="dark"] .pp-dark-scene::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      radial-gradient(2px 2px at 18% 26%, #d6e9ff, transparent),
+      radial-gradient(2px 2px at 68% 16%, #bcd7ff, transparent),
+      radial-gradient(1.5px 1.5px at 40% 10%, #ffffff, transparent),
+      radial-gradient(2px 2px at 86% 36%, #cfe6ff, transparent),
+      radial-gradient(1.5px 1.5px at 11% 56%, #bcd7ff, transparent),
+      radial-gradient(2px 2px at 54% 30%, #cfe6ff, transparent),
+      radial-gradient(70px 24px at 24% 88%, rgba(190,218,246,.22), transparent 70%),
+      radial-gradient(96px 30px at 73% 92%, rgba(168,206,238,.18), transparent 72%);
+    opacity: .85;
+    animation: pp-icefloat 13s ease-in-out infinite alternate;
+  }
+  @keyframes pp-icefloat { from { transform: translateY(0); } to { transform: translateY(-9px); } }
+  @keyframes pp-in-fwd { from { transform: translateX(34px); } to { transform: none; } }
+  @keyframes pp-in-back { from { transform: translateX(-34px); } to { transform: none; } }
+  @keyframes pp-in-modal { from { transform: scale(.96); } to { transform: none; } }
+  .pp-enter-fwd { animation: pp-in-fwd .3s cubic-bezier(.2,.8,.2,1) both; }
+  .pp-enter-back { animation: pp-in-back .3s cubic-bezier(.2,.8,.2,1) both; }
+  .pp-enter-modal { animation: pp-in-modal .3s cubic-bezier(.2,.9,.3,1) both; }
+
+  @keyframes pp-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  @keyframes pp-pop { 0% { transform: scale(.7); } 100% { transform: scale(1); } }
+  @keyframes pp-slide-up { from { transform: translateY(18px); } to { transform: none; } }
+  @keyframes pp-twinkle { 0%,100% { transform: scale(.6); opacity: .3; } 50% { transform: scale(1.1); opacity: 1; } }
+  @keyframes pp-jiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+  @keyframes pp-toast { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  @keyframes pp-spin { to { transform: rotate(360deg); } }
+  @keyframes pp-ring { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(2.2); opacity: 0; } }
+  @keyframes pp-shimmer { 0% { background-position: -300px 0; } 100% { background-position: 300px 0; } }
+
+  #pp-launch { position: fixed; right: 16px; bottom: 16px; z-index: 1000; font-family: Nunito, sans-serif; }
+  #pp-launch-btn { display: flex; align-items: center; gap: 8px; padding: 11px 18px; border: none; cursor: pointer; background: #fff; color: var(--ink); border-radius: 999px; font-weight: 900; font-size: 14px; box-shadow: 0 6px 20px #0006; }
+  #pp-launch-panel { position: absolute; right: 0; bottom: 56px; width: 280px; max-height: 70vh; overflow-y: auto; background: #fff; border-radius: 18px; padding: 14px; box-shadow: 0 12px 40px #0007; display: none; }
+  #pp-launch-panel.open { display: block; }
+  .pp-lg { font-size: 11px; font-weight: 900; color: #A99F82; text-transform: uppercase; letter-spacing: .8px; margin: 12px 6px 6px; }
+  .pp-li { display: block; width: 100%; text-align: left; border: none; background: #F7F1DE; margin: 4px 0; padding: 9px 12px; border-radius: 10px; font-family: Nunito; font-weight: 800; font-size: 14px; color: var(--ink); cursor: pointer; }
+  .pp-li:hover { background: #EAF8DC; }
+
+  #ph-tag { position: fixed; left: 18px; top: 16px; z-index: 1000; font-family: Nunito; font-weight: 900; color: #C9BE9A; font-size: 13px; letter-spacing: .4px; }
+</style>
+</head>
+<body>
+  <template id="__bundler_thumbnail">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100" height="100" rx="20" fill="#58CC02"/>
+      <rect x="22" y="38" width="56" height="30" rx="6" fill="#0c0a07"/>
+      <rect x="27" y="43" width="46" height="20" rx="3" fill="#FFFAEC"/>
+      <rect x="34" y="43" width="2.5" height="20" fill="#2D2A26"/>
+      <rect x="44" y="43" width="2.5" height="20" fill="#2D2A26"/>
+      <rect x="54" y="43" width="2.5" height="20" fill="#2D2A26"/>
+      <rect x="46" y="43" width="5" height="13" rx="2" fill="#F5B800"/>
+    </svg>
+  </template>
+
+  <div id="ph-tag">📱 Phone · Landscape · 852×394</div>
+
+  <div id="ph-stage">
+    <div id="ph-device"><div id="ph-canvas"><div id="ph-root"></div></div></div>
+  </div>
+
+  <div id="pp-launch">
+    <button id="pp-launch-btn">☰ Screens</button>
+    <div id="pp-launch-panel"></div>
+  </div>
+
+
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- shared DS + data -->
+  <script type="text/babel" src="app/ds-core.jsx"></script>
+  <script type="text/babel" src="app/ds-piano.jsx"></script>
+  <script type="text/babel" src="app/data.jsx"></script>
+  <script type="text/babel" src="app/i18n.jsx"></script>
+  <script type="text/babel" src="app/chord-library.jsx"></script>
+  <script type="text/babel" src="app/circle-of-fifths.jsx"></script>
+  <script type="text/babel" src="app/chord-ui.jsx"></script>
+  <!-- phone screens -->
+  <script type="text/babel" src="app/phone-spine.jsx"></script>
+  <script type="text/babel" src="app/phone-main.jsx"></script>
+  <script type="text/babel" src="app/diploma.jsx"></script>
+  <script type="text/babel" src="app/phone-tabs.jsx"></script>
+
+  <script>
+    (function () {
+      var device = document.getElementById("ph-device");
+      function fit() {
+        var s = Math.min(window.innerWidth / 932, window.innerHeight / 474) * 0.96;
+        device.style.transform = "translate(-50%,-50%) scale(" + s + ")";
+      }
+      window.addEventListener("resize", fit); fit();
+    })();
+    // global click-sound + haptic for every button / tappable (piano keys excluded)
+    document.addEventListener("pointerdown", function (e) {
+      if (!window.PP_Audio) return;
+      if (e.target.closest && e.target.closest("[data-noclk]")) return;
+      var el = e.target, hit = false;
+      for (var i = 0; i < 5 && el && el.nodeType === 1; i++) {
+        if (el.tagName === "BUTTON") { hit = true; break; }
+        try { if (getComputedStyle(el).cursor === "pointer") { hit = true; break; } } catch (_) {}
+        el = el.parentElement;
+      }
+      if (hit) window.PP_Audio.tap();
+    }, true);
+  </script>
+
+  <script>
+    (function () {
+      var SCREENS = [
+        ["Core flow", [
+          ["Splash", "splash"], ["Who's playing?", "who"], ["Create profile", "createProfile"],
+          ["Onboarding", "onboarding"], ["Placement test", "placement"],
+          ["Placement result", "placementResult", { levelId: "el" }], ["Course path", "coursePath", { levelId: "el" }],
+          ["Home / Learn", "home"], ["Lesson player", "lesson", { item: { title: "Pop Chords I", kind: "lesson" } }], ["Lesson complete", "complete", { item: { title: "Pop Chords I" }, stars: 3, xp: 40 }],
+        ]],
+        ["Library", [["Song library", "songs"], ["Song preview", "songPreview", { song: { id: "s1", title: "Perfect", artist: "Ed Sheeran", hue: 12, level: "Elementary" } }], ["Import sheet music", "import"], ["Practice", "practice"]]],
+        ["Monetization", [["Paywall / plans", "paywall"], ["Upsell (out of hearts)", "upsell", { reason: "hearts" }], ["Manage subscription", "manageSub"]]],
+        ["Hardware", [["BLE pairing", "pair"], ["LED settings", "ledSettings"], ["Settings", "settings"]]],
+        ["Profile", [["Profile & stats", "profile"]]],
+        ["Graduation", [["Diploma 🎓", "diploma"]]],
+        ["States — Home", [["Home · empty", "home", { state: "empty" }], ["Home · loading", "home", { state: "loading" }], ["Home · error", "home", { state: "error" }]]],
+        ["States — Lesson", [["Lesson · loading", "lesson", { state: "loading", item: { title: "Pop Chords I" } }], ["Lesson · LED dropped", "lesson", { state: "error", item: { title: "Pop Chords I" } }]]],
+        ["States — Paywall", [["Paywall · processing", "paywall", { state: "loading" }], ["Paywall · error", "paywall", { state: "error" }]]],
+        ["States — Pairing", [["Pairing · no strip found", "pair", { state: "error" }]]],
+      ];
+      var btn = document.getElementById("pp-launch-btn");
+      var panel = document.getElementById("pp-launch-panel");
+      SCREENS.forEach(function (grp) {
+        var h = document.createElement("div"); h.className = "pp-lg"; h.textContent = grp[0]; panel.appendChild(h);
+        grp[1].forEach(function (it) {
+          var b = document.createElement("button"); b.className = "pp-li"; b.textContent = it[0];
+          b.onclick = function () { if (window.PPGo) window.PPGo(it[1], it[2] || {}); panel.classList.remove("open"); };
+          panel.appendChild(b);
+        });
+      });
+      btn.onclick = function () { panel.classList.toggle("open"); };
+      document.addEventListener("click", function (e) { if (!document.getElementById("pp-launch").contains(e.target)) panel.classList.remove("open"); });
+    })();
+  </script>
+</body>
+</html>
