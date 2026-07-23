@@ -56,6 +56,25 @@ export function Card({ children, style, pad = 20, onPress }: {
   );
 }
 
+export function Segmented({ options, value, onChange }: {
+  options: { value: string; label: string }[]; value: string; onChange: (v: string) => void;
+}) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flexDirection: 'row', backgroundColor: colors.segTrack, borderRadius: 14, padding: 4, gap: 4, alignSelf: 'center' }}>
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <Pressable key={o.value} onPress={() => onChange(o.value)}
+            style={{ paddingVertical: 8, paddingHorizontal: 18, borderRadius: 11, backgroundColor: on ? colors.segActive : 'transparent' }}>
+            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15, color: on ? colors.ink : colors.inkFaint }}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function ProgressBar({ value, height = 14, color, track, style }: {
   value: number; height?: number; color?: string; track?: string; style?: StyleProp<ViewStyle>;
 }) {

@@ -19,8 +19,8 @@ const XP_REWARD = 40;
 
 export default function Lesson() {
   const { colors } = useAppTheme();
-  const { activeProfile, loseHeart, updateActive, refillHearts } = useApp();
-  const { go, back, toast } = useRouter();
+  const { activeProfile, loseHeart, updateActive, premium } = useApp();
+  const { go, back } = useRouter();
   const insets = useSafeAreaInsets();
 
   const steps = SAMPLE_LESSON.steps;
@@ -74,14 +74,12 @@ export default function Lesson() {
   const onWrong = useCallback(() => {
     haptics.error();
     setMood('sad');
+    if (premium) return; // unlimited hearts
     const next = Math.max(0, hearts - 1);
     setHearts(next);
     loseHeart();
-    if (next <= 0) {
-      toast('Out of hearts 💔');
-      setTimeout(() => { refillHearts(); back(); }, 900);
-    }
-  }, [hearts, loseHeart, toast, refillHearts, back]);
+    if (next <= 0) setTimeout(() => go('upsell', { reason: 'hearts' }), 700);
+  }, [hearts, loseHeart, premium, go]);
 
   const onPlay = useCallback((midi: number) => {
     pianoEngine.playMidi(midi).catch(() => {});

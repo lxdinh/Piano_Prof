@@ -43,6 +43,7 @@ export default function Complete() {
       </View>
       <View style={{ flexDirection: 'row', gap: 12, marginTop: 10 }}>
         <PPButton label="Back to learn" size="md" variant="dark" onPress={() => go('home')} />
+        <PPButton label="Get diploma" size="md" variant="gold" onPress={() => go('diploma')} />
         <PPButton label="Next lesson" size="md" variant="green" onPress={() => go('home')} />
       </View>
     </LinearGradient>

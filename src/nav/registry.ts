@@ -10,15 +10,29 @@ import Onboarding from '../views/Onboarding';
 import Placement from '../views/Placement';
 import PlacementResult from '../views/PlacementResult';
 import CoursePath from '../views/CoursePath';
-import { Songs, Practice, ProfileScreen, Paywall, Pair, Settings } from '../views/stubs';
+import Songs from '../views/Songs';
+import SongPreview from '../views/SongPreview';
+import ImportSheet from '../views/ImportSheet';
+import Practice from '../views/Practice';
+import ProfileView from '../views/ProfileView';
+import Paywall from '../views/Paywall';
+import Upsell from '../views/Upsell';
+import ManageSub from '../views/ManageSub';
+import Pair from '../views/Pair';
+import Calibration from '../views/Calibration';
+import LedSettings from '../views/LedSettings';
+import Settings from '../views/Settings';
+import Diploma from '../views/Diploma';
 
 export const registry: ScreenRegistry = {
   splash: Splash,
   who: Who,
   home: Home,
   songs: Songs,
+  songPreview: SongPreview,
+  import: ImportSheet,
   practice: Practice,
-  profile: ProfileScreen,
+  profile: ProfileView,
   createProfile: CreateProfile,
   editProfile: CreateProfile,
   onboarding: Onboarding,
@@ -28,6 +42,11 @@ export const registry: ScreenRegistry = {
   lesson: Lesson,
   complete: Complete,
   paywall: Paywall,
+  upsell: Upsell,
+  manageSub: ManageSub,
   pair: Pair,
+  calibration: Calibration,
+  ledSettings: LedSettings,
   settings: Settings,
+  diploma: Diploma,
 };
