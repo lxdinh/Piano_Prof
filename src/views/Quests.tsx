@@ -9,6 +9,7 @@ import { Fonts } from '../theme/tokens';
 import Icon from '../ui/Icon';
 import Maestro from '../ui/Maestro';
 import { ProgressBar } from '../ui/atoms';
+import ScrollFit from '../ui/ScrollFit';
 import * as haptics from '../feedback/haptics';
 import { questsToday, QuestState } from '../data/quests';
 
@@ -69,7 +70,7 @@ export default function Quests() {
         <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>Daily Quests</Text>
       </View>
 
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <ScrollFit>
         <View style={{ width: 560, maxWidth: '100%', gap: 14 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 }}>
             <Maestro mood={doneCount === quests.length ? 'trophy' : 'conduct'} size={72} bg={colors.surface2} float />
@@ -86,7 +87,7 @@ export default function Quests() {
             <QuestRow key={q.quest.id} q={q} onClaim={() => claimQuest(q.quest.id)} />
           ))}
         </View>
-      </View>
+      </ScrollFit>
     </View>
   );
 }

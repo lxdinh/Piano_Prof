@@ -7,6 +7,7 @@ import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
+import ScrollFit from '../ui/ScrollFit';
 import { shopItem, canBuy } from '../data/shop';
 
 const REASONS: Record<string, { emoji: string; mood: string; title: string; body: string }> = {
@@ -25,7 +26,8 @@ export default function Upsell() {
   const canRefill = reason === 'hearts' && activeProfile ? canBuy(activeProfile, 'hearts') : false;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#14100acc', alignItems: 'center', justifyContent: 'center', padding: 30 }}>
+    <View style={{ flex: 1, backgroundColor: '#14100acc' }}>
+      <ScrollFit pad={30}>
       <View style={{ width: 520, maxWidth: '94%', backgroundColor: colors.surface, borderRadius: 26, borderWidth: 2, borderColor: colors.line, padding: 28, alignItems: 'center', gap: 10 }}>
         <Maestro mood={r.mood} size={110} bg={colors.surface2} ring={5} ringColor={colors.surface} float />
         <Text style={{ fontSize: 34 }}>{r.emoji}</Text>
@@ -42,6 +44,7 @@ export default function Upsell() {
           <PPButton label="Go Premium" size="md" variant="gold" onPress={() => go('paywall')} />
         </View>
       </View>
+      </ScrollFit>
     </View>
   );
 }

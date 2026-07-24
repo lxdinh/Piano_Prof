@@ -8,6 +8,7 @@ import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Icon from '../ui/Icon';
 import { Card, ProgressBar } from '../ui/atoms';
+import ScrollFit from '../ui/ScrollFit';
 import {
   MILESTONES, nextMilestone, milestoneProgress, earnedMilestones, monthCalendar,
 } from '../data/streak';
@@ -37,8 +38,8 @@ export default function Streak() {
         <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>Your Streak</Text>
       </View>
 
-      <View style={{ flex: 1, alignItems: 'center' }}>
-        <View style={{ width: 620, maxWidth: '100%', padding: 20, gap: 16, flexDirection: 'row', flexWrap: 'wrap' }}>
+      <ScrollFit pad={20}>
+        <View style={{ width: 620, maxWidth: '100%', gap: 16, flexDirection: 'row', flexWrap: 'wrap' }}>
           {/* left column: headline + milestone */}
           <View style={{ flex: 1, minWidth: 260, gap: 16 }}>
             <Card style={{ alignItems: 'center', gap: 6, paddingVertical: 22 }}>
@@ -122,7 +123,7 @@ export default function Streak() {
             </Card>
           </View>
         </View>
-      </View>
+      </ScrollFit>
     </View>
   );
 }

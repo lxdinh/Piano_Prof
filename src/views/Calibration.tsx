@@ -10,6 +10,7 @@ import Icon from '../ui/Icon';
 import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
 import Piano from '../ui/Piano';
+import ScrollFit from '../ui/ScrollFit';
 import * as pianoEngine from '../audio/pianoEngine';
 
 const STEPS = [
@@ -43,7 +44,7 @@ export default function Calibration() {
         <Icon name="chevronLeft" size={28} color={colors.ink} />
       </Pressable>
 
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 26, gap: 14 }}>
+      <ScrollFit pad={26} style={{ gap: 14 }}>
         {/* stepper */}
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
           {STEPS.map((_, i) => (
@@ -84,7 +85,7 @@ export default function Calibration() {
           label={last ? 'Finish' : step === 1 ? 'Skip' : 'Continue'}
           size="lg" variant={last ? 'green' : 'sky'} onPress={next} style={{ marginTop: 6 }}
         />
-      </View>
+      </ScrollFit>
     </View>
   );
 }

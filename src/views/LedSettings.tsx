@@ -8,6 +8,7 @@ import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Icon from '../ui/Icon';
 import Piano from '../ui/Piano';
+import ScrollFit from '../ui/ScrollFit';
 
 const LED_THEMES: { id: string; name: string; colors: string[] }[] = [
   { id: 'rainbow', name: 'Rainbow', colors: ['#FF4B4B', '#FF9600', '#F5B800', '#58CC02', '#5BB8E3', '#8B5CF6'] },
@@ -40,7 +41,7 @@ export default function LedSettings() {
         <Icon name="chevronLeft" size={28} color={colors.ink} />
       </Pressable>
 
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 26, gap: 18 }}>
+      <ScrollFit pad={26} style={{ gap: 18 }}>
         <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink }}>LED settings</Text>
 
         <View style={{ width: 560, maxWidth: '100%' }}>
@@ -80,7 +81,7 @@ export default function LedSettings() {
             })}
           </View>
         </View>
-      </View>
+      </ScrollFit>
     </View>
   );
 }

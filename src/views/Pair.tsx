@@ -13,6 +13,7 @@ import Icon from '../ui/Icon';
 import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
 import Piano from '../ui/Piano';
+import ScrollFit from '../ui/ScrollFit';
 
 type Phase = 'scan' | 'found' | 'connecting' | 'success';
 
@@ -92,7 +93,7 @@ export default function Pair() {
         <Icon name="close" size={26} color={colors.inkSoft} />
       </Pressable>
 
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14 }}>
+      <ScrollFit pad={28} style={{ gap: 14 }}>
         {phase === 'scan' && (
           <>
             <Radar />
@@ -138,7 +139,7 @@ export default function Pair() {
             </View>
           </>
         )}
-      </View>
+      </ScrollFit>
     </View>
   );
 }

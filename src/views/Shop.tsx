@@ -9,6 +9,7 @@ import { Fonts } from '../theme/tokens';
 import Icon from '../ui/Icon';
 import Maestro from '../ui/Maestro';
 import { StatChip } from '../ui/atoms';
+import ScrollFit from '../ui/ScrollFit';
 import * as haptics from '../feedback/haptics';
 import { SHOP_ITEMS, ShopItem, canBuy, buyBlockedReason, MAX_FREEZES } from '../data/shop';
 
@@ -83,7 +84,7 @@ export default function Shop() {
         </View>
       </View>
 
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <ScrollFit>
         <View style={{ width: 560, maxWidth: '100%', gap: 14 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 }}>
             <Maestro mood="magician" size={72} bg={colors.surface2} float />
@@ -100,7 +101,7 @@ export default function Shop() {
             <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 14, color: colors.inkSoft }}>Go Premium for unlimited hearts</Text>
           </Pressable>
         </View>
-      </View>
+      </ScrollFit>
     </View>
   );
 }

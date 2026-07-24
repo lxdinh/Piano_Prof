@@ -9,6 +9,7 @@ import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Icon from '../ui/Icon';
 import PPButton from '../ui/PPButton';
+import ScrollFit from '../ui/ScrollFit';
 
 export default function SignIn() {
   const { colors } = useAppTheme();
@@ -63,7 +64,7 @@ export default function SignIn() {
       <Pressable onPress={back} style={{ padding: 14, alignSelf: 'flex-start' }}>
         <Icon name="chevronLeft" size={28} color={colors.ink} />
       </Pressable>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 26 }}>
+      <ScrollFit pad={26}>
         <View style={{ width: 400, maxWidth: '100%', gap: 12 }}>
           <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink, textAlign: 'center' }}>
             {isSignup ? 'Create account' : 'Welcome back'}
@@ -95,7 +96,7 @@ export default function SignIn() {
             </Text>
           </Pressable>
         </View>
-      </View>
+      </ScrollFit>
     </View>
   );
 }

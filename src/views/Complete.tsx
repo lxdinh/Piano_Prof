@@ -2,12 +2,14 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet } from 'react-native';
 import { useApp } from '../state/AppState';
 import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Icon from '../ui/Icon';
 import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
+import ScrollFit from '../ui/ScrollFit';
 import { useT } from '../i18n/useT';
 
 function Tile({ emoji, value, label }: { emoji: string; value: string; label: string }) {
@@ -28,7 +30,9 @@ export default function Complete() {
   const xp: number = params.xp ?? 40;
 
   return (
-    <LinearGradient colors={['#16273F', '#0A1320']} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 32 }}>
+    <View style={{ flex: 1 }}>
+      <LinearGradient colors={['#16273F', '#0A1320']} style={StyleSheet.absoluteFill} />
+      <ScrollFit pad={32} style={{ gap: 10 }}>
       <Maestro mood={stars >= 3 ? 'trophy' : 'cheer'} size={150} bg="#ffffff1a" ring={5} ringColor="#ffffff33" float />
       <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 34, color: '#fff', marginTop: 8 }}>{tr('complete.title')}</Text>
       <View style={{ flexDirection: 'row', gap: 8, marginVertical: 8 }}>
@@ -46,6 +50,7 @@ export default function Complete() {
         <PPButton label="Get diploma" size="md" variant="gold" onPress={() => go('diploma')} />
         <PPButton label={tr('complete.nextLesson')} size="md" variant="green" onPress={() => go('home')} />
       </View>
-    </LinearGradient>
+      </ScrollFit>
+    </View>
   );
 }

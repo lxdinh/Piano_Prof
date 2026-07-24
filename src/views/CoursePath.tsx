@@ -7,6 +7,7 @@ import { useApp } from '../state/AppState';
 import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Icon, { IconName } from '../ui/Icon';
+import ScrollFit from '../ui/ScrollFit';
 import { LearningPath, levelById } from '../data/content';
 import { useT } from '../i18n/useT';
 
@@ -47,7 +48,8 @@ export default function CoursePath() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 24 }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <ScrollFit pad={32} style={{ gap: 24 }}>
       <View style={{ alignItems: 'center', gap: 6 }}>
         <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink }}>{tr('path.title')}</Text>
         <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 15, color: colors.inkSoft }}>{tr('path.switch')}</Text>
@@ -64,6 +66,7 @@ export default function CoursePath() {
           onPress={() => pick('soloist')}
         />
       </View>
+      </ScrollFit>
     </View>
   );
 }

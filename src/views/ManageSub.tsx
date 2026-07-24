@@ -8,6 +8,7 @@ import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Icon from '../ui/Icon';
 import PPButton from '../ui/PPButton';
+import ScrollFit from '../ui/ScrollFit';
 import { Card } from '../ui/atoms';
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -31,7 +32,7 @@ export default function ManageSub() {
       <Pressable onPress={back} style={{ padding: 14, alignSelf: 'flex-start' }}>
         <Icon name="chevronLeft" size={28} color={colors.ink} />
       </Pressable>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 26 }}>
+      <ScrollFit pad={26}>
         <View style={{ width: 520, maxWidth: '100%', gap: 16 }}>
           <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink }}>Subscription</Text>
           {premium ? (
@@ -62,7 +63,7 @@ export default function ManageSub() {
             </Card>
           )}
         </View>
-      </View>
+      </ScrollFit>
     </View>
   );
 }

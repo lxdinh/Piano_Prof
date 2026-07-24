@@ -8,6 +8,7 @@ import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Icon from '../ui/Icon';
 import Maestro from '../ui/Maestro';
+import ScrollFit from '../ui/ScrollFit';
 import { leaderboard, Rank } from '../data/leaderboard';
 
 function RankRow({ rank, isMe }: { rank: Rank; isMe: boolean }) {
@@ -60,8 +61,8 @@ export default function Leaderboard() {
         <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>Family League 🏆</Text>
       </View>
 
-      <View style={{ flex: 1, alignItems: 'center' }}>
-        <View style={{ width: 600, maxWidth: '100%', padding: 24, gap: 14 }}>
+      <ScrollFit>
+        <View style={{ width: 600, maxWidth: '100%', gap: 14 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 2 }}>
             <Maestro mood="trophy" size={72} bg={colors.surface2} float />
             <View style={{ flex: 1 }}>
@@ -86,7 +87,7 @@ export default function Leaderboard() {
             </Pressable>
           )}
         </View>
-      </View>
+      </ScrollFit>
     </View>
   );
 }

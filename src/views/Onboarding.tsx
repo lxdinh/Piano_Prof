@@ -9,6 +9,7 @@ import { Fonts } from '../theme/tokens';
 import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
 import Piano from '../ui/Piano';
+import ScrollFit from '../ui/ScrollFit';
 import { StatChip } from '../ui/atoms';
 
 interface Slide { mood: string; title: string; body: string; kind: 'plain' | 'piano' | 'stats' | 'mic'; }
@@ -29,7 +30,7 @@ export default function Onboarding() {
 
   return (
     <LinearGradient colors={isDark ? ['#16273F', '#0A1424'] : ['#FFFDF6', '#FFF3D6']} style={{ flex: 1, paddingTop: insets.top }}>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 }}>
+      <ScrollFit pad={32} style={{ gap: 12 }}>
         <Maestro mood={s.mood} size={150} bg={colors.surface} ring={5} ringColor="#fff" float />
         <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 30, color: colors.ink, marginTop: 8 }}>{s.title}</Text>
         <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 17, color: colors.inkSoft, textAlign: 'center', maxWidth: 440 }}>{s.body}</Text>
@@ -46,7 +47,7 @@ export default function Onboarding() {
             <StatChip kind="gems" value={40} big />
           </View>
         )}
-      </View>
+      </ScrollFit>
 
       <View style={{ alignItems: 'center', paddingBottom: insets.bottom + 24, gap: 18 }}>
         <View style={{ flexDirection: 'row', gap: 8 }}>

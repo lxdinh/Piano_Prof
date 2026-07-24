@@ -10,6 +10,7 @@ import { Fonts } from '../theme/tokens';
 import Icon, { IconName } from '../ui/Icon';
 import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
+import ScrollFit from '../ui/ScrollFit';
 
 type Phase = 'pick' | 'scanning' | 'done';
 const DETECTED = ['G', 'D', 'Em', 'C', 'G', 'D', 'C', 'G'];
@@ -47,7 +48,7 @@ export default function ImportSheet() {
         <Icon name="chevronLeft" size={28} color={colors.ink} />
       </Pressable>
 
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30, gap: 16 }}>
+      <ScrollFit pad={30} style={{ gap: 16 }}>
         {phase === 'pick' && (
           <>
             <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink }}>Import sheet music</Text>
@@ -82,7 +83,7 @@ export default function ImportSheet() {
               onPress={() => go('lesson', { item: { title: 'Imported sheet', kind: 'song' } })} />
           </>
         )}
-      </View>
+      </ScrollFit>
     </View>
   );
 }

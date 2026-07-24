@@ -10,6 +10,7 @@ import { Fonts } from '../theme/tokens';
 import Icon from '../ui/Icon';
 import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
+import ScrollFit from '../ui/ScrollFit';
 import { Card } from '../ui/atoms';
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -38,7 +39,7 @@ export default function Account() {
         <Icon name="chevronLeft" size={28} color={colors.ink} />
       </Pressable>
 
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 26 }}>
+      <ScrollFit pad={26}>
         <View style={{ width: 520, maxWidth: '100%', gap: 16 }}>
           {signedIn ? (
             <>
@@ -74,7 +75,7 @@ export default function Account() {
             </>
           )}
         </View>
-      </View>
+      </ScrollFit>
     </View>
   );
 }
