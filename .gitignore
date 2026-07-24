@@ -44,3 +44,8 @@ build.log
 
 # KiCad VS Code history sidecar (its own git repos)
 **/.history/
+
+# local build artifacts
+eas-build.log
+*.apk
+dist/
