@@ -2,16 +2,14 @@
 // Returns the active AuthBackend. Local today; to go fully cloud, implement a
 // FirebaseAuthBackend (same AuthBackend interface) and return it here when
 // Firebase config is present — no screen or provider changes required.
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AuthBackend, StorageLike } from './types';
+import { AuthBackend } from './types';
 import { LocalAuthBackend } from './localBackend';
 import { firebaseConfigured } from './firebaseConfig';
+import { accountStorage } from '../security/secureStore';
 
-const storage: StorageLike = {
-  getItem: (k) => AsyncStorage.getItem(k),
-  setItem: (k, v) => AsyncStorage.setItem(k, v),
-  removeItem: (k) => AsyncStorage.removeItem(k),
-};
+// Credentials/identity persist in the OS keystore; the synced progress blob
+// stays in AsyncStorage. See src/security/secureStore.ts.
+const storage = accountStorage;
 
 let instance: AuthBackend | null = null;
 
