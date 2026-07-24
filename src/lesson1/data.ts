@@ -1,6 +1,7 @@
 // Piano Professor — Lesson 1 data, ported verbatim from "Lesson 1.html"
 // (BLOCK 1 — LESSON DATA, lesson1_final_spec.md Part 2). The engine consumes
 // exactly this structure. Levels follow the school stages (KG → … → Master).
+import { handColor } from '../theme/handColors';
 
 // ── Global config ─────────────────────────────
 export const KEYBOARD = { lowest: 'C2', highest: 'C7', keys: 61 };  // 5-octave, Middle C = C4
@@ -33,6 +34,8 @@ export const noteToLedIndex = (midi: number) =>
 export const LED_RGB: Record<string, [number, number, number]> = {
   green: [88, 204, 2], cyan: [0, 205, 255], yellow: [255, 199, 0],
   orange: [255, 122, 10], red: [255, 64, 64], white: [255, 244, 214],
+  // Hand-temperature colours (right hand warm, left hand cool) — see handColors.
+  warm: handColor('R'), cool: handColor('L'),
 };
 
 export const ALL_LED_NOTES: string[] = (() => {
@@ -68,7 +71,7 @@ export const SONG_SMALL_TOWN_GIRL: SongConfig = {
   song: 'small_town_girl',
   displayMode: SHOW_LYRICS ? 'lyrics' : 'chords',
   gateMode: 'pauseUntilCorrect', ignoreWrongKeys: true,
-  ledLookAheadMs: 500, ledColor: 'cyan', windowMs: CHORD_WINDOW_MS,
+  ledLookAheadMs: 500, ledColor: 'warm', windowMs: CHORD_WINDOW_MS,
   chordMap: { C: CHORDS.C.right, G: CHORDS.G.right, Am: CHORDS.Am.right, F: CHORDS.F.right },
   chart: [
     { chord: 'C', lyric: 'Just a' }, { chord: 'G', lyric: 'small town girl,' },
@@ -82,7 +85,7 @@ export const SONG_LOVE_STORY: SongConfig = {
   song: 'love_story',
   displayMode: SHOW_LYRICS ? 'lyrics' : 'chords',
   gateMode: 'pauseUntilCorrect', ignoreWrongKeys: true,
-  ledLookAheadMs: 500, ledColor: 'cyan', windowMs: CHORD_WINDOW_MS,
+  ledLookAheadMs: 500, ledColor: 'warm', windowMs: CHORD_WINDOW_MS,
   chordMap: { C: CHORDS.C.right, G: CHORDS.G.right, Am: CHORDS.Am.right, F: CHORDS.F.right },
   chart: [
     { chord: 'C', lyric: 'Romeo take me' },
@@ -101,7 +104,7 @@ export const SONG_DSB_CHORUS: SongConfig = {
   song: 'dont_stop_believin_chorus',
   displayMode: SHOW_LYRICS ? 'lyrics' : 'chords',
   gateMode: 'pauseUntilCorrect', ignoreWrongKeys: true,
-  ledLookAheadMs: 500, ledColor: 'cyan', leftHandColor: 'orange',
+  ledLookAheadMs: 500, ledColor: 'warm', leftHandColor: 'cool',
   windowMs: CHORD_WINDOW_LH_MS,
   chordMap: {
     C: [CHORDS.C.left, ...CHORDS.C.right],
