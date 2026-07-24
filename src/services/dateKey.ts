@@ -23,7 +23,7 @@ export function daysBetween(a: string, b: string): number {
   return Math.round(ms / 86_400_000);
 }
 
-function parseKey(key: string): Date {
+export function parseKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
   return new Date(y, (m ?? 1) - 1, d ?? 1);
 }

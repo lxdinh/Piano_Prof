@@ -28,6 +28,7 @@ import SignIn from '../views/SignIn';
 import Quests from '../views/Quests';
 import Shop from '../views/Shop';
 import Leaderboard from '../views/Leaderboard';
+import Streak from '../views/Streak';
 
 export const registry: ScreenRegistry = {
   splash: Splash,
@@ -59,4 +60,5 @@ export const registry: ScreenRegistry = {
   quests: Quests,
   shop: Shop,
   leaderboard: Leaderboard,
+  streak: Streak,
 };
