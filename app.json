@@ -59,7 +59,8 @@
         {
           "color": "#58CC02"
         }
-      ]
+      ],
+      "./plugins/withImmersiveGame"
     ],
     "assetBundlePatterns": [
       "assets/**/*"

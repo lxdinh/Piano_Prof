@@ -20,20 +20,21 @@ const TABS: { key: TabKey; icon: IconName; labelKey: string }[] = [
   { key: 'profile', icon: 'user', labelKey: 'nav.profile' },
 ];
 
-function RailButton({ icon, label, active, onPress, color }: {
+function RailButton({ icon, label, active, onPress, color, iconSize, padV, fontSize, width }: {
   icon: IconName; label: string; active?: boolean; onPress: () => void; color: string;
+  iconSize: number; padV: number; fontSize: number; width: number;
 }) {
   const { colors } = useAppTheme();
   return (
     <Pressable
       onPress={onPress}
       style={{
-        width: 68, alignItems: 'center', gap: 3, paddingVertical: 10, borderRadius: 16,
+        width, alignItems: 'center', gap: 2, paddingVertical: padV, borderRadius: 14,
         backgroundColor: active ? colors.navActive : 'transparent',
       }}
     >
-      <Icon name={icon} size={26} color={active ? colors.skyDeep : color} />
-      <Text style={{ fontSize: 11, fontFamily: Fonts.family.bold, fontWeight: '800', color: active ? colors.skyDeep : color }}>
+      <Icon name={icon} size={iconSize} color={active ? colors.skyDeep : color} />
+      <Text numberOfLines={1} style={{ fontSize, fontFamily: Fonts.family.bold, fontWeight: '800', color: active ? colors.skyDeep : color }}>
         {label}
       </Text>
     </Pressable>
@@ -45,11 +46,20 @@ export default function Shell({ active, children, scroll = true }: {
 }) {
   const { colors } = useAppTheme();
   const { go } = useRouter();
-  const { activeProfile, premium } = useApp();
+  const { activeProfile, premium, led } = useApp();
   const { isTablet } = useStage();
   const tr = useT();
   const p = activeProfile;
-  const railW = isTablet ? 104 : 84; // a touch wider on the roomy tablet canvas
+  // Compact metrics on the short phone canvas so logo + 4 tabs + 2 utilities all
+  // fit (no overlap); roomier on the tall tablet canvas.
+  const railW = isTablet ? 104 : 76;
+  const logoSz = isTablet ? 46 : 40;
+  const btnIcon = isTablet ? 26 : 22;
+  const btnPadV = isTablet ? 10 : 6;
+  const btnFont = isTablet ? 11 : 10;
+  const railPadV = isTablet ? 14 : 8;
+  const utilIcon = isTablet ? 24 : 22;
+  const utilPad = isTablet ? 8 : 5;
 
   const Content = scroll ? ScrollView : View;
   const contentProps = scroll
@@ -61,28 +71,30 @@ export default function Shell({ active, children, scroll = true }: {
       {/* nav rail */}
       <View style={{
         width: railW, backgroundColor: colors.surface, borderRightWidth: 2, borderRightColor: colors.line,
-        alignItems: 'center', paddingVertical: 14, paddingBottom: 14,
+        alignItems: 'center', paddingVertical: railPadV,
       }}>
         <View style={{
-          width: 46, height: 46, borderRadius: 14, backgroundColor: colors.sky,
-          alignItems: 'center', justifyContent: 'center', marginBottom: 18,
+          width: logoSz, height: logoSz, borderRadius: 14, backgroundColor: colors.sky,
+          alignItems: 'center', justifyContent: 'center', marginBottom: isTablet ? 18 : 10,
         }}>
-          <Icon name="music" size={26} color="#fff" />
+          <Icon name="music" size={isTablet ? 26 : 22} color="#fff" />
         </View>
-        <View style={{ flex: 1, gap: 4 }}>
+        <View style={{ flex: 1, gap: isTablet ? 4 : 2, alignItems: 'center' }}>
           {TABS.map((t) => (
             <RailButton
               key={t.key} icon={t.icon} label={tr(t.labelKey)} active={active === t.key}
               color={colors.inkFaint} onPress={() => go(t.key)}
+              iconSize={btnIcon} padV={btnPadV} fontSize={btnFont} width={railW - 10}
             />
           ))}
         </View>
-        <View style={{ gap: 8, alignItems: 'center' }}>
-          <Pressable onPress={() => go('pair')} style={{ padding: 8 }}>
-            <Icon name="bluetooth" size={24} color={colors.green} />
+        <View style={{ gap: isTablet ? 8 : 6, alignItems: 'center' }}>
+          {/* green only when a real board is linked (see Pair) */}
+          <Pressable onPress={() => go('pair')} style={{ padding: utilPad }}>
+            <Icon name="bluetooth" size={utilIcon} color={led.connected ? colors.green : colors.inkFaint} />
           </Pressable>
-          <Pressable onPress={() => go('settings')} style={{ padding: 8 }}>
-            <Icon name="gear" size={24} color={colors.inkFaint} />
+          <Pressable onPress={() => go('settings')} style={{ padding: utilPad }}>
+            <Icon name="gear" size={utilIcon} color={colors.inkFaint} />
           </Pressable>
         </View>
       </View>

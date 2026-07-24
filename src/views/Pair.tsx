@@ -1,10 +1,9 @@
-// Piano Professor — BLE pairing flow: scan → found → connecting → success.
-// Phase 2 ships the design-faithful flow with a simulated scan; the real
-// react-native-ble-plx wiring (src/ble/useBLE) hooks in behind these phases
-// on-device in the hardware phase.
+// Piano Professor — BLE pairing: a REAL scan/connect to the ESP32 LED strip
+// (same react-native-ble-plx path the Lesson uses, via HwFacade). No board
+// nearby → the scan times out and we show an honest "not found", so the app
+// never claims "Connected" without a real link.
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Animated } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../theme/AppTheme';
 import { useApp } from '../state/AppState';
 import { useRouter } from '../nav/Router';
@@ -14,8 +13,9 @@ import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
 import Piano from '../ui/Piano';
 import ScrollFit from '../ui/ScrollFit';
+import { HwFacade, HwStatus } from '../lesson1/hal';
 
-type Phase = 'scan' | 'found' | 'connecting' | 'success';
+type Phase = 'scan' | 'connecting' | 'success' | 'error';
 
 function Radar() {
   const { colors } = useAppTheme();
@@ -49,11 +49,11 @@ function Radar() {
   );
 }
 
-// gentle rainbow sweep across the strip while celebrating
+// gentle rainbow sweep across the strip while celebrating a real connection
 function useSweep(active: boolean, low: number, high: number): Record<number, string> {
   const [lit, setLit] = useState<Record<number, string>>({});
   useEffect(() => {
-    if (!active) return;
+    if (!active) { setLit({}); return; }
     const cols = ['#FF4B4B', '#FF9600', '#F5B800', '#58CC02', '#5BB8E3', '#8B5CF6'];
     let head = low;
     const id = setInterval(() => {
@@ -74,57 +74,80 @@ export default function Pair() {
   const { colors } = useAppTheme();
   const { setLed } = useApp();
   const { go, back } = useRouter();
-  const insets = useSafeAreaInsets();
   const [phase, setPhase] = useState<Phase>('scan');
+  const [detail, setDetail] = useState('Looking for your LED strip…');
+  const [errMsg, setErrMsg] = useState('');
   const sweep = useSweep(phase === 'success', 60, 84);
+  const hwRef = useRef<HwFacade | null>(null);
+  const mounted = useRef(true);
 
   useEffect(() => {
-    if (phase === 'scan') {
-      const id = setTimeout(() => setPhase('found'), 2200);
-      return () => clearTimeout(id);
-    }
-    if (phase === 'connecting') {
-      const id = setTimeout(() => { setLed({ connected: true }); setPhase('success'); }, 1600);
-      return () => clearTimeout(id);
-    }
-  }, [phase, setLed]);
+    mounted.current = true;
+    const hw = new HwFacade();
+    hwRef.current = hw;
+    hw.setMode('ble');
+    hw.onStatus((s: HwStatus) => {
+      if (!mounted.current) return;
+      if (s.state === 'connected') {
+        setPhase('success');
+        setLed({ connected: true });
+        try { hw.ledEffect('celebration', []); } catch { /* ignore */ }
+      } else if (s.state === 'connecting') {
+        setPhase(/scan/i.test(s.detail) ? 'scan' : 'connecting');
+        setDetail(s.detail || 'Connecting…');
+      } else if (s.state === 'error' || s.state === 'disconnected') {
+        setPhase('error');
+        setErrMsg(s.detail || (s.state === 'disconnected' ? 'Connection lost' : 'Could not connect'));
+        setLed({ connected: false });
+      }
+    });
+    hw.connect().catch(() => { /* status listener shows the error */ });
+    return () => {
+      mounted.current = false;
+      setLed({ connected: false }); // honest: no live link once we leave
+      hw.dispose();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const retry = () => {
+    setErrMsg('');
+    setPhase('scan');
+    hwRef.current?.connect().catch(() => {});
+  };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Pressable onPress={back} style={{ padding: 14, alignSelf: 'flex-start' }}>
         <Icon name="close" size={26} color={colors.inkSoft} />
       </Pressable>
 
       <ScrollFit pad={28} style={{ gap: 14 }}>
-        {phase === 'scan' && (
+        {(phase === 'scan' || phase === 'connecting') && (
           <>
             <Radar />
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: colors.ink }}>Looking for your LED strip…</Text>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 14, color: colors.inkFaint }}>Make sure it's plugged in and nearby</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: colors.ink }}>
+              {phase === 'connecting' ? 'Connecting…' : 'Looking for your LED strip…'}
+            </Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 14, color: colors.inkFaint }}>
+              {phase === 'connecting' ? detail : "Make sure it's powered on and nearby"}
+            </Text>
           </>
         )}
 
-        {phase === 'found' && (
+        {phase === 'error' && (
           <>
-            <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.selSky, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="bluetooth" size={40} color={colors.skyDeep} />
+            <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="bluetooth" size={40} color={colors.inkFaint} />
             </View>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: colors.ink }}>Found one!</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.surface, borderRadius: 18, borderWidth: 2, borderColor: colors.line, borderBottomWidth: 5, padding: 18 }}>
-              <Icon name="piano" size={30} color={colors.skyDeep} />
-              <View>
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 17, color: colors.ink }}>Piano Professor LED</Text>
-                <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 13, color: colors.inkSoft }}>PP-Strip · 88 keys</Text>
-              </View>
-              <PPButton label="Connect" size="sm" variant="sky" onPress={() => setPhase('connecting')} />
+            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>No board connected</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 14, color: colors.inkFaint, textAlign: 'center', maxWidth: 460 }}>
+              {errMsg || 'Could not find your LED strip.'} Power it on, keep it nearby, and make sure Bluetooth is on.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
+              <PPButton label="Try again" size="md" variant="sky" onPress={retry} />
+              <PPButton label="Not now" size="md" variant="ghost" onPress={() => go('home')} />
             </View>
-          </>
-        )}
-
-        {phase === 'connecting' && (
-          <>
-            <Maestro mood="conduct" size={120} bg={colors.surface2} float />
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>Connecting…</Text>
           </>
         )}
 

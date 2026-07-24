@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, Platform } from 'react-native';
+import { View, ActivityIndicator, Platform, AppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -37,10 +37,15 @@ function App() {
   // hide the Android navigation bar (sticky, so a swipe reveals it briefly).
   useEffect(() => {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
-    if (Platform.OS === 'android') {
+    const hideNavBar = () => {
+      if (Platform.OS !== 'android') return;
       NavigationBar.setVisibilityAsync('hidden').catch(() => {});
       NavigationBar.setBehaviorAsync('overlay-swipe').catch(() => {});
-    }
+    };
+    hideNavBar();
+    // Android restores the nav bar after some interactions / on resume — re-hide.
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') hideNavBar(); });
+    return () => sub.remove();
   }, []);
 
   if (!fontsLoaded) {

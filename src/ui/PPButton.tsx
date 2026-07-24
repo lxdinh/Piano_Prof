@@ -52,8 +52,9 @@ export default function PPButton({
   const to = (v: number) =>
     Animated.spring(press, { toValue: v, useNativeDriver: true, friction: 7, tension: 240 }).start();
 
-  const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, sz.plate - 1] });
-  const plateH = press.interpolate({ inputRange: [0, 1], outputRange: [sz.plate, 1] });
+  // Press sinks the face down into the base by `plate` px. At rest the face sits
+  // on top and the base shows as a `plate`-tall rim at the bottom.
+  const translateY = press.interpolate({ inputRange: [0, 1], outputRange: [0, sz.plate] });
 
   const handlePress = () => {
     if (disabled) return;
@@ -63,19 +64,19 @@ export default function PPButton({
 
   return (
     <View style={[full && { width: '100%' }, disabled && { opacity: 0.45 }, style]}>
+      {/* The base IS the button's background — one rounded rect, so its corners
+          always match the face (no detached "underscore"), robust under scaling. */}
       <Pressable
         onPress={handlePress}
         onPressIn={() => !disabled && to(1)}
         onPressOut={() => to(0)}
         disabled={disabled}
-        style={{ paddingBottom: sz.plate }}
+        style={{
+          borderRadius: sz.radius,
+          backgroundColor: isGhost ? 'transparent' : pal[2],
+          paddingBottom: isGhost ? 0 : sz.plate,
+        }}
       >
-        {!isGhost && (
-          <Animated.View
-            pointerEvents="none"
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: plateH, borderRadius: sz.radius, backgroundColor: pal[2] }}
-          />
-        )}
         <Animated.View style={{ transform: [{ translateY }] }}>
           <LinearGradient
             colors={isGhost ? ['transparent', 'transparent'] : [pal[0], pal[1]]}
