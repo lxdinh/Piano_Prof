@@ -13,6 +13,10 @@ import { AppStateProvider } from './src/state/AppState';
 import { AccountProvider } from './src/account/AccountProvider';
 import { RouterProvider } from './src/nav/Router';
 import { registry } from './src/nav/registry';
+import { initTelemetry, wrapRoot } from './src/telemetry/sentry';
+
+// Start crash reporting as early as possible (no-op until a DSN is set).
+initTelemetry();
 
 function Root() {
   const { isDark } = useAppTheme();
@@ -24,7 +28,7 @@ function Root() {
   );
 }
 
-export default function App() {
+function App() {
   const [fontsLoaded] = useFonts({ Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black });
 
   // The new design is landscape-first (matches the prototype's phone + tablet
@@ -53,3 +57,6 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+// Wrapped for Sentry native crash handlers (unwrapped no-op until a DSN is set).
+export default wrapRoot(App);
