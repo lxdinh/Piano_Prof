@@ -62,6 +62,8 @@ export interface Profile {
   todayXp?: number;
   /** Local date key (YYYY-MM-DD) of the last completed lesson. */
   lastActiveDate?: string;
+  /** Per-day XP history (YYYY-MM-DD -> xp) for the weekly chart. */
+  history?: Record<string, number>;
   /** Timestamp of the last heart loss — drives the 30-min refill timer. */
   heartsAt?: number;
 }

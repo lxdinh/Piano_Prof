@@ -1,5 +1,5 @@
 // Piano Professor — Settings: language, goal, sound, appearance, hardware, account.
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, ScrollView, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../theme/AppTheme';
@@ -11,6 +11,7 @@ import LangDropdown from '../ui/LangDropdown';
 import { Card } from '../ui/atoms';
 import * as ambientAudio from '../audio/ambient';
 import * as pianoEngine from '../audio/pianoEngine';
+import { isReminderOn, setReminder } from '../notifications/reminders';
 import { useT } from '../i18n/useT';
 
 const GOALS = [
@@ -58,6 +59,8 @@ export default function Settings() {
   const insets = useSafeAreaInsets();
   const tr = useT();
   const goalXp = 50;
+  const [reminders, setReminders] = useState(false);
+  useEffect(() => { isReminderOn().then(setReminders); }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
@@ -92,6 +95,7 @@ export default function Settings() {
             <Section title={tr('settings.lessonSound')}>
               <ToggleRow icon="sound" label="Sound effects" value={!muted} onChange={(v) => { setMuted(!v); pianoEngine.setPianoEnabled(v); ambientAudio.setMuted(!v); }} />
               <ToggleRow icon="headphones" label={tr('settings.bgMusic')} value={backgroundMusic} onChange={(v) => { setAmbient(v); ambientAudio.setEnabled(v); }} />
+              <ToggleRow icon="bell" label={`${tr('settings.reminders')} · 6 PM`} value={reminders} onChange={async (v) => { setReminders(v); const ok = await setReminder(v); setReminders(ok); }} />
             </Section>
 
             <Section title="Appearance">

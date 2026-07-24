@@ -1,8 +1,8 @@
 import {
   deriveShelves, activeItem, shelfProgressPct, applyCompletion, applyHeartRefill,
-  itemOrder, HEART_REFILL_MS,
+  itemOrder, HEART_REFILL_MS, weeklyXp, deriveAchievements, songsLearned,
 } from '../data/progress';
-import { Profile } from '../data/content';
+import { Profile, seedProgress } from '../data/content';
 
 const base: Profile = {
   id: 't', name: 'Test', avatar: 'cool', bg: '#fff', color: '#58CC02',
@@ -74,6 +74,38 @@ describe('applyCompletion', () => {
     const once = applyCompletion(base, 'k1', 1, 40, '2026-07-22');
     const twice = applyCompletion(once, 'k1', 3, 40, '2026-07-22');
     expect(twice.progress?.k1).toBe(3);
+  });
+});
+
+describe('profile stat derivation', () => {
+  it('weeklyXp returns 7 days with today reflecting the live bucket', () => {
+    const week = weeklyXp({ ...base, todayXp: 42, history: {} });
+    expect(week).toHaveLength(7);
+    expect(week[6].xp).toBe(42); // today
+  });
+  it('weeklyXp reads recorded history and merges today', () => {
+    const p2 = applyCompletion({ ...base, history: {} }, 'k1', 3, 40, '2026-07-22');
+    const week = weeklyXp(p2, new Date('2026-07-22T12:00:00'));
+    expect(week[6].xp).toBeGreaterThanOrEqual(40);
+  });
+  it('deriveAchievements reflects real state', () => {
+    const rich: Profile = { ...base, streak: 9, xp: 1500, progress: seedProgress() };
+    const a = Object.fromEntries(deriveAchievements(rich).map((x) => [x.id, x.done]));
+    expect(a.streak7).toBe(true);   // streak 9 ≥ 7
+    expect(a.xp1000).toBe(true);    // 1500 ≥ 1000
+    expect(a.firstSong).toBe(true); // seed completes a song (Twinkle)
+    expect(a.perfect).toBe(true);   // seed has 3-star items
+  });
+  it('locks achievements for a fresh profile', () => {
+    const fresh: Profile = { ...base, streak: 0, xp: 0, gems: 0, progress: {} };
+    const a = Object.fromEntries(deriveAchievements(fresh).map((x) => [x.id, x.done]));
+    expect(a.streak7).toBe(false);
+    expect(a.xp1000).toBe(false);
+    expect(a.firstSong).toBe(false);
+  });
+  it('songsLearned counts completed songs only', () => {
+    expect(songsLearned({ ...base, progress: {} })).toBe(0);
+    expect(songsLearned({ ...base, progress: seedProgress() })).toBeGreaterThanOrEqual(1);
   });
 });
 

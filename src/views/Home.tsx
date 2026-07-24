@@ -85,11 +85,33 @@ function PosterCard({ item, shelf }: { item: DerivedItem; shelf: DerivedShelf })
   );
 }
 
+function Skeleton() {
+  const { colors } = useAppTheme();
+  const block = (w: any, h: number, extra?: object) => (
+    <View style={{ width: w, height: h, borderRadius: 14, backgroundColor: colors.surface2, ...extra }} />
+  );
+  return (
+    <Shell active="home">
+      {block('100%', 150, { borderRadius: 24 })}
+      {[0, 1].map((r) => (
+        <View key={r} style={{ marginTop: 26, gap: 12 }}>
+          {block(180, 18)}
+          <View style={{ flexDirection: 'row', gap: 14 }}>
+            {[0, 1, 2, 3].map((i) => block(156, 150, { borderRadius: 18 } as object))}
+          </View>
+        </View>
+      ))}
+    </Shell>
+  );
+}
+
 export default function Home() {
   const { colors } = useAppTheme();
-  const { activeProfile } = useApp();
+  const { activeProfile, ready } = useApp();
   const { go } = useRouter();
   const tr = useT();
+
+  if (!ready) return <Skeleton />;
 
   const progress = activeProfile?.progress ?? {};
   const shelves = deriveShelves(progress);

@@ -3,7 +3,7 @@
 // applies lesson-completion rewards (XP, gems, streak, daily goal).
 
 import { SHELVES, Shelf, ShelfItem, ItemState, Profile } from './content';
-import { todayKey, isYesterday } from '../services/dateKey';
+import { todayKey, dayKey, isYesterday } from '../services/dateKey';
 
 export const DAILY_GOAL_XP = 50;
 export const HEART_REFILL_MS = 30 * 60 * 1000; // 1 heart per 30 minutes
@@ -78,9 +78,15 @@ export function applyCompletion(
   const chainAlive = !p.lastActiveDate || isYesterday(p.lastActiveDate, today) || p.lastActiveDate === today;
   const progress: ProgressMap = { ...(p.progress ?? {}), [itemId]: Math.max(stars, p.progress?.[itemId] ?? 0) };
   const next = activeItem(progress);
+  // per-day XP history, pruned to the last 14 days
+  const history: Record<string, number> = { ...(p.history ?? {}) };
+  history[today] = (history[today] ?? 0) + xp;
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 14);
+  for (const k of Object.keys(history)) if (k < dayKey(cutoff)) delete history[k];
   return {
     ...p,
     progress,
+    history,
     xp: p.xp + xp,
     gems: p.gems + stars,
     todayXp: (newDay ? 0 : (p.todayXp ?? 0)) + xp,
@@ -88,6 +94,53 @@ export function applyCompletion(
     lastActiveDate: today,
     lastUnit: next?.title ?? p.lastUnit,
   };
+}
+
+// ── Profile stats derivation (weekly chart + achievements) ──
+const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+/** Last 7 days of XP (oldest → today), today merged with the live daily bucket. */
+export function weeklyXp(p: Profile, today = new Date()): { label: string; xp: number }[] {
+  const hist = p.history ?? {};
+  const out: { label: string; xp: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const key = dayKey(d);
+    let xp = hist[key] ?? 0;
+    if (i === 0) xp = Math.max(xp, p.todayXp ?? 0); // today's live bucket
+    out.push({ label: DOW[d.getDay()], xp });
+  }
+  return out;
+}
+
+export interface Achievement { id: string; emoji: string; name: string; done: boolean; }
+
+/** Derive the achievements grid from real profile state. */
+export function deriveAchievements(p: Profile): Achievement[] {
+  const prog = p.progress ?? {};
+  const doneIds = new Set(Object.keys(prog));
+  const allItems = SHELVES.flatMap((s) => s.items);
+  const doneSongs = allItems.filter((i) => i.kind === 'song' && doneIds.has(i.id)).length;
+  const perfectCount = Object.values(prog).filter((s) => s >= 3).length;
+  // a level is "graduated" when all its non-soon items are done
+  const graduated = SHELVES.some((s) => {
+    const items = s.items.filter((i) => i.state !== 'soon');
+    return items.length > 0 && items.every((i) => doneIds.has(i.id));
+  });
+  return [
+    { id: 'streak7', emoji: '🔥', name: '7-Day Streak', done: p.streak >= 7 },
+    { id: 'firstSong', emoji: '🎵', name: 'First Song', done: doneSongs >= 1 },
+    { id: 'perfect', emoji: '⭐', name: 'Perfect Lesson', done: perfectCount >= 1 },
+    { id: 'xp1000', emoji: '⚡', name: '1000 XP', done: p.xp >= 1000 },
+    { id: 'chordMaster', emoji: '🎹', name: 'Chord Master', done: doneIds.has('e1') },
+    { id: 'graduate', emoji: '🎓', name: 'Grade Graduate', done: graduated },
+  ];
+}
+
+/** Count of distinct songs the profile has completed. */
+export function songsLearned(p: Profile): number {
+  const doneIds = new Set(Object.keys(p.progress ?? {}));
+  return SHELVES.flatMap((s) => s.items).filter((i) => i.kind === 'song' && doneIds.has(i.id)).length;
 }
 
 /** Timed heart refill: 1 heart per 30 min since the last heart was lost. */

@@ -55,7 +55,7 @@
       ]
     ],
     "assetBundlePatterns": [
-      "**/*"
+      "assets/**/*"
     ],
     "extra": {
       "eas": {
