@@ -120,6 +120,7 @@ export default function Home() {
   const level = levelById(activeProfile?.levelId ?? heroShelf.levelId);
   const pct = shelfProgressPct(progress);
   const todayXp = activeProfile?.todayXp ?? 0;
+  const goalXp = activeProfile?.dailyGoalXp ?? DAILY_GOAL_XP;
   const heroTitle = next?.title ?? activeProfile?.lastUnit ?? 'All caught up!';
 
   return (
@@ -145,7 +146,7 @@ export default function Home() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#ffffff33', borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13 }}>
               <Icon name="bolt" size={16} color="#fff" />
               <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#fff' }}>
-                {Math.min(todayXp, DAILY_GOAL_XP)} / {DAILY_GOAL_XP} XP
+                {Math.min(todayXp, goalXp)} / {goalXp} XP
               </Text>
             </View>
           </View>

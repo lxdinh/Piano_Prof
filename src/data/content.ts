@@ -58,6 +58,8 @@ export interface Profile {
   lang: string;
   /** itemId -> stars earned (drives derived shelf states). */
   progress?: Record<string, number>;
+  /** Daily XP goal (Casual 20 / Regular 50 / Serious 100 / Intense 150). */
+  dailyGoalXp?: number;
   /** XP earned today (daily-goal bucket). */
   todayXp?: number;
   /** Local date key (YYYY-MM-DD) of the last completed lesson. */

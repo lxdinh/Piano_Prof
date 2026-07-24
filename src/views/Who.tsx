@@ -1,6 +1,6 @@
 // Piano Professor — "Who's playing?" family profile picker.
-import React from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../theme/AppTheme';
@@ -13,12 +13,14 @@ import { useT } from '../i18n/useT';
 
 export default function Who() {
   const { colors, isDark } = useAppTheme();
-  const { profiles, setActive, addProfile } = useApp();
+  const { profiles, setActive, addProfile, removeProfile } = useApp();
   const { go } = useRouter();
   const insets = useSafeAreaInsets();
   const tr = useT();
+  const [manage, setManage] = useState(false);
 
   const pick = (id: string, placed: boolean) => {
+    if (manage) { setActive(id); go('editProfile'); return; }
     setActive(id);
     go(placed ? 'home' : 'onboarding');
   };
@@ -42,6 +44,13 @@ export default function Who() {
       <Text style={{ textAlign: 'center', fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 32, color: colors.ink }}>
         {tr('who.title')}
       </Text>
+      <Pressable
+        onPress={() => setManage((m) => !m)}
+        style={{ position: 'absolute', top: insets.top + 24, right: 24, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, borderWidth: 2, borderColor: colors.line, backgroundColor: colors.surface }}
+      >
+        <Icon name={manage ? 'check' : 'pencil'} size={16} color={colors.inkSoft} />
+        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 14, color: colors.inkSoft }}>{manage ? tr('who.done') : tr('who.manage')}</Text>
+      </Pressable>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -49,17 +58,34 @@ export default function Who() {
         style={{ flexGrow: 0, marginTop: 20 }}
       >
         {profiles.map((p) => (
-          <Pressable key={p.id} onPress={() => pick(p.id, p.placed)} style={{ alignItems: 'center', gap: 12 }}>
+          <Pressable key={p.id} onPress={() => pick(p.id, p.placed)} style={{ alignItems: 'center', gap: 12, opacity: manage ? 0.9 : 1 }}>
             <View>
-              <Maestro mood={p.avatar} size={132} bg={p.bg} ring={4} ringColor={p.color} fit="head" />
-              <View style={{
-                position: 'absolute', bottom: -4, right: -4, flexDirection: 'row', alignItems: 'center', gap: 3,
-                backgroundColor: colors.surface, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 9,
-                borderWidth: 2, borderColor: colors.line,
-              }}>
-                <Text style={{ fontSize: 13 }}>🔥</Text>
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#C2410C' }}>{p.streak}</Text>
-              </View>
+              <Maestro mood={p.avatar} size={132} bg={p.bg} ring={4} ringColor={manage ? colors.line : p.color} fit="head" />
+              {manage ? (
+                <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' } as any}>
+                  <Icon name="pencil" size={30} color={colors.ink} />
+                </View>
+              ) : (
+                <View style={{
+                  position: 'absolute', bottom: -4, right: -4, flexDirection: 'row', alignItems: 'center', gap: 3,
+                  backgroundColor: colors.surface, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 9,
+                  borderWidth: 2, borderColor: colors.line,
+                }}>
+                  <Text style={{ fontSize: 13 }}>🔥</Text>
+                  <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#C2410C' }}>{p.streak}</Text>
+                </View>
+              )}
+              {manage && profiles.length > 1 && (
+                <Pressable
+                  onPress={() => Alert.alert('Remove profile', `Delete ${p.name}'s profile and progress?`, [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: () => removeProfile(p.id) },
+                  ])}
+                  style={{ position: 'absolute', top: -6, right: -6, width: 34, height: 34, borderRadius: 17, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.surface }}
+                >
+                  <Icon name="close" size={18} color="#fff" />
+                </Pressable>
+              )}
             </View>
             <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 20, color: colors.ink }}>{p.name}</Text>
           </Pressable>

@@ -12,6 +12,7 @@ import { Card } from '../ui/atoms';
 import * as ambientAudio from '../audio/ambient';
 import * as pianoEngine from '../audio/pianoEngine';
 import { isReminderOn, setReminder } from '../notifications/reminders';
+import { Audio } from 'expo-av';
 import { useT } from '../i18n/useT';
 
 const GOALS = [
@@ -55,10 +56,10 @@ function ToggleRow({ icon, label, value, onChange }: { icon: IconName; label: st
 export default function Settings() {
   const { colors, isDark, toggle } = useAppTheme();
   const { activeProfile, updateActive, muted, setMuted, ambient: backgroundMusic, setAmbient, led } = useApp();
-  const { go, back } = useRouter();
+  const { go, back, toast } = useRouter();
   const insets = useSafeAreaInsets();
   const tr = useT();
-  const goalXp = 50;
+  const goalXp = activeProfile?.dailyGoalXp ?? 50;
   const [reminders, setReminders] = useState(false);
   useEffect(() => { isReminderOn().then(setReminders); }, []);
 
@@ -83,10 +84,10 @@ export default function Settings() {
                 {GOALS.map((g) => {
                   const on = g.xp === goalXp;
                   return (
-                    <View key={g.xp} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: on ? colors.selGreen : colors.surface2, borderWidth: 2, borderColor: on ? colors.green : 'transparent' }}>
+                    <Pressable key={g.xp} onPress={() => updateActive({ dailyGoalXp: g.xp })} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: on ? colors.selGreen : colors.surface2, borderWidth: 2, borderColor: on ? colors.green : 'transparent' }}>
                       <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: colors.ink }}>{tr(g.key)}</Text>
                       <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkFaint }}>{g.xp} XP</Text>
-                    </View>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -116,7 +117,13 @@ export default function Settings() {
             </Section>
 
             <Section title="Privacy">
-              <LinkRow icon="mic" label="Microphone" value="On-device only" />
+              <LinkRow
+                icon="mic" label="Microphone" value="On-device only"
+                onPress={async () => {
+                  const res = await Audio.requestPermissionsAsync();
+                  toast(res.granted ? 'Microphone enabled — Maestro can hear you play' : 'Microphone stays off — enable it in system settings');
+                }}
+              />
             </Section>
           </View>
         </View>
