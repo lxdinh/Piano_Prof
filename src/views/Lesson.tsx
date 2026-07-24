@@ -32,9 +32,11 @@ const CARD_W = 104;
 
 export default function Lesson() {
   const { colors } = useAppTheme();
-  const { activeProfile, updateActive } = useApp();
-  const { go, back } = useRouter();
+  const { activeProfile, completeItem } = useApp();
+  const { params, go, back } = useRouter();
   const insets = useSafeAreaInsets();
+  const awardedRef = useRef(false);
+  const itemId: string = params.item?.id ?? 'e1'; // "Pop Chords I" — Lesson 1 default
 
   const [phase, setPhase] = useState<'start' | 'run' | 'complete'>('start');
   const [savedStep, setSavedStep] = useState(0);
@@ -198,11 +200,12 @@ export default function Lesson() {
     };
   }, [typeText]);
 
-  // complete: staggered stars + write rewards to the profile
+  // complete: staggered stars + write rewards to the profile (once per finish)
   useEffect(() => {
     if (phase !== 'complete') { setStarsIn(0); return; }
-    if (activeProfile) {
-      updateActive({ xp: activeProfile.xp + completeXp, lastUnit: 'Lesson 1 · First Songs' });
+    if (!awardedRef.current) {
+      awardedRef.current = true;
+      completeItem(itemId, 3, completeXp); // Lesson 1 is heart-safe → 3 stars
     }
     const ts = [0, 1, 2].map((i) => setTimeout(() => { setStarsIn(i + 1); Cues.star(i); }, 500 + i * 360));
     return () => ts.forEach(clearTimeout);

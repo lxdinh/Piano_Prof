@@ -7,6 +7,10 @@ import React, {
 import { View, Text, Animated } from 'react-native';
 import { useAppTheme } from '../theme/AppTheme';
 import { Fonts } from '../theme/tokens';
+import * as ambient from '../audio/ambient';
+
+// Screens where the relaxed background piano should stay quiet.
+const AMBIENT_QUIET = new Set(['lesson', 'practice']);
 
 export type ScreenName = string;
 export type ScreenParams = Record<string, any>;
@@ -57,6 +61,10 @@ export function RouterProvider({ screens, initial = 'splash' }: {
   }, []);
 
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+
+  // Ambient relaxed piano everywhere except the lesson/practice players.
+  useEffect(() => { ambient.kick(); }, []);
+  useEffect(() => { ambient.setSuppressed(AMBIENT_QUIET.has(screen)); }, [screen]);
 
   const api = useMemo<RouterAPI>(() => ({ screen, params, go, back, toast }), [screen, params, go, back, toast]);
   const Comp = screens[screen] ?? Missing;

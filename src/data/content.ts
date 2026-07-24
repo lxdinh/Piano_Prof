@@ -56,13 +56,15 @@ export interface Profile {
   path: LearningPath;
   lastUnit: string;
   lang: string;
+  /** itemId -> stars earned (drives derived shelf states). */
+  progress?: Record<string, number>;
+  /** XP earned today (daily-goal bucket). */
+  todayXp?: number;
+  /** Local date key (YYYY-MM-DD) of the last completed lesson. */
+  lastActiveDate?: string;
+  /** Timestamp of the last heart loss — drives the 30-min refill timer. */
+  heartsAt?: number;
 }
-
-export const PROFILES_SEED: Profile[] = [
-  { id: 'p1', name: 'Ava', avatar: 'cool',   bg: '#FFE38A', color: '#58CC02', streak: 12, xp: 3480, gems: 240, hearts: 5, levelId: 'el', grade: 3, placed: true, path: 'chords',  lastUnit: 'Pop Chords I', lang: 'en' },
-  { id: 'p2', name: 'Leo', avatar: 'rebel',  bg: '#D7F5C2', color: '#FF7A52', streak: 4,  xp: 1260, gems: 80,  hearts: 4, levelId: 'kg', grade: 1, placed: true, path: 'soloist', lastUnit: 'First 3 Notes', lang: 'vi' },
-  { id: 'p3', name: 'Mum', avatar: 'violin', bg: '#FFE38A', color: '#9b6bff', streak: 31, xp: 9120, gems: 510, hearts: 5, levelId: 'ms', grade: 5, placed: true, path: 'chords',  lastUnit: 'Ballads & Arpeggios', lang: 'fr' },
-];
 
 export type ItemKind = 'lesson' | 'song' | 'concept' | 'exercise';
 export type ItemState = 'done' | 'active' | 'locked' | 'soon';
@@ -139,6 +141,24 @@ export const SHELVES: Shelf[] = [
       { id: 'a3', kind: 'song',    title: 'Clair de Lune', sub: 'Debussy', state: 'locked', premium: true },
     ],
   },
+];
+
+// Demo starting progress: everything the design marks "done" up front, keyed
+// to its star rating. New profiles created via onboarding start empty.
+export function seedProgress(): Record<string, number> {
+  const map: Record<string, number> = {};
+  for (const shelf of SHELVES) {
+    for (const item of shelf.items) {
+      if (item.state === 'done') map[item.id] = item.stars ?? 3;
+    }
+  }
+  return map;
+}
+
+export const PROFILES_SEED: Profile[] = [
+  { id: 'p1', name: 'Ava', avatar: 'cool',   bg: '#FFE38A', color: '#58CC02', streak: 12, xp: 3480, gems: 240, hearts: 5, levelId: 'el', grade: 3, placed: true, path: 'chords',  lastUnit: 'Both Hands', lang: 'en', progress: seedProgress(), todayXp: 30 },
+  { id: 'p2', name: 'Leo', avatar: 'rebel',  bg: '#D7F5C2', color: '#FF7A52', streak: 4,  xp: 1260, gems: 80,  hearts: 4, levelId: 'kg', grade: 1, placed: true, path: 'soloist', lastUnit: 'First 3 Notes', lang: 'vi', progress: seedProgress(), todayXp: 0 },
+  { id: 'p3', name: 'Mum', avatar: 'violin', bg: '#FFE38A', color: '#9b6bff', streak: 31, xp: 9120, gems: 510, hearts: 5, levelId: 'ms', grade: 5, placed: true, path: 'chords',  lastUnit: 'Both Hands', lang: 'fr', progress: seedProgress(), todayXp: 0 },
 ];
 
 export interface Song {

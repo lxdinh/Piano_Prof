@@ -11,22 +11,28 @@ import Maestro from '../ui/Maestro';
 import Icon, { IconName } from '../ui/Icon';
 import PPButton from '../ui/PPButton';
 import { ProgressBar } from '../ui/atoms';
-import { SHELVES, ShelfItem, Shelf, ItemKind, levelById } from '../data/content';
+import { ItemKind, levelById } from '../data/content';
+import {
+  deriveShelves, DerivedItem, DerivedShelf, activeItem, activeShelf, shelfProgressPct,
+} from '../data/progress';
+import { DAILY_GOAL_XP } from '../data/progress';
 
 const KIND_ICON: Record<ItemKind, IconName> = {
   lesson: 'piano', song: 'music', concept: 'book', exercise: 'bolt',
 };
 
-function PosterCard({ item, shelf }: { item: ShelfItem; shelf: Shelf }) {
+function PosterCard({ item, shelf }: { item: DerivedItem; shelf: DerivedShelf }) {
   const { colors } = useAppTheme();
   const { go, toast } = useRouter();
+  const state = item.derivedState;
 
   const onPress = () => {
-    if (item.state === 'soon') return toast('Still cooking 👨‍🍳');
-    if (item.state === 'locked') {
+    if (state === 'soon') return toast('Still cooking 👨‍🍳');
+    if (state === 'locked') {
       if (item.premium) return go('paywall');
       return toast('Finish the earlier units first');
     }
+    if (item.premium) return go('paywall');
     go('lesson', { item });
   };
 
@@ -34,11 +40,16 @@ function PosterCard({ item, shelf }: { item: ShelfItem; shelf: Shelf }) {
     <Pressable onPress={onPress} style={{
       width: 156, borderRadius: 18, backgroundColor: colors.surface,
       borderWidth: 2, borderColor: colors.line, borderBottomWidth: 5, overflow: 'hidden',
-      opacity: item.state === 'locked' || item.state === 'soon' ? 0.75 : 1,
+      opacity: state === 'locked' || state === 'soon' ? 0.75 : 1,
     }}>
       <LinearGradient colors={[shelf.color, shelf.deep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ height: 82, alignItems: 'center', justifyContent: 'center' }}>
         <Icon name={KIND_ICON[item.kind]} size={34} color="#ffffff" />
+        {state === 'active' && (
+          <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: '#ffffff33', borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
+            <Text style={{ color: '#fff', fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 9 }}>NEXT UP</Text>
+          </View>
+        )}
         {item.premium && (
           <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: '#00000030', borderRadius: 999, paddingVertical: 2, paddingHorizontal: 7 }}>
             <Text style={{ color: '#fff', fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 10 }}>PRO</Text>
@@ -49,16 +60,21 @@ function PosterCard({ item, shelf }: { item: ShelfItem; shelf: Shelf }) {
         <Text numberOfLines={1} style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: colors.ink }}>{item.title}</Text>
         <Text numberOfLines={1} style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkSoft }}>{item.sub}</Text>
         <View style={{ minHeight: 20, justifyContent: 'center' }}>
-          {item.state === 'done' && (
+          {state === 'done' && (
             <View style={{ flexDirection: 'row', gap: 2 }}>
               {[0, 1, 2].map((i) => (
-                <Icon key={i} name={i < (item.stars ?? 0) ? 'star' : 'starline'} size={16} color={i < (item.stars ?? 0) ? '#F5B800' : colors.line} />
+                <Icon key={i} name={i < (item.derivedStars ?? 0) ? 'star' : 'starline'} size={16} color={i < (item.derivedStars ?? 0) ? '#F5B800' : colors.line} />
               ))}
             </View>
           )}
-          {item.state === 'active' && <ProgressBar value={item.progress ?? 0} height={10} />}
-          {item.state === 'locked' && <Icon name="lock" size={16} color={colors.inkFaint} />}
-          {item.state === 'soon' && (
+          {state === 'active' && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icon name="play" size={14} color={colors.green} />
+              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: colors.green }}>Start</Text>
+            </View>
+          )}
+          {state === 'locked' && <Icon name="lock" size={16} color={colors.inkFaint} />}
+          {state === 'soon' && (
             <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 11, color: colors.inkFaint }}>Still cooking 👨‍🍳</Text>
           )}
         </View>
@@ -71,36 +87,49 @@ export default function Home() {
   const { colors } = useAppTheme();
   const { activeProfile } = useApp();
   const { go } = useRouter();
-  const level = levelById(activeProfile?.levelId ?? 'el');
+
+  const progress = activeProfile?.progress ?? {};
+  const shelves = deriveShelves(progress);
+  const next = activeItem(progress);
+  const heroShelf = activeShelf(progress);
+  const level = levelById(activeProfile?.levelId ?? heroShelf.levelId);
+  const pct = shelfProgressPct(progress);
+  const todayXp = activeProfile?.todayXp ?? 0;
+  const heroTitle = next?.title ?? activeProfile?.lastUnit ?? 'All caught up!';
 
   return (
     <Shell active="home">
       {/* Continue hero */}
-      <LinearGradient colors={[level.color, level.deep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      <LinearGradient colors={[heroShelf.color, heroShelf.deep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
         <View style={{ flex: 1, gap: 8 }}>
           <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: '#ffffffcc', letterSpacing: 1 }}>
-            CONTINUE LEARNING
+            {next ? 'CONTINUE LEARNING' : `${level.name.toUpperCase()} · GRADE ${level.grade}`}
           </Text>
           <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: '#fff' }}>
-            {activeProfile?.lastUnit ?? 'Pop Chords I'}
+            {heroTitle}
           </Text>
           <View style={{ maxWidth: 320 }}>
-            <ProgressBar value={60} height={12} color="#fff" track="#ffffff44" />
+            <ProgressBar value={pct} height={12} color="#fff" track="#ffffff44" />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
-            <PPButton label="Continue" size="md" variant="white" onPress={() => go('lesson', { item: { title: activeProfile?.lastUnit ?? 'Pop Chords I', kind: 'lesson' } })} />
+            <PPButton
+              label={next ? 'Continue' : 'Practice'} size="md" variant="white"
+              onPress={() => (next ? go('lesson', { item: next }) : go('practice'))}
+            />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#ffffff33', borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13 }}>
               <Icon name="bolt" size={16} color="#fff" />
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#fff' }}>30 / 50 XP</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#fff' }}>
+                {Math.min(todayXp, DAILY_GOAL_XP)} / {DAILY_GOAL_XP} XP
+              </Text>
             </View>
           </View>
         </View>
-        <Maestro mood="cheer" size={116} bg="#ffffff33" float />
+        <Maestro mood={next ? 'cheer' : 'trophy'} size={116} bg="#ffffff33" float />
       </LinearGradient>
 
       {/* Shelves */}
-      {SHELVES.map((shelf) => (
+      {shelves.map((shelf) => (
         <View key={shelf.levelId} style={{ marginTop: 26 }}>
           <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: colors.ink, marginBottom: 12 }}>
             {shelf.title}

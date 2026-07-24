@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Profile, PROFILES_SEED } from '../data/content';
+import { applyCompletion, applyHeartRefill } from '../data/progress';
 
 const STORAGE_KEY = 'pp.appstate.v1';
 export const MAX_PROFILES = 5;
@@ -28,6 +29,7 @@ export interface AppState {
   updateProfile: (id: string, patch: Partial<Profile>) => void;
   removeProfile: (id: string) => void;
   updateActive: (patch: Partial<Profile>) => void;
+  completeItem: (itemId: string, stars: number, xp: number) => void;
   loseHeart: () => void;
   refillHearts: () => void;
   premium: boolean;
@@ -69,7 +71,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
           const p = JSON.parse(raw) as Persisted;
-          if (Array.isArray(p.profiles) && p.profiles.length) setProfiles(p.profiles);
+          if (Array.isArray(p.profiles) && p.profiles.length) {
+            // apply elapsed timed heart refills on boot
+            setProfiles(p.profiles.map((pr) => applyHeartRefill(pr)));
+          }
           if (p.activeId) setActiveId(p.activeId);
           if (typeof p.premium === 'boolean') setPremium(p.premium);
         }
@@ -118,14 +123,21 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setProfiles((ps) => ps.map((p) => (p.id === activeId ? { ...p, ...patch } : p)));
   }, [activeId]);
 
+  const completeItem = useCallback((itemId: string, stars: number, xp: number) => {
+    if (!activeId) return;
+    setProfiles((ps) => ps.map((p) => (p.id === activeId ? applyCompletion(p, itemId, stars, xp) : p)));
+  }, [activeId]);
+
   const loseHeart = useCallback(() => {
     if (!activeId) return;
-    setProfiles((ps) => ps.map((p) => (p.id === activeId ? { ...p, hearts: Math.max(0, p.hearts - 1) } : p)));
+    setProfiles((ps) => ps.map((p) => (p.id === activeId
+      ? { ...p, hearts: Math.max(0, p.hearts - 1), heartsAt: p.heartsAt ?? Date.now() }
+      : p)));
   }, [activeId]);
 
   const refillHearts = useCallback(() => {
     if (!activeId) return;
-    setProfiles((ps) => ps.map((p) => (p.id === activeId ? { ...p, hearts: 5 } : p)));
+    setProfiles((ps) => ps.map((p) => (p.id === activeId ? { ...p, hearts: 5, heartsAt: undefined } : p)));
   }, [activeId]);
 
   const setLed = useCallback((patch: Partial<LedState>) => {
@@ -135,10 +147,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AppState>(() => ({
     ready, profiles, activeId, activeProfile,
     setActive, addProfile, updateProfile, removeProfile, updateActive,
-    loseHeart, refillHearts,
+    completeItem, loseHeart, refillHearts,
     premium, setPremium, led, setLed, muted, setMuted, ambient, setAmbient,
   }), [ready, profiles, activeId, activeProfile, setActive, addProfile, updateProfile,
-    removeProfile, updateActive, loseHeart, refillHearts, premium, led, setLed, muted, ambient]);
+    removeProfile, updateActive, completeItem, loseHeart, refillHearts, premium, led, setLed, muted, ambient]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

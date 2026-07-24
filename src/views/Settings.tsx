@@ -9,6 +9,8 @@ import { Fonts } from '../theme/tokens';
 import Icon, { IconName } from '../ui/Icon';
 import LangDropdown from '../ui/LangDropdown';
 import { Card } from '../ui/atoms';
+import * as ambientAudio from '../audio/ambient';
+import * as pianoEngine from '../audio/pianoEngine';
 
 const GOALS = [
   { label: 'Casual', xp: 20 }, { label: 'Regular', xp: 50 },
@@ -50,7 +52,7 @@ function ToggleRow({ icon, label, value, onChange }: { icon: IconName; label: st
 
 export default function Settings() {
   const { colors, isDark, toggle } = useAppTheme();
-  const { activeProfile, updateActive, muted, setMuted, ambient, setAmbient, led } = useApp();
+  const { activeProfile, updateActive, muted, setMuted, ambient: backgroundMusic, setAmbient, led } = useApp();
   const { go, back } = useRouter();
   const insets = useSafeAreaInsets();
   const goalXp = 50;
@@ -86,8 +88,8 @@ export default function Settings() {
             </Section>
 
             <Section title="Lesson & sound">
-              <ToggleRow icon="sound" label="Sound effects" value={!muted} onChange={(v) => setMuted(!v)} />
-              <ToggleRow icon="headphones" label="Background music" value={ambient} onChange={setAmbient} />
+              <ToggleRow icon="sound" label="Sound effects" value={!muted} onChange={(v) => { setMuted(!v); pianoEngine.setPianoEnabled(v); ambientAudio.setMuted(!v); }} />
+              <ToggleRow icon="headphones" label="Background music" value={backgroundMusic} onChange={(v) => { setAmbient(v); ambientAudio.setEnabled(v); }} />
             </Section>
 
             <Section title="Appearance">
