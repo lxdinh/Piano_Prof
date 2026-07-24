@@ -9,4 +9,10 @@ config.resolver.assetExts = Array.from(
   new Set([...config.resolver.assetExts, ...audioExts]),
 );
 
+// Firebase JS SDK (v10) ships .cjs entry points and relies on package "exports".
+// These two lines are the documented fix for Metro + Expo so `firebase/auth`
+// resolves correctly ("Component auth has not been registered yet").
+config.resolver.sourceExts = Array.from(new Set([...config.resolver.sourceExts, 'cjs']));
+config.resolver.unstable_enablePackageExports = false;
+
 module.exports = config;
