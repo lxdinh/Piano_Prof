@@ -1,14 +1,15 @@
 import 'react-native-gesture-handler';
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import * as NavigationBar from 'expo-navigation-bar';
 import {
   useFonts, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black,
 } from '@expo-google-fonts/nunito';
 
-import { AppThemeProvider, useAppTheme } from './src/theme/AppTheme';
+import { AppThemeProvider } from './src/theme/AppTheme';
 import { AppStateProvider } from './src/state/AppState';
 import { AccountProvider } from './src/account/AccountProvider';
 import { RouterProvider } from './src/nav/Router';
@@ -19,10 +20,10 @@ import { initTelemetry, wrapRoot } from './src/telemetry/sentry';
 initTelemetry();
 
 function Root() {
-  const { isDark } = useAppTheme();
   return (
     <>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
+      {/* Immersive game: no OS status bar. */}
+      <StatusBar hidden />
       <RouterProvider screens={registry} initial="splash" />
     </>
   );
@@ -32,9 +33,14 @@ function App() {
   const [fontsLoaded] = useFonts({ Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black });
 
   // The new design is landscape-first (matches the prototype's phone + tablet
-  // artboards). Lock landscape for the whole app.
+  // artboards). Lock landscape, and go immersive full-screen like a game —
+  // hide the Android navigation bar (sticky, so a swipe reveals it briefly).
   useEffect(() => {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden').catch(() => {});
+      NavigationBar.setBehaviorAsync('overlay-swipe').catch(() => {});
+    }
   }, []);
 
   if (!fontsLoaded) {
