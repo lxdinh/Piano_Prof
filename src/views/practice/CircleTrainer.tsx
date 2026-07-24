@@ -2,10 +2,11 @@
 // SVG wheel: outer ring = major keys, inner ring = relative minors.
 // Tap a wedge to hear the key; IV/V neighbours highlight.
 import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text } from 'react-native';
 import Svg, { Path, Text as SvgText, Circle } from 'react-native-svg';
 import { useAppTheme } from '../../theme/AppTheme';
 import { Fonts } from '../../theme/tokens';
+import FitBox from '../../ui/FitBox';
 import PPButton from '../../ui/PPButton';
 import {
   COF_KEYS, cofSigText, majTriad, minTriad, majScaleMidi,
@@ -52,8 +53,9 @@ export default function CircleTrainer() {
   };
 
   return (
-    <ScrollView horizontal={false} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-      <View style={{ flexDirection: 'row', gap: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
+    // Fixed 2-up layout scaled to fit the Practice body — never scrolls.
+    <FitBox design={{ w: 724, h: 400 }}>
+      <View style={{ flex: 1, flexDirection: 'row', gap: 20, alignItems: 'center', justifyContent: 'center' }}>
         {/* wheel */}
         <Svg width={size} height={size}>
           {COF_KEYS.map((key, i) => {
@@ -104,6 +106,6 @@ export default function CircleTrainer() {
           </View>
         </View>
       </View>
-    </ScrollView>
+    </FitBox>
   );
 }

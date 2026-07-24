@@ -1,33 +1,29 @@
-// Piano Professor — device-responsive sizing. The app is landscape-locked, so
-// only device *size* varies (not orientation). This adapts centered content
-// width and exposes tablet/compact flags so screens fit every device.
+// Piano Professor — stage/canvas resolver. The app is landscape-locked and
+// rendered into a fixed logical *canvas* that <Stage> scales to fit the device
+// (see src/ui/FitBox.tsx). Phones use a compact canvas, tablets/desktop a
+// roomier one, so a big screen gives more room at the same text size rather
+// than a zoomed-in phone layout. Both match the uploaded prototype mockups.
 import { useWindowDimensions } from 'react-native';
 
-const BASE_LONG = 820;  // reference landscape width the UI was designed at
-const BASE_SHORT = 390; // reference landscape height
+/** Compact phone canvas — matches the prototype's 852×394 landscape mockup. */
+export const PHONE_CANVAS = { w: 852, h: 394 };
+/** Roomy tablet/desktop canvas — matches the prototype's 1280×800 mockup. */
+export const TABLET_CANVAS = { w: 1280, h: 800 };
 
-export interface Responsive {
-  w: number;
-  h: number;
-  scale: number;            // clamped size multiplier
+export interface Stage {
+  canvas: { w: number; h: number };
   isTablet: boolean;
-  isCompact: boolean;       // short landscape phones
-  /** Clamp a designed card width so it never overflows a narrow screen and
-      grows a little on tablets. */
-  contentWidth: (design: number) => number;
+  isDesktop: boolean;
+  /** Cap FitBox upscaling so text stays crisp on very large screens. */
+  maxScale: number;
 }
 
-export function useResponsive(): Responsive {
+export function useStage(): Stage {
   const { width, height } = useWindowDimensions();
-  const longest = Math.max(width, height);
   const shortest = Math.min(width, height);
-  const scale = Math.max(0.9, Math.min(1.4, Math.min(longest / BASE_LONG, shortest / BASE_SHORT)));
-  return {
-    w: width,
-    h: height,
-    scale,
-    isTablet: shortest >= 600,
-    isCompact: shortest < 350,
-    contentWidth: (design) => Math.min(Math.round(design * scale), Math.round(width - 32)),
-  };
+  const longest = Math.max(width, height);
+  const isTablet = shortest >= 600; // ≥600dp shortest side ⇒ tablet-class device
+  const isDesktop = longest >= 1400; // large windows / web / desktop
+  const canvas = isTablet || isDesktop ? TABLET_CANVAS : PHONE_CANVAS;
+  return { canvas, isTablet, isDesktop, maxScale: isDesktop ? 2 : 3 };
 }

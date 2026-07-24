@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppTheme } from '../theme/AppTheme';
 import { useApp } from '../state/AppState';
 import { useRouter } from '../nav/Router';
+import { useStage } from '../theme/responsive';
 import { Fonts } from '../theme/tokens';
 import Icon from '../ui/Icon';
 import Maestro from '../ui/Maestro';
@@ -34,7 +35,9 @@ export default function Lesson() {
   const { colors } = useAppTheme();
   const { completeItem } = useApp();
   const { params, go, back } = useRouter();
+  const { isTablet } = useStage();
   const insets = useSafeAreaInsets();
+  const kbH = isTablet ? 300 : 168; // keyboard grows on the roomy tablet canvas
   const awardedRef = useRef(false);
   const itemId: string = params.item?.id ?? 'e1'; // "Pop Chords I" — Lesson 1 default
 
@@ -406,7 +409,7 @@ export default function Lesson() {
           interactive={isSim}
           onPressIn={(m) => sim?.keyDown(m)}
           onPressOut={(m) => sim?.keyUp(m)}
-          height={168} hideNoteNames={false}
+          height={kbH} hideNoteNames={false}
         />
       </View>
 

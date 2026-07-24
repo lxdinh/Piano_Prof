@@ -2,8 +2,8 @@
 // Wraps the four primary tab screens (Learn / Songs / Practice / Profile).
 import React from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../theme/AppTheme';
+import { useStage } from '../theme/responsive';
 import { useApp } from '../state/AppState';
 import { useRouter } from './Router';
 import { Fonts } from '../theme/tokens';
@@ -46,9 +46,10 @@ export default function Shell({ active, children, scroll = true }: {
   const { colors } = useAppTheme();
   const { go } = useRouter();
   const { activeProfile, premium } = useApp();
-  const insets = useSafeAreaInsets();
+  const { isTablet } = useStage();
   const tr = useT();
   const p = activeProfile;
+  const railW = isTablet ? 104 : 84; // a touch wider on the roomy tablet canvas
 
   const Content = scroll ? ScrollView : View;
   const contentProps = scroll
@@ -56,11 +57,11 @@ export default function Shell({ active, children, scroll = true }: {
     : { style: { flex: 1 } };
 
   return (
-    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: colors.bg, paddingTop: insets.top }}>
+    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: colors.bg }}>
       {/* nav rail */}
       <View style={{
-        width: 84, backgroundColor: colors.surface, borderRightWidth: 2, borderRightColor: colors.line,
-        alignItems: 'center', paddingVertical: 14, paddingBottom: insets.bottom + 14,
+        width: railW, backgroundColor: colors.surface, borderRightWidth: 2, borderRightColor: colors.line,
+        alignItems: 'center', paddingVertical: 14, paddingBottom: 14,
       }}>
         <View style={{
           width: 46, height: 46, borderRadius: 14, backgroundColor: colors.sky,

@@ -8,6 +8,7 @@ import { View, Text, Animated } from 'react-native';
 import { useAppTheme } from '../theme/AppTheme';
 import { Fonts } from '../theme/tokens';
 import * as ambient from '../audio/ambient';
+import Stage from './Stage';
 
 // Screens where the relaxed background piano should stay quiet.
 const AMBIENT_QUIET = new Set(['lesson', 'practice']);
@@ -72,9 +73,12 @@ export function RouterProvider({ screens, initial = 'splash' }: {
   return (
     <Ctx.Provider value={api}>
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <Animated.View style={{ flex: 1, opacity: fade }}>
-          <Comp />
-        </Animated.View>
+        {/* The whole UI renders at a fixed canvas and is scaled to fit here. */}
+        <Stage>
+          <Animated.View style={{ flex: 1, opacity: fade }}>
+            <Comp />
+          </Animated.View>
+        </Stage>
         {toastMsg && (
           <View pointerEvents="none" style={{ position: 'absolute', bottom: 26, left: 0, right: 0, alignItems: 'center' }}>
             <Text style={{
