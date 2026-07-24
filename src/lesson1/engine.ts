@@ -11,7 +11,8 @@ import {
   noteToMidi, chordDisplayName,
 } from './data';
 import { HwFacade } from './hal';
-import { PlayedNote } from './evaluation';
+import { PlayedNote, Dynamic, evaluateNote, DYN_VELOCITY } from './evaluation';
+import { targetColor, scaleRgb, Hand, Finger } from '../theme/handColors';
 import * as pianoEngine from '../audio/pianoEngine';
 import * as haptics from '../feedback/haptics';
 
@@ -244,6 +245,7 @@ export class LessonEngine {
       case 'waitPressAll': return this.waitPressAll(seg);
       case 'waitPressOrdered': return this.waitPressOrdered(seg);
       case 'waitPressAny': return this.waitPressAny(seg);
+      case 'waitNote': return this.waitNote(seg);
       case 'waitChord': return this.waitChord(seg);
       case 'waitChordCount': return this.waitChordCount(seg, tk);
       case 'followLight': return this.followLight(seg, tk);
@@ -418,6 +420,39 @@ export class LessonEngine {
         else this.wrongKey(note, seg.onWrongKey);
       },
     }), () => {});
+  }
+
+  /* Graded single note — the professor loop: light the target in its finger
+     colour at the intended-dynamic brightness, then score pitch + hold length +
+     dynamics and coach. Advances on the right key even if timing/loudness aren't
+     perfect (encourage), with a spoken tip; wrong key → red flash + retry. */
+  private targetRgb(hand?: Hand, finger?: Finger, dynamic?: Dynamic): [number, number, number] {
+    const base = targetColor(hand, finger);
+    const k = dynamic ? DYN_VELOCITY[dynamic] / 127 : 1; // brightness shows how hard to press
+    return scaleRgb(base, Math.max(0.3, k)); // floor so soft notes stay visible
+  }
+  private waitNote(seg: {
+    note: string; hand?: Hand; finger?: Finger; dynamic?: Dynamic; durationBeats?: number; onWrongKey?: WrongOpts;
+  }) {
+    const [r, g, b] = this.targetRgb(seg.hand, seg.finger, seg.dynamic);
+    this.hal.ledSet([{ note: seg.note, r, g, b }]);
+    const msPerBeat = 60000 / SONG_BPM;
+    return this.waitSegment((done) => ({
+      down: (note) => { if (note !== seg.note) this.wrongKey(note, seg.onWrongKey); },
+      up: (note) => {
+        if (note !== seg.note || !this.lastPlayed) return;
+        const ev = evaluateNote(
+          this.lastPlayed,
+          { note: seg.note, dynamic: seg.dynamic, durationBeats: seg.durationBeats },
+          { msPerBeat },
+        );
+        if (!ev.pitchOk) return; // wrong pitch already handled on down
+        this.hal.ledOff(seg.note);
+        if (ev.score >= 90) { Cues.correct(); this.ui.mood('cheer', 1000); } else this.ui.mood('teach', 1200);
+        this.sayInterject(ev.cue);
+        done();
+      },
+    }), () => { this.hal.ledOff(seg.note); });
   }
 
   /* ---- chord waits ----

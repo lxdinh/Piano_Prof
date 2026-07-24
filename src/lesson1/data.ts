@@ -1,7 +1,8 @@
 // Piano Professor — Lesson 1 data, ported verbatim from "Lesson 1.html"
 // (BLOCK 1 — LESSON DATA, lesson1_final_spec.md Part 2). The engine consumes
 // exactly this structure. Levels follow the school stages (KG → … → Master).
-import { handColor } from '../theme/handColors';
+import { handColor, Hand, Finger } from '../theme/handColors';
+import { Dynamic } from './evaluation';
 
 // ── Global config ─────────────────────────────
 export const KEYBOARD = { lowest: 'C2', highest: 'C7', keys: 61 };  // 5-octave, Middle C = C4
@@ -139,6 +140,9 @@ export type Segment =
   | { type: 'waitPressAll'; notes: string[]; anyOrder?: boolean; turnOffOnPress?: boolean; onWrongKey?: WrongOpts }
   | { type: 'waitPressOrdered'; notes: string[]; turnOffOnPress?: boolean; onWrongOrder?: WrongOpts }
   | { type: 'waitPressAny'; notes: string[]; onWrongKey?: WrongOpts }
+  // Graded single note: lit in the finger colour at the intended-dynamic
+  // brightness; scored on pitch + hold length + dynamics with spoken coaching.
+  | { type: 'waitNote'; note: string; hand?: Hand; finger?: Finger; dynamic?: Dynamic; durationBeats?: number; onWrongKey?: WrongOpts }
   | { type: 'waitChord'; notes: string[]; windowMs: number; onNotSimultaneous?: { say: string } }
   | { type: 'waitChordCount'; notes: string[]; count: number; windowMs: number; showTicks?: boolean }
   | { type: 'followLight'; sequence: { chord: string[] }[]; color: string; windowMs: number; turnOffOnPress?: boolean }
@@ -327,6 +331,18 @@ export const LESSON_1: Lesson1 = {
   ] },
 
   // Song 3: add the left hand
+  { title: 'Play with Feeling', segments: [
+    { type: 'mascot', action: 'appear' },
+    { type: 'typeSay', text: 'Music has feelings! The same note can whisper or shout — it depends how you press.' },
+    { type: 'typeSay', text: 'See the key glow bright? Bright means play it STRONG. Give this C a firm press!' },
+    { type: 'waitNote', note: 'C4', hand: 'R', finger: 1, dynamic: 'f',
+      onWrongKey: { led: 'redFlash', say: 'Find the glowing key first.' } },
+    { type: 'typeSay', text: 'Now it glows soft — play this one gently, like telling a secret.' },
+    { type: 'waitNote', note: 'C4', hand: 'R', finger: 1, dynamic: 'p',
+      onWrongKey: { led: 'redFlash', say: 'That same C — but soft this time.' } },
+    { type: 'say', text: 'Beautiful! Loud and soft is how you tell a story on the piano.' },
+  ] },
+
   { title: 'Add Your Left Hand', segments: [
     { type: 'typeSay', text: "Let's get more advanced by adding your left hand!" },
     { type: 'say', text: 'Your left hand adds one low note — the same letter as your right thumb.' },

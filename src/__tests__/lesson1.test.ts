@@ -45,10 +45,11 @@ describe('chords (compact voicing, F3–G4)', () => {
 });
 
 describe('LESSON_1 structure (First Touch → First Songs)', () => {
-  it('has the 6 sections in order', () => {
+  it('has the 7 sections in order', () => {
     expect(LESSON_1.steps.map((s) => s.title)).toEqual([
       'First Touch', 'The Keyboard & 7 Notes', '4 Chords',
-      'Follow the Light', 'Play Your First Songs', 'Add Your Left Hand',
+      'Follow the Light', 'Play Your First Songs', 'Play with Feeling',
+      'Add Your Left Hand',
     ]);
   });
   it('every referenced note is a valid key', () => {
