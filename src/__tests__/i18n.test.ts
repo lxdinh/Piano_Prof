@@ -8,7 +8,7 @@ describe('i18n dictionary', () => {
     expect(CODES).toEqual(['en', 'zh', 'es', 'fr', 'de', 'ja', 'ko', 'vi', 'pt', 'it']);
   });
   it('every key has a translation in every language', () => {
-    for (const [key, entry] of Object.entries(PP_I18N)) {
+    for (const entry of Object.values(PP_I18N)) {
       for (const code of CODES) {
         expect(typeof entry[code]).toBe('string');
         expect((entry[code] as string).length).toBeGreaterThan(0);

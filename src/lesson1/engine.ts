@@ -151,7 +151,7 @@ export class LessonEngine {
     for (let s = 0; s < fromSeg; s++) { // jumping mid-step: rebuild LED state instantly
       const sg = step.segments[s];
       if (sg.type === 'ledOn') this.segLedOn(sg);
-      else if (sg.type === 'ledOff') sg.notes === 'all' ? this.hal.ledClear() : this.hal.ledOffMany(sg.notes);
+      else if (sg.type === 'ledOff') { if (sg.notes === 'all') this.hal.ledClear(); else this.hal.ledOffMany(sg.notes); }
     }
     for (let s = fromSeg; s < step.segments.length; s++) {
       if (this.run !== tk) return;
@@ -204,7 +204,7 @@ export class LessonEngine {
       case 'say': return this.typeSay(seg.text, seg.rate); // every spoken line is written out
       case 'pause': return this.sleep(seg.ms);
       case 'ledOn': this.segLedOn(seg); return;
-      case 'ledOff': seg.notes === 'all' ? this.hal.ledClear() : this.hal.ledOffMany(seg.notes); return;
+      case 'ledOff': if (seg.notes === 'all') this.hal.ledClear(); else this.hal.ledOffMany(seg.notes); return;
       case 'sayWithSeq': return this.sayWithSeq(seg);
       case 'waitPressCount': return this.waitPressCount(seg);
       case 'waitPressAll': return this.waitPressAll(seg);

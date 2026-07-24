@@ -19,6 +19,8 @@ import {
   LED_LOW_MIDI, LED_HIGH_MIDI, KEY_LOW_MIDI, KEY_HIGH_MIDI,
 } from './data';
 
+import { bytesToB64, b64ToBytes } from './b64';
+
 /* Android runtime BLE permissions. The manifest declares them, but Android 12+
    (API 31) requires BLUETOOTH_SCAN/CONNECT to be granted at runtime, and every
    Android version needs FINE_LOCATION for a BLE scan (our manifest doesn't opt
@@ -67,8 +69,6 @@ export interface LedEntry { note: string; r: number; g: number; b: number; }
 export type LedSnapshot = Map<number, string>; // midi -> css color visible now
 
 export interface HwStatus { state: 'idle' | 'sim' | 'connecting' | 'connected' | 'disconnected' | 'error'; detail: string; }
-
-import { bytesToB64, b64ToBytes } from './b64';
 export { bytesToB64, b64ToBytes };
 
 /* App-side mirror of the strip — drives the on-screen LED strip in BOTH

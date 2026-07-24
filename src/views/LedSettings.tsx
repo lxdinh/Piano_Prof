@@ -33,6 +33,8 @@ export default function LedSettings() {
     const next: Record<number, string> = {};
     for (let m = 60; m <= 84; m++) next[m] = theme.colors[(m - 60) % theme.colors.length];
     setLit(next);
+    // theme.colors is derived from led.theme — repaint keys only when the theme changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [led.theme]);
 
   return (

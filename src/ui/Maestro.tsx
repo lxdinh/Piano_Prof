@@ -1,7 +1,7 @@
 // Piano Professor — Maestro mascot (ds-core.jsx `Maestro` port).
 // Static require map over assets/maestro/*.png (Metro bundles static requires).
 import React, { useEffect, useRef } from 'react';
-import { View, Image, Pressable, Animated, ImageSourcePropType, ViewStyle, StyleProp } from 'react-native';
+import { Image, Pressable, Animated, ImageSourcePropType, ViewStyle, StyleProp } from 'react-native';
 
 const MOODS: Record<string, ImageSourcePropType> = {
   astronaut: require('../../assets/maestro/astronaut.png'),

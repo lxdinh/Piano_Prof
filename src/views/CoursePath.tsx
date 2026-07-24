@@ -1,7 +1,6 @@
 // Piano Professor — choose learning path (Chords vs Soloist) → Home.
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../theme/AppTheme';
 import { useApp } from '../state/AppState';
 import { useRouter } from '../nav/Router';

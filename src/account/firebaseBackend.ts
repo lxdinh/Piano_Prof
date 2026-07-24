@@ -11,18 +11,18 @@ import {
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   updateProfile, signOut as fbSignOut, onAuthStateChanged, User, Auth,
 } from 'firebase/auth';
-// getReactNativePersistence exists at runtime in firebase/auth but isn't in the
-// package's type surface — import it loosely.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { getReactNativePersistence } = require('firebase/auth') as {
-  getReactNativePersistence: (s: unknown) => unknown;
-};
 import { getFirestore, doc, getDoc, setDoc, Firestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FIREBASE_CONFIG } from './firebaseConfig';
 import {
   Account, AuthBackend, AuthResult, SyncData, Provider, normalizeEmail,
 } from './types';
+// getReactNativePersistence exists at runtime in firebase/auth but isn't in the
+// package's type surface — import it loosely.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { getReactNativePersistence } = require('firebase/auth') as {
+  getReactNativePersistence: (s: unknown) => unknown;
+};
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;

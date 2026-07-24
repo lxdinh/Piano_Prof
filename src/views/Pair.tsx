@@ -29,6 +29,8 @@ function Radar() {
       ])));
     loops.forEach((l) => l.start());
     return () => loops.forEach((l) => l.stop());
+    // rings are stable useRef values — run the radar animation once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <View style={{ width: 190, height: 190, alignItems: 'center', justifyContent: 'center' }}>

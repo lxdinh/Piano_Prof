@@ -43,6 +43,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # ── Quality gate ─────────────────────────────────────────────
+      # Fail fast on type errors, test failures, or lint before spending
+      # EAS build credits. A red gate blocks the build below.
+      - name: Typecheck · Test · Lint
+        run: |
+          npm run typecheck
+          npm test -- --ci
+          npm run lint
+
       # ── EAS CLI ──────────────────────────────────────────────────
       - name: Install EAS CLI
         run: npm install -g eas-cli

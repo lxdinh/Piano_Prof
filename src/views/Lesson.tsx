@@ -32,7 +32,7 @@ const CARD_W = 104;
 
 export default function Lesson() {
   const { colors } = useAppTheme();
-  const { activeProfile, completeItem } = useApp();
+  const { completeItem } = useApp();
   const { params, go, back } = useRouter();
   const insets = useSafeAreaInsets();
   const awardedRef = useRef(false);
