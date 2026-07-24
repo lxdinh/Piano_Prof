@@ -10,6 +10,7 @@ import {
 
 import { AppThemeProvider, useAppTheme } from './src/theme/AppTheme';
 import { AppStateProvider } from './src/state/AppState';
+import { AccountProvider } from './src/account/AccountProvider';
 import { RouterProvider } from './src/nav/Router';
 import { registry } from './src/nav/registry';
 
@@ -44,7 +45,9 @@ export default function App() {
     <SafeAreaProvider>
       <AppThemeProvider>
         <AppStateProvider>
-          <Root />
+          <AccountProvider>
+            <Root />
+          </AccountProvider>
         </AppStateProvider>
       </AppThemeProvider>
     </SafeAreaProvider>

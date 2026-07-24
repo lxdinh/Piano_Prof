@@ -13,6 +13,7 @@ import * as ambientAudio from '../audio/ambient';
 import * as pianoEngine from '../audio/pianoEngine';
 import { isReminderOn, setReminder } from '../notifications/reminders';
 import { Audio } from 'expo-av';
+import { useAccount } from '../account/AccountProvider';
 import { useT } from '../i18n/useT';
 
 const GOALS = [
@@ -59,6 +60,8 @@ export default function Settings() {
   const { go, back, toast } = useRouter();
   const insets = useSafeAreaInsets();
   const tr = useT();
+  const { account } = useAccount();
+  const accountLabel = account && !account.isAnonymous ? (account.email ?? 'Signed in') : 'Sign in to sync';
   const goalXp = activeProfile?.dailyGoalXp ?? 50;
   const [reminders, setReminders] = useState(false);
   useEffect(() => { isReminderOn().then(setReminders); }, []);
@@ -112,6 +115,7 @@ export default function Settings() {
             </Section>
 
             <Section title={tr('settings.account')}>
+              <LinkRow icon="user" label={tr('set.cloudSync')} value={accountLabel} onPress={() => go('account')} />
               <LinkRow icon="crown" label={tr('settings.subscription')} onPress={() => go('manageSub')} />
               <LinkRow icon="swap" label={tr('settings.switchProfile')} onPress={() => go('who')} />
             </Section>

@@ -29,6 +29,8 @@ export interface AppState {
   updateProfile: (id: string, patch: Partial<Profile>) => void;
   removeProfile: (id: string) => void;
   updateActive: (patch: Partial<Profile>) => void;
+  /** Replace the whole household (used when a synced account restores data). */
+  importAll: (profiles: Profile[], activeId: string | null, premium: boolean) => void;
   completeItem: (itemId: string, stars: number, xp: number) => void;
   loseHeart: () => void;
   refillHearts: () => void;
@@ -123,6 +125,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setProfiles((ps) => ps.map((p) => (p.id === activeId ? { ...p, ...patch } : p)));
   }, [activeId]);
 
+  const importAll = useCallback((next: Profile[], nextActive: string | null, nextPremium: boolean) => {
+    if (Array.isArray(next) && next.length) setProfiles(next);
+    setActiveId(nextActive ?? null);
+    setPremium(nextPremium);
+  }, []);
+
   const completeItem = useCallback((itemId: string, stars: number, xp: number) => {
     if (!activeId) return;
     setProfiles((ps) => ps.map((p) => (p.id === activeId ? applyCompletion(p, itemId, stars, xp) : p)));
@@ -146,11 +154,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AppState>(() => ({
     ready, profiles, activeId, activeProfile,
-    setActive, addProfile, updateProfile, removeProfile, updateActive,
+    setActive, addProfile, updateProfile, removeProfile, updateActive, importAll,
     completeItem, loseHeart, refillHearts,
     premium, setPremium, led, setLed, muted, setMuted, ambient, setAmbient,
   }), [ready, profiles, activeId, activeProfile, setActive, addProfile, updateProfile,
-    removeProfile, updateActive, completeItem, loseHeart, refillHearts, premium, led, setLed, muted, ambient]);
+    removeProfile, updateActive, importAll, completeItem, loseHeart, refillHearts, premium, led, setLed, muted, ambient]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -23,6 +23,8 @@ import Calibration from '../views/Calibration';
 import LedSettings from '../views/LedSettings';
 import Settings from '../views/Settings';
 import Diploma from '../views/Diploma';
+import Account from '../views/Account';
+import SignIn from '../views/SignIn';
 
 export const registry: ScreenRegistry = {
   splash: Splash,
@@ -49,4 +51,6 @@ export const registry: ScreenRegistry = {
   ledSettings: LedSettings,
   settings: Settings,
   diploma: Diploma,
+  account: Account,
+  signIn: SignIn,
 };
