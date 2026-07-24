@@ -12,11 +12,47 @@
 //   ledIndex = midiNote − 36 (C2=36→LED0 … B6=95→LED59); C7 has NO LED.
 //   Writes coalesced per 60ms tick, LED sets chunked ≤14 per packet.
 
-import { BleManager, Device, Characteristic, Subscription } from 'react-native-ble-plx';
+import { Platform, PermissionsAndroid } from 'react-native';
+import { BleManager, Device, Characteristic, Subscription, State } from 'react-native-ble-plx';
 import {
   noteToMidi, midiToNote, noteToLedIndex, WRONG_FLASH_MS,
   LED_LOW_MIDI, LED_HIGH_MIDI, KEY_LOW_MIDI, KEY_HIGH_MIDI,
 } from './data';
+
+/* Android runtime BLE permissions. The manifest declares them, but Android 12+
+   (API 31) requires BLUETOOTH_SCAN/CONNECT to be granted at runtime, and every
+   Android version needs FINE_LOCATION for a BLE scan (our manifest doesn't opt
+   out with neverForLocation). Without this, startDeviceScan fails on the first
+   connect. iOS prompts automatically from the Info.plist usage strings. */
+async function ensureBlePermissions(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  const api = typeof Platform.Version === 'number' ? Platform.Version : parseInt(String(Platform.Version), 10);
+  const P = PermissionsAndroid.PERMISSIONS;
+  const wanted = api >= 31
+    ? [P.BLUETOOTH_SCAN, P.BLUETOOTH_CONNECT, P.ACCESS_FINE_LOCATION]
+    : [P.ACCESS_FINE_LOCATION];
+  const res = await PermissionsAndroid.requestMultiple(wanted);
+  const denied = wanted.filter((p) => res[p] !== PermissionsAndroid.RESULTS.GRANTED);
+  if (denied.length) {
+    throw new Error('Bluetooth permission is off — allow it in Settings, then reconnect.');
+  }
+}
+
+/* Wait until the adapter is powered on (it may still be initialising right
+   after launch, or be switched off). Rejects with a clear message if BT is off. */
+function waitForBluetoothOn(manager: BleManager, timeoutMs = 6000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let sub: Subscription | null = null;
+    const to = setTimeout(() => { sub?.remove(); reject(new Error('Bluetooth is off — turn it on to connect.')); }, timeoutMs);
+    sub = manager.onStateChange((state) => {
+      if (state === State.PoweredOn) { clearTimeout(to); sub?.remove(); resolve(); }
+      else if (state === State.PoweredOff || state === State.Unauthorized) {
+        clearTimeout(to); sub?.remove();
+        reject(new Error(state === State.Unauthorized ? 'Bluetooth permission is off — allow it in Settings.' : 'Bluetooth is off — turn it on to connect.'));
+      }
+    }, true); // emitCurrentState: fires immediately with the present state
+  });
+}
 
 export const BLE_IDS = {
   SERVICE: '7e400001-b5a3-f393-e0a9-e50e24dcca9e',
@@ -210,8 +246,11 @@ export class BLEPiano extends PianoBackend {
 
   async connect() {
     try {
-      this.setStatus('connecting', 'Scanning for your board…');
+      this.setStatus('connecting', 'Checking Bluetooth…');
+      await ensureBlePermissions();
       const manager = getManager();
+      await waitForBluetoothOn(manager);
+      this.setStatus('connecting', 'Scanning for your board…');
       const device = await new Promise<Device>((resolve, reject) => {
         const to = setTimeout(() => { manager.stopDeviceScan(); reject(new Error('No board found — is it powered on?')); }, 12000);
         manager.startDeviceScan([BLE_IDS.SERVICE], null, (err, d) => {
