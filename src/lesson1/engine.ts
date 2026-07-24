@@ -28,7 +28,27 @@ export const Cues = {
   star(i: number) { pianoEngine.playMidi(72 + i * 4, 0.6).catch(() => {}); },
 };
 
-/* ── speech (expo-speech port; estimate mirrors the spec) ── */
+/* ── speech (expo-speech port; estimate mirrors the spec) ──
+   Picks an installed English voice once. On a non-English phone (e.g. a
+   Vietnamese device without en-US voice data) forcing language:'en-US' can
+   produce silence — so we fall back to the device's default voice, which still
+   speaks the line rather than staying mute. */
+let voiceResolved = false;
+let enVoiceId: string | undefined; // an installed English voice, if any
+let hasEnglishLang = false;
+async function resolveVoice(): Promise<void> {
+  if (voiceResolved) return;
+  voiceResolved = true;
+  try {
+    const voices = await ExpoSpeech.getAvailableVoicesAsync();
+    const en = voices.find((v) => /^en[-_]US/i.test(v.language)) ?? voices.find((v) => /^en/i.test(v.language));
+    enVoiceId = en?.identifier;
+    hasEnglishLang = !!en;
+  } catch {
+    /* getAvailableVoicesAsync unsupported → use default voice */
+  }
+}
+
 export const Speech = {
   muted: false,
   estimate(text: string, rate = 1) { return (500 + text.length * 62) / rate; },
@@ -38,12 +58,17 @@ export const Speech = {
       let done = false;
       const finish = () => { if (!done) { done = true; clearTimeout(safety); resolve(); } };
       const safety = setTimeout(finish, this.estimate(text, opts.rate) * 1.8 + 1600);
-      try {
-        ExpoSpeech.speak(text, {
-          language: 'en-US', rate: opts.rate ?? 1.0, pitch: 1.12,
-          onDone: finish, onStopped: finish, onError: finish,
-        });
-      } catch { finish(); }
+      void resolveVoice().then(() => {
+        try {
+          ExpoSpeech.speak(text, {
+            // Prefer a real English voice; only pin the language when English is
+            // actually available, else let the default voice read the line.
+            ...(enVoiceId ? { voice: enVoiceId } : hasEnglishLang ? { language: 'en-US' } : {}),
+            rate: opts.rate ?? 1.0, pitch: 1.12,
+            onDone: finish, onStopped: finish, onError: finish,
+          });
+        } catch { finish(); }
+      });
     });
   },
   cancel() { try { ExpoSpeech.stop(); } catch { /* ignore */ } },

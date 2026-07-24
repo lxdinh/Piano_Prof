@@ -15,6 +15,7 @@ import { AccountProvider } from './src/account/AccountProvider';
 import { RouterProvider } from './src/nav/Router';
 import { registry } from './src/nav/registry';
 import { initTelemetry, wrapRoot } from './src/telemetry/sentry';
+import * as pianoEngine from './src/audio/pianoEngine';
 
 // Start crash reporting as early as possible (no-op until a DSN is set).
 initTelemetry();
@@ -45,6 +46,9 @@ function App() {
     hideNavBar();
     // Android restores the nav bar after some interactions / on resume — re-hide.
     const sub = AppState.addEventListener('change', (s) => { if (s === 'active') hideNavBar(); });
+    // Configure the audio session + warm the piano samples so the first note
+    // plays instantly and Android media output is correctly routed.
+    pianoEngine.initAudio().then(() => pianoEngine.preloadCore()).catch(() => {});
     return () => sub.remove();
   }, []);
 
