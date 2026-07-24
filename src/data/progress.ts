@@ -90,6 +90,8 @@ export function applyCompletion(
     xp: p.xp + xp,
     gems: p.gems + stars,
     todayXp: (newDay ? 0 : (p.todayXp ?? 0)) + xp,
+    todayLessons: (newDay ? 0 : (p.todayLessons ?? 0)) + 1,
+    todayPerfect: (newDay ? false : (p.todayPerfect ?? false)) || stars >= 3,
     streak: newDay ? (chainAlive ? p.streak + 1 : 1) : p.streak,
     lastActiveDate: today,
     lastUnit: next?.title ?? p.lastUnit,

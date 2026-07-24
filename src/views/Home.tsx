@@ -17,6 +17,7 @@ import {
   deriveShelves, DerivedItem, DerivedShelf, activeItem, activeShelf, shelfProgressPct,
 } from '../data/progress';
 import { DAILY_GOAL_XP } from '../data/progress';
+import { questsToday, claimableCount } from '../data/quests';
 
 const KIND_ICON: Record<ItemKind, IconName> = {
   lesson: 'piano', song: 'music', concept: 'book', exercise: 'bolt',
@@ -153,6 +154,35 @@ export default function Home() {
         </View>
         <Maestro mood={next ? 'cheer' : 'trophy'} size={116} bg="#ffffff33" float />
       </LinearGradient>
+
+      {/* Daily Quests */}
+      {activeProfile && (() => {
+        const quests = questsToday(activeProfile);
+        const done = quests.filter((q) => q.done).length;
+        const claimable = claimableCount(activeProfile);
+        return (
+          <Pressable
+            onPress={() => go('quests')}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 16, padding: 16, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 2, borderColor: claimable ? colors.gold : colors.line, borderBottomWidth: 5 }}
+          >
+            <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: colors.selGold, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 24 }}>🗺️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: colors.ink }}>Daily Quests</Text>
+              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 13, color: colors.inkSoft }}>{done}/{quests.length} complete today</Text>
+            </View>
+            {claimable > 0 ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.gold, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13 }}>
+                <Text style={{ fontSize: 14 }}>💎</Text>
+                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#5a3d00' }}>Collect {claimable}</Text>
+              </View>
+            ) : (
+              <Icon name="chevronRight" size={22} color={colors.inkFaint} />
+            )}
+          </Pressable>
+        );
+      })()}
 
       {/* Shelves */}
       {shelves.map((shelf) => (

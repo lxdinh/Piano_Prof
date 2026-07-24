@@ -62,6 +62,14 @@ export interface Profile {
   dailyGoalXp?: number;
   /** XP earned today (daily-goal bucket). */
   todayXp?: number;
+  /** Lessons completed today (daily-quest counter). */
+  todayLessons?: number;
+  /** Whether a 3-star lesson was earned today (daily-quest flag). */
+  todayPerfect?: boolean;
+  /** Day (YYYY-MM-DD) the quest claims below belong to. */
+  questDay?: string;
+  /** Quest ids already claimed today. */
+  questsClaimed?: string[];
   /** Local date key (YYYY-MM-DD) of the last completed lesson. */
   lastActiveDate?: string;
   /** Per-day XP history (YYYY-MM-DD -> xp) for the weekly chart. */

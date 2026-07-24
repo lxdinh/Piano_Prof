@@ -8,6 +8,7 @@ import React, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Profile, PROFILES_SEED } from '../data/content';
 import { applyCompletion, applyHeartRefill } from '../data/progress';
+import { applyClaim } from '../data/quests';
 
 const STORAGE_KEY = 'pp.appstate.v1';
 export const MAX_PROFILES = 5;
@@ -32,6 +33,7 @@ export interface AppState {
   /** Replace the whole household (used when a synced account restores data). */
   importAll: (profiles: Profile[], activeId: string | null, premium: boolean) => void;
   completeItem: (itemId: string, stars: number, xp: number) => void;
+  claimQuest: (questId: string) => void;
   loseHeart: () => void;
   refillHearts: () => void;
   premium: boolean;
@@ -136,6 +138,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setProfiles((ps) => ps.map((p) => (p.id === activeId ? applyCompletion(p, itemId, stars, xp) : p)));
   }, [activeId]);
 
+  const claimQuest = useCallback((questId: string) => {
+    if (!activeId) return;
+    setProfiles((ps) => ps.map((p) => (p.id === activeId ? applyClaim(p, questId) : p)));
+  }, [activeId]);
+
   const loseHeart = useCallback(() => {
     if (!activeId) return;
     setProfiles((ps) => ps.map((p) => (p.id === activeId
@@ -155,10 +162,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AppState>(() => ({
     ready, profiles, activeId, activeProfile,
     setActive, addProfile, updateProfile, removeProfile, updateActive, importAll,
-    completeItem, loseHeart, refillHearts,
+    completeItem, claimQuest, loseHeart, refillHearts,
     premium, setPremium, led, setLed, muted, setMuted, ambient, setAmbient,
   }), [ready, profiles, activeId, activeProfile, setActive, addProfile, updateProfile,
-    removeProfile, updateActive, importAll, completeItem, loseHeart, refillHearts, premium, led, setLed, muted, ambient]);
+    removeProfile, updateActive, importAll, completeItem, claimQuest, loseHeart, refillHearts, premium, led, setLed, muted, ambient]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
