@@ -102,7 +102,10 @@ export default function Shell({ active, children, scroll = true }: {
             <StatChip kind="streak" value={p?.streak ?? 0} onPress={() => go('streak')} />
             <StatChip kind="xp" value={p?.xp ?? 0} />
             <StatChip kind="gems" value={p?.gems ?? 0} onPress={() => go('shop')} />
-            <StatChip kind="hearts" value={p?.hearts ?? 5} onPress={() => go('shop')} />
+            <StatChip
+              kind="hearts" value={p?.hearts ?? 5}
+              onPress={() => ((p?.hearts ?? 5) <= 0 ? go('upsell', { reason: 'hearts' }) : go('shop'))}
+            />
             {!premium && (
               <Pressable
                 onPress={() => go('paywall')}
