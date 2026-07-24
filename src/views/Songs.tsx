@@ -9,6 +9,7 @@ import Shell from '../nav/Shell';
 import Icon from '../ui/Icon';
 import PPButton from '../ui/PPButton';
 import { SONGS, Song, artColors } from '../data/content';
+import { useT } from '../i18n/useT';
 
 export function SongCover({ song, size = 132, onPress }: { song: Song; size?: number; onPress?: () => void }) {
   const { colors } = useAppTheme();
@@ -48,6 +49,7 @@ function ShelfRow({ title, songs }: { title: string; songs: Song[] }) {
 
 export default function Songs() {
   const { go } = useRouter();
+  const tr = useT();
   const f = SONGS.featured;
   const [c0, c1] = artColors(f.hue);
 
@@ -60,7 +62,7 @@ export default function Songs() {
           <Icon name="music" size={48} color="#fff" />
         </View>
         <View style={{ flex: 1, gap: 4 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: '#ffffffcc', letterSpacing: 1 }}>FEATURED</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: '#ffffffcc', letterSpacing: 1 }}>{tr('songs.featured').toUpperCase()}</Text>
           <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: '#fff' }}>{f.title}</Text>
           <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15, color: '#ffffffcc' }}>{f.artist} · {f.level}</Text>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
@@ -70,8 +72,8 @@ export default function Songs() {
         </View>
       </LinearGradient>
 
-      <ShelfRow title="Blowing up right now" songs={SONGS.trending} />
-      <ShelfRow title="Songs you'll learn" songs={SONGS.learn} />
+      <ShelfRow title={tr('songs.trending')} songs={SONGS.trending} />
+      <ShelfRow title={tr('songs.learn')} songs={SONGS.learn} />
     </Shell>
   );
 }

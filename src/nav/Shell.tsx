@@ -10,13 +10,14 @@ import { Fonts } from '../theme/tokens';
 import Icon, { IconName } from '../ui/Icon';
 import Maestro from '../ui/Maestro';
 import { StatChip } from '../ui/atoms';
+import { useT } from '../i18n/useT';
 
 type TabKey = 'home' | 'songs' | 'practice' | 'profile';
-const TABS: { key: TabKey; icon: IconName; label: string }[] = [
-  { key: 'home', icon: 'home', label: 'Learn' },
-  { key: 'songs', icon: 'library', label: 'Songs' },
-  { key: 'practice', icon: 'piano', label: 'Practice' },
-  { key: 'profile', icon: 'user', label: 'Profile' },
+const TABS: { key: TabKey; icon: IconName; labelKey: string }[] = [
+  { key: 'home', icon: 'home', labelKey: 'nav.learn' },
+  { key: 'songs', icon: 'library', labelKey: 'nav.songs' },
+  { key: 'practice', icon: 'piano', labelKey: 'nav.practice' },
+  { key: 'profile', icon: 'user', labelKey: 'nav.profile' },
 ];
 
 function RailButton({ icon, label, active, onPress, color }: {
@@ -46,6 +47,7 @@ export default function Shell({ active, children, scroll = true }: {
   const { go } = useRouter();
   const { activeProfile, premium } = useApp();
   const insets = useSafeAreaInsets();
+  const tr = useT();
   const p = activeProfile;
 
   const Content = scroll ? ScrollView : View;
@@ -69,7 +71,7 @@ export default function Shell({ active, children, scroll = true }: {
         <View style={{ flex: 1, gap: 4 }}>
           {TABS.map((t) => (
             <RailButton
-              key={t.key} icon={t.icon} label={t.label} active={active === t.key}
+              key={t.key} icon={t.icon} label={tr(t.labelKey)} active={active === t.key}
               color={colors.inkFaint} onPress={() => go(t.key)}
             />
           ))}
@@ -93,7 +95,7 @@ export default function Shell({ active, children, scroll = true }: {
         }}>
           <Maestro mood={p?.avatar ?? 'cool'} size={44} bg={p?.bg ?? colors.surface2} fit="head" onPress={() => go('who')} />
           <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 20, color: colors.ink }}>
-            {p ? `Hi ${p.name}!` : 'Piano Professor'}
+            {p ? `${tr('home.hi')} ${p.name}!` : 'Piano Professor'}
           </Text>
           <View style={{ flex: 1 }} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

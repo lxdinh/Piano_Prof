@@ -11,10 +11,11 @@ import LangDropdown from '../ui/LangDropdown';
 import { Card } from '../ui/atoms';
 import * as ambientAudio from '../audio/ambient';
 import * as pianoEngine from '../audio/pianoEngine';
+import { useT } from '../i18n/useT';
 
 const GOALS = [
-  { label: 'Casual', xp: 20 }, { label: 'Regular', xp: 50 },
-  { label: 'Serious', xp: 100 }, { label: 'Intense', xp: 150 },
+  { key: 'goal.casual', xp: 20 }, { key: 'goal.regular', xp: 50 },
+  { key: 'goal.serious', xp: 100 }, { key: 'goal.intense', xp: 150 },
 ];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -55,6 +56,7 @@ export default function Settings() {
   const { activeProfile, updateActive, muted, setMuted, ambient: backgroundMusic, setAmbient, led } = useApp();
   const { go, back } = useRouter();
   const insets = useSafeAreaInsets();
+  const tr = useT();
   const goalXp = 50;
 
   return (
@@ -63,23 +65,23 @@ export default function Settings() {
         <Pressable onPress={back} style={{ padding: 12 }}>
           <Icon name="chevronLeft" size={28} color={colors.ink} />
         </Pressable>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>Settings</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>{tr('settings.title')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: insets.bottom + 30 }}>
         <View style={{ flexDirection: 'row', gap: 18, flexWrap: 'wrap' }}>
           <View style={{ flex: 1, minWidth: 320, gap: 18 }}>
-            <Section title="Language">
+            <Section title={tr('settings.language')}>
               <LangDropdown value={activeProfile?.lang ?? 'en'} onChange={(lang) => updateActive({ lang })} />
             </Section>
 
-            <Section title="Daily goal">
+            <Section title={tr('settings.dailyGoal')}>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {GOALS.map((g) => {
                   const on = g.xp === goalXp;
                   return (
                     <View key={g.xp} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: on ? colors.selGreen : colors.surface2, borderWidth: 2, borderColor: on ? colors.green : 'transparent' }}>
-                      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: colors.ink }}>{g.label}</Text>
+                      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: colors.ink }}>{tr(g.key)}</Text>
                       <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkFaint }}>{g.xp} XP</Text>
                     </View>
                   );
@@ -87,9 +89,9 @@ export default function Settings() {
               </View>
             </Section>
 
-            <Section title="Lesson & sound">
+            <Section title={tr('settings.lessonSound')}>
               <ToggleRow icon="sound" label="Sound effects" value={!muted} onChange={(v) => { setMuted(!v); pianoEngine.setPianoEnabled(v); ambientAudio.setMuted(!v); }} />
-              <ToggleRow icon="headphones" label="Background music" value={backgroundMusic} onChange={(v) => { setAmbient(v); ambientAudio.setEnabled(v); }} />
+              <ToggleRow icon="headphones" label={tr('settings.bgMusic')} value={backgroundMusic} onChange={(v) => { setAmbient(v); ambientAudio.setEnabled(v); }} />
             </Section>
 
             <Section title="Appearance">
@@ -98,15 +100,15 @@ export default function Settings() {
           </View>
 
           <View style={{ flex: 1, minWidth: 320, gap: 18 }}>
-            <Section title="Hardware">
-              <LinkRow icon="bluetooth" label="LED strip" value={led.connected ? 'Connected' : 'Not connected'} onPress={() => go('pair')} />
-              <LinkRow icon="sparkle" label="LED themes" value={led.theme} onPress={() => go('ledSettings')} />
-              <LinkRow icon="target" label="Re-calibrate" onPress={() => go('calibration')} />
+            <Section title={tr('settings.hardware')}>
+              <LinkRow icon="bluetooth" label={tr('set.ledStrip')} value={led.connected ? tr('set.connected') : tr('set.notConnected')} onPress={() => go('pair')} />
+              <LinkRow icon="sparkle" label={tr('set.ledThemesShort')} value={led.theme} onPress={() => go('ledSettings')} />
+              <LinkRow icon="target" label={tr('set.recalibrate')} onPress={() => go('calibration')} />
             </Section>
 
-            <Section title="Account">
-              <LinkRow icon="crown" label="Subscription" onPress={() => go('manageSub')} />
-              <LinkRow icon="swap" label="Switch profile" onPress={() => go('who')} />
+            <Section title={tr('settings.account')}>
+              <LinkRow icon="crown" label={tr('settings.subscription')} onPress={() => go('manageSub')} />
+              <LinkRow icon="swap" label={tr('settings.switchProfile')} onPress={() => go('who')} />
             </Section>
 
             <Section title="Privacy">

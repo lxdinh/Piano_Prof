@@ -9,13 +9,14 @@ import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Maestro from '../ui/Maestro';
 import Icon from '../ui/Icon';
-import { t } from '../i18n';
+import { useT } from '../i18n/useT';
 
 export default function Who() {
   const { colors, isDark } = useAppTheme();
   const { profiles, setActive, addProfile } = useApp();
   const { go } = useRouter();
   const insets = useSafeAreaInsets();
+  const tr = useT();
 
   const pick = (id: string, placed: boolean) => {
     setActive(id);
@@ -39,7 +40,7 @@ export default function Who() {
       style={{ flex: 1, paddingTop: insets.top + 30 }}
     >
       <Text style={{ textAlign: 'center', fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 32, color: colors.ink }}>
-        {t('who.title')}
+        {tr('who.title')}
       </Text>
       <ScrollView
         horizontal
@@ -72,7 +73,7 @@ export default function Who() {
             }}>
               <Icon name="plus" size={48} color={colors.inkFaint} />
             </View>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 18, color: colors.inkSoft }}>{t('who.add')}</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 18, color: colors.inkSoft }}>{tr('who.add')}</Text>
           </Pressable>
         )}
       </ScrollView>

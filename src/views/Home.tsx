@@ -12,6 +12,7 @@ import Icon, { IconName } from '../ui/Icon';
 import PPButton from '../ui/PPButton';
 import { ProgressBar } from '../ui/atoms';
 import { ItemKind, levelById } from '../data/content';
+import { useT } from '../i18n/useT';
 import {
   deriveShelves, DerivedItem, DerivedShelf, activeItem, activeShelf, shelfProgressPct,
 } from '../data/progress';
@@ -24,6 +25,7 @@ const KIND_ICON: Record<ItemKind, IconName> = {
 function PosterCard({ item, shelf }: { item: DerivedItem; shelf: DerivedShelf }) {
   const { colors } = useAppTheme();
   const { go, toast } = useRouter();
+  const tr = useT();
   const state = item.derivedState;
 
   const onPress = () => {
@@ -57,8 +59,8 @@ function PosterCard({ item, shelf }: { item: DerivedItem; shelf: DerivedShelf })
         )}
       </LinearGradient>
       <View style={{ padding: 11, gap: 6 }}>
-        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: colors.ink }}>{item.title}</Text>
-        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkSoft }}>{item.sub}</Text>
+        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: colors.ink }}>{tr.item(item.id, item.title)}</Text>
+        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkSoft }}>{item.kind === 'song' ? item.sub : tr.sub(item.id, item.sub)}</Text>
         <View style={{ minHeight: 20, justifyContent: 'center' }}>
           {state === 'done' && (
             <View style={{ flexDirection: 'row', gap: 2 }}>
@@ -70,7 +72,7 @@ function PosterCard({ item, shelf }: { item: DerivedItem; shelf: DerivedShelf })
           {state === 'active' && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Icon name="play" size={14} color={colors.green} />
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: colors.green }}>Start</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: colors.green }}>{tr('common.start')}</Text>
             </View>
           )}
           {state === 'locked' && <Icon name="lock" size={16} color={colors.inkFaint} />}
@@ -87,6 +89,7 @@ export default function Home() {
   const { colors } = useAppTheme();
   const { activeProfile } = useApp();
   const { go } = useRouter();
+  const tr = useT();
 
   const progress = activeProfile?.progress ?? {};
   const shelves = deriveShelves(progress);
@@ -104,10 +107,10 @@ export default function Home() {
         style={{ borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
         <View style={{ flex: 1, gap: 8 }}>
           <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: '#ffffffcc', letterSpacing: 1 }}>
-            {next ? 'CONTINUE LEARNING' : `${level.name.toUpperCase()} · GRADE ${level.grade}`}
+            {next ? tr('home.continueLearning').toUpperCase() : `${tr(`level.${level.id}`).toUpperCase()} · ${tr('grade').toUpperCase()} ${level.grade}`}
           </Text>
           <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: '#fff' }}>
-            {heroTitle}
+            {next ? tr.item(next.id, heroTitle) : heroTitle}
           </Text>
           <View style={{ maxWidth: 320 }}>
             <ProgressBar value={pct} height={12} color="#fff" track="#ffffff44" />
@@ -132,7 +135,7 @@ export default function Home() {
       {shelves.map((shelf) => (
         <View key={shelf.levelId} style={{ marginTop: 26 }}>
           <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: colors.ink, marginBottom: 12 }}>
-            {shelf.title}
+            {tr(`level.${shelf.levelId}`)} · {tr('grade')} {levelById(shelf.levelId).grade}
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingRight: 8 }}>
             {shelf.items.map((item) => <PosterCard key={item.id} item={item} shelf={shelf} />)}

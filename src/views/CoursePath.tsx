@@ -8,6 +8,7 @@ import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Icon, { IconName } from '../ui/Icon';
 import { LearningPath, levelById } from '../data/content';
+import { useT } from '../i18n/useT';
 
 function PathCard({ icon, title, tag, tagColor, body, onPress, color }: {
   icon: IconName; title: string; tag: string; tagColor: string; body: string; onPress: () => void; color: string;
@@ -34,6 +35,7 @@ export default function CoursePath() {
   const { colors } = useAppTheme();
   const { updateActive } = useApp();
   const { params, go } = useRouter();
+  const tr = useT();
   const level = levelById(params.levelId ?? 'el');
 
   const pick = (path: LearningPath) => {
@@ -47,8 +49,8 @@ export default function CoursePath() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 24 }}>
       <View style={{ alignItems: 'center', gap: 6 }}>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink }}>Choose your path</Text>
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 15, color: colors.inkSoft }}>You can switch anytime.</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink }}>{tr('path.title')}</Text>
+        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 15, color: colors.inkSoft }}>{tr('path.switch')}</Text>
       </View>
       <View style={{ flexDirection: 'row', gap: 18, width: '100%', justifyContent: 'center' }}>
         <PathCard

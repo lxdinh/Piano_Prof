@@ -10,6 +10,7 @@ import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
 import { Card } from '../ui/atoms';
 import { levelById } from '../data/content';
+import { useT } from '../i18n/useT';
 
 const WEEK = [
   { d: 'M', xp: 40 }, { d: 'T', xp: 65 }, { d: 'W', xp: 20 }, { d: 'T', xp: 80 },
@@ -40,6 +41,7 @@ export default function ProfileView() {
   const { colors } = useAppTheme();
   const { activeProfile } = useApp();
   const { go } = useRouter();
+  const tr = useT();
   const p = activeProfile;
   const level = levelById(p?.levelId ?? 'el');
   const maxXp = Math.max(...WEEK.map((w) => w.xp));
@@ -55,8 +57,8 @@ export default function ProfileView() {
             {level.name} · Grade {level.grade} · {p?.path === 'soloist' ? 'Soloist' : 'Chords'} path
           </Text>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
-            <PPButton label="Edit" size="sm" variant="white" onPress={() => go('editProfile')} />
-            <PPButton label="Switch" size="sm" variant="ghost" onPress={() => go('who')} />
+            <PPButton label={tr('profile.edit')} size="sm" variant="white" onPress={() => go('editProfile')} />
+            <PPButton label={tr('profile.switch')} size="sm" variant="ghost" onPress={() => go('who')} />
             <PPButton label="Diploma 🎓" size="sm" variant="gold" onPress={() => go('diploma')} />
           </View>
         </View>
@@ -71,7 +73,7 @@ export default function ProfileView() {
       </View>
 
       {/* weekly XP */}
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: colors.ink, marginTop: 26, marginBottom: 12 }}>This week</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: colors.ink, marginTop: 26, marginBottom: 12 }}>{tr('profile.thisWeek')}</Text>
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 110 }}>
           {WEEK.map((w, i) => (
@@ -84,7 +86,7 @@ export default function ProfileView() {
       </Card>
 
       {/* achievements */}
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: colors.ink, marginTop: 26, marginBottom: 12 }}>Achievements</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: colors.ink, marginTop: 26, marginBottom: 12 }}>{tr('profile.achievements')}</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {ACHIEVEMENTS.map((a) => (
           <Card key={a.id} pad={14} style={{ width: 150, alignItems: 'center', gap: 4, opacity: a.done ? 1 : 0.5 }}>
