@@ -11,6 +11,7 @@ import {
   noteToMidi, chordDisplayName,
 } from './data';
 import { HwFacade } from './hal';
+import { PlayedNote } from './evaluation';
 import * as pianoEngine from '../audio/pianoEngine';
 import * as haptics from '../feedback/haptics';
 
@@ -134,7 +135,10 @@ export class LessonEngine {
   private waiter: Waiter | null = null;
   private skipFn: (() => void) | null = null;
   private skipAll = false;
-  private held = new Map<string, number>();
+  private held = new Map<string, number>();       // note → onset time (chord timing)
+  private heldVel = new Map<string, number>();     // note → velocity (how hard)
+  pedalDown = false;                               // sustain pedal (CC64)
+  lastPlayed: PlayedNote | null = null;            // most recent completed note, for grading
   private lastInterject = 0;
   private lastLine = '';
   private segSpeaking = false;
@@ -143,17 +147,22 @@ export class LessonEngine {
 
   constructor(lesson: Lesson1, hal: HwFacade, ui: EngineUI) {
     this.L = lesson; this.hal = hal; this.ui = ui;
-    hal.onNoteOn((note) => this.noteOn(note));
-    hal.onNoteOff((note) => this.noteOff(note));
+    hal.onNoteOn((note, vel, t) => this.noteOn(note, vel, t));
+    hal.onNoteOff((note, _relVel, _t, durMs) => this.noteOff(note, durMs));
+    hal.onPedal((down) => { this.pedalDown = down; });
   }
-  private noteOn(note: string) {
-    const t = Date.now();
+  private noteOn(note: string, vel = 100, t = Date.now()) {
     this.held.set(note, t);
+    this.heldVel.set(note, vel);
     const w = this.waiter;
     if (w?.down) { try { w.down(note, t); } catch { /* ignore */ } }
   }
-  private noteOff(note: string) {
+  private noteOff(note: string, durationMs = 0) {
+    const onset = this.held.get(note);
+    const vel = this.heldVel.get(note) ?? 0;
     this.held.delete(note);
+    this.heldVel.delete(note);
+    if (onset != null) this.lastPlayed = { note, vel, onset, durationMs };
     const w = this.waiter;
     if (w?.up) { try { w.up(note); } catch { /* ignore */ } }
   }

@@ -14,6 +14,7 @@
 
 import { Platform, PermissionsAndroid } from 'react-native';
 import { BleManager, Device, Characteristic, Subscription, State } from 'react-native-ble-plx';
+import { parseMidiPackets } from './midi';
 import {
   noteToMidi, midiToNote, noteToLedIndex, WRONG_FLASH_MS,
   LED_LOW_MIDI, LED_HIGH_MIDI, KEY_LOW_MIDI, KEY_HIGH_MIDI,
@@ -150,26 +151,43 @@ export class LedModel {
   }
 }
 
-/* Shared backend base — event plumbing + LED mirror. Subclasses override _tx*. */
+/* Shared backend base — event plumbing + LED mirror. Subclasses override _tx*.
+   Note events carry velocity (how hard) and a timestamp; note-off also carries
+   the hold duration, so the engine can grade dynamics, timing, and note length.
+   Extra callback args are ignored by older `(note) => …` listeners. */
+export type NoteOnCb = (note: string, vel: number, t: number) => void;
+export type NoteOffCb = (note: string, relVel: number, t: number, durationMs: number) => void;
+export type PedalCb = (down: boolean) => void;
+
 export abstract class PianoBackend {
   leds = new LedModel();
   status: HwStatus = { state: 'idle', detail: '' };
-  private onCbs: ((note: string, vel: number) => void)[] = [];
-  private offCbs: ((note: string) => void)[] = [];
+  private onCbs: NoteOnCb[] = [];
+  private offCbs: NoteOffCb[] = [];
+  private pedalCbs: PedalCb[] = [];
   private statusCbs: ((s: HwStatus) => void)[] = [];
+  private onset = new Map<number, number>(); // midi → note-on time (for duration)
 
-  onNoteOn(cb: (note: string, vel: number) => void) { this.onCbs.push(cb); }
-  onNoteOff(cb: (note: string) => void) { this.offCbs.push(cb); }
+  onNoteOn(cb: NoteOnCb) { this.onCbs.push(cb); }
+  onNoteOff(cb: NoteOffCb) { this.offCbs.push(cb); }
+  onPedal(cb: PedalCb) { this.pedalCbs.push(cb); }
   protected emitOn(midi: number, vel: number) {
     if (midi < KEY_LOW_MIDI || midi > KEY_HIGH_MIDI) return;
+    const t = Date.now();
+    this.onset.set(midi, t);
     const n = midiToNote(midi);
-    this.onCbs.forEach((cb) => cb(n, vel));
+    this.onCbs.forEach((cb) => cb(n, vel, t));
   }
-  protected emitOff(midi: number) {
+  protected emitOff(midi: number, relVel = 0) {
     if (midi < KEY_LOW_MIDI || midi > KEY_HIGH_MIDI) return;
+    const t = Date.now();
+    const on = this.onset.get(midi);
+    const durationMs = on != null ? t - on : 0;
+    this.onset.delete(midi);
     const n = midiToNote(midi);
-    this.offCbs.forEach((cb) => cb(n));
+    this.offCbs.forEach((cb) => cb(n, relVel, t, durationMs));
   }
+  protected emitPedal(down: boolean) { this.pedalCbs.forEach((cb) => cb(down)); }
   onStatus(cb: (s: HwStatus) => void) { this.statusCbs.push(cb); cb(this.status); }
   protected setStatus(state: HwStatus['state'], detail = '') {
     this.status = { state, detail };
@@ -285,10 +303,10 @@ export class BLEPiano extends PianoBackend {
     this.device = null;
   }
   private onPacket(bytes: number[]) {
-    for (let i = 0; i + 2 < bytes.length; i += 3) {
-      const st = bytes[i], note = bytes[i + 1], vel = bytes[i + 2];
-      if (st === 0x90 && vel > 0) this.emitOn(note, vel);
-      else if (st === 0x80 || (st === 0x90 && vel === 0)) this.emitOff(note);
+    for (const ev of parseMidiPackets(bytes)) {
+      if (ev.type === 'on') this.emitOn(ev.note, ev.vel);
+      else if (ev.type === 'off') this.emitOff(ev.note, ev.vel);
+      else this.emitPedal(ev.down);
     }
   }
   protected txSet(list: LedEntry[]) {
@@ -335,15 +353,17 @@ export type HwMode = 'sim' | 'ble';
 export class HwFacade {
   backend: PianoBackend = new SimulatorPiano();
   mode: HwMode = 'sim';
-  private on: ((n: string, v: number) => void)[] = [];
-  private off: ((n: string) => void)[] = [];
+  private on: NoteOnCb[] = [];
+  private off: NoteOffCb[] = [];
+  private pedalCbs: PedalCb[] = [];
   private statusCbs: ((s: HwStatus) => void)[] = [];
   private ledCbs: ((snap: LedSnapshot) => void)[] = [];
 
   constructor() { this.wire(); }
   private wire() {
-    this.backend.onNoteOn((n, v) => this.on.forEach((cb) => cb(n, v)));
-    this.backend.onNoteOff((n) => this.off.forEach((cb) => cb(n)));
+    this.backend.onNoteOn((n, v, t) => this.on.forEach((cb) => cb(n, v, t)));
+    this.backend.onNoteOff((n, rv, t, d) => this.off.forEach((cb) => cb(n, rv, t, d)));
+    this.backend.onPedal((down) => this.pedalCbs.forEach((cb) => cb(down)));
     this.backend.onStatus((s) => this.statusCbs.forEach((cb) => cb(s)));
     this.backend.leds.onChange((snap) => this.ledCbs.forEach((cb) => cb(snap)));
   }
@@ -355,8 +375,9 @@ export class HwFacade {
     this.ledCbs.forEach((cb) => cb(this.backend.leds.snapshot()));
   }
   connect() { return this.backend.connect(); }
-  onNoteOn(cb: (n: string, v: number) => void) { this.on.push(cb); }
-  onNoteOff(cb: (n: string) => void) { this.off.push(cb); }
+  onNoteOn(cb: NoteOnCb) { this.on.push(cb); }
+  onNoteOff(cb: NoteOffCb) { this.off.push(cb); }
+  onPedal(cb: PedalCb) { this.pedalCbs.push(cb); }
   onStatus(cb: (s: HwStatus) => void) { this.statusCbs.push(cb); cb(this.backend.status); }
   onLed(cb: (snap: LedSnapshot) => void) { this.ledCbs.push(cb); cb(this.backend.leds.snapshot()); }
   ledSet(l: LedEntry[]) { this.backend.ledSet(l); }
