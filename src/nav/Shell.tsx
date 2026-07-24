@@ -101,8 +101,8 @@ export default function Shell({ active, children, scroll = true }: {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <StatChip kind="streak" value={p?.streak ?? 0} />
             <StatChip kind="xp" value={p?.xp ?? 0} />
-            <StatChip kind="gems" value={p?.gems ?? 0} />
-            <StatChip kind="hearts" value={p?.hearts ?? 5} />
+            <StatChip kind="gems" value={p?.gems ?? 0} onPress={() => go('shop')} />
+            <StatChip kind="hearts" value={p?.hearts ?? 5} onPress={() => go('shop')} />
             {!premium && (
               <Pressable
                 onPress={() => go('paywall')}

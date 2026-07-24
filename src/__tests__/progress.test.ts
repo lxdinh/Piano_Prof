@@ -70,6 +70,20 @@ describe('applyCompletion', () => {
     const p = applyCompletion({ ...base, lastActiveDate: '2026-07-10' }, 'k1', 3, 40, '2026-07-22');
     expect(p.streak).toBe(1);
   });
+  it('spends a streak freeze to save the run after a missed day', () => {
+    const p = applyCompletion(
+      { ...base, streak: 5, lastActiveDate: '2026-07-10', streakFreezes: 2 }, 'k1', 3, 40, '2026-07-22',
+    );
+    expect(p.streak).toBe(6);        // saved + advanced instead of reset to 1
+    expect(p.streakFreezes).toBe(1); // one freeze consumed
+  });
+  it('does not consume a freeze when the chain is still alive', () => {
+    const p = applyCompletion(
+      { ...base, streak: 5, lastActiveDate: '2026-07-21', streakFreezes: 2 }, 'k1', 3, 40, '2026-07-22',
+    );
+    expect(p.streak).toBe(6);
+    expect(p.streakFreezes).toBe(2); // untouched — no freeze needed
+  });
   it('keeps the higher star score on a repeat', () => {
     const once = applyCompletion(base, 'k1', 1, 40, '2026-07-22');
     const twice = applyCompletion(once, 'k1', 3, 40, '2026-07-22');

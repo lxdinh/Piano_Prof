@@ -78,6 +78,15 @@ export function applyCompletion(
   const chainAlive = !p.lastActiveDate || isYesterday(p.lastActiveDate, today) || p.lastActiveDate === today;
   const progress: ProgressMap = { ...(p.progress ?? {}), [itemId]: Math.max(stars, p.progress?.[itemId] ?? 0) };
   const next = activeItem(progress);
+  // Streak resolution — a streak freeze saves the run after a missed day.
+  const freezes = p.streakFreezes ?? 0;
+  let streak = p.streak;
+  let usedFreeze = false;
+  if (newDay) {
+    if (chainAlive) streak = p.streak + 1;
+    else if (freezes > 0) { streak = p.streak + 1; usedFreeze = true; }
+    else streak = 1;
+  }
   // per-day XP history, pruned to the last 14 days
   const history: Record<string, number> = { ...(p.history ?? {}) };
   history[today] = (history[today] ?? 0) + xp;
@@ -92,7 +101,8 @@ export function applyCompletion(
     todayXp: (newDay ? 0 : (p.todayXp ?? 0)) + xp,
     todayLessons: (newDay ? 0 : (p.todayLessons ?? 0)) + 1,
     todayPerfect: (newDay ? false : (p.todayPerfect ?? false)) || stars >= 3,
-    streak: newDay ? (chainAlive ? p.streak + 1 : 1) : p.streak,
+    streak,
+    streakFreezes: usedFreeze ? freezes - 1 : freezes,
     lastActiveDate: today,
     lastUnit: next?.title ?? p.lastUnit,
   };

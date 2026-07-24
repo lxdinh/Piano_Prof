@@ -26,6 +26,7 @@ import Diploma from '../views/Diploma';
 import Account from '../views/Account';
 import SignIn from '../views/SignIn';
 import Quests from '../views/Quests';
+import Shop from '../views/Shop';
 
 export const registry: ScreenRegistry = {
   splash: Splash,
@@ -55,4 +56,5 @@ export const registry: ScreenRegistry = {
   account: Account,
   signIn: SignIn,
   quests: Quests,
+  shop: Shop,
 };

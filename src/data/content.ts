@@ -70,6 +70,8 @@ export interface Profile {
   questDay?: string;
   /** Quest ids already claimed today. */
   questsClaimed?: string[];
+  /** Streak freezes owned — each protects the streak on one missed day. */
+  streakFreezes?: number;
   /** Local date key (YYYY-MM-DD) of the last completed lesson. */
   lastActiveDate?: string;
   /** Per-day XP history (YYYY-MM-DD -> xp) for the weekly chart. */
