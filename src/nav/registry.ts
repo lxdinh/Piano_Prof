@@ -27,6 +27,7 @@ import Account from '../views/Account';
 import SignIn from '../views/SignIn';
 import Quests from '../views/Quests';
 import Shop from '../views/Shop';
+import Leaderboard from '../views/Leaderboard';
 
 export const registry: ScreenRegistry = {
   splash: Splash,
@@ -57,4 +58,5 @@ export const registry: ScreenRegistry = {
   signIn: SignIn,
   quests: Quests,
   shop: Shop,
+  leaderboard: Leaderboard,
 };

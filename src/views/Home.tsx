@@ -18,6 +18,13 @@ import {
 } from '../data/progress';
 import { DAILY_GOAL_XP } from '../data/progress';
 import { questsToday, claimableCount } from '../data/quests';
+import { leaderboard } from '../data/leaderboard';
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
 
 const KIND_ICON: Record<ItemKind, IconName> = {
   lesson: 'piano', song: 'music', concept: 'book', exercise: 'bolt',
@@ -108,7 +115,7 @@ function Skeleton() {
 
 export default function Home() {
   const { colors } = useAppTheme();
-  const { activeProfile, ready } = useApp();
+  const { activeProfile, profiles, ready } = useApp();
   const { go } = useRouter();
   const tr = useT();
 
@@ -180,6 +187,30 @@ export default function Home() {
             ) : (
               <Icon name="chevronRight" size={22} color={colors.inkFaint} />
             )}
+          </Pressable>
+        );
+      })()}
+
+      {/* Family League — only meaningful with 2+ family members */}
+      {activeProfile && profiles.length >= 2 && (() => {
+        const ranks = leaderboard(profiles);
+        const mine = ranks.find((r) => r.profile.id === activeProfile.id);
+        if (!mine) return null;
+        return (
+          <Pressable
+            onPress={() => go('leaderboard')}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 16, padding: 16, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.line, borderBottomWidth: 5 }}
+          >
+            <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: colors.selSky, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 24 }}>{mine.medal ?? '🏆'}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: colors.ink }}>Family League</Text>
+              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 13, color: colors.inkSoft }}>
+                {ordinal(mine.place)} of {ranks.length} · {mine.xp} XP this week
+              </Text>
+            </View>
+            <Icon name="chevronRight" size={22} color={colors.inkFaint} />
           </Pressable>
         );
       })()}

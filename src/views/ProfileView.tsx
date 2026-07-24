@@ -48,6 +48,7 @@ export default function ProfileView() {
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
             <PPButton label={tr('profile.edit')} size="sm" variant="white" onPress={() => go('editProfile')} />
             <PPButton label={tr('profile.switch')} size="sm" variant="ghost" onPress={() => go('who')} />
+            <PPButton label="League 🏆" size="sm" variant="sky" onPress={() => go('leaderboard')} />
             <PPButton label="Diploma 🎓" size="sm" variant="gold" onPress={() => go('diploma')} />
           </View>
         </View>
