@@ -93,8 +93,9 @@ export default function PPButton({
             <Text
               numberOfLines={1}
               style={{
-                color: textColor ?? pal[3], fontSize: sz.fs, fontFamily: Fonts.family.bold,
-                fontWeight: Fonts.weight.bold, letterSpacing: 0.3,
+                // Buttons are display type — chunky Baloo, not body Nunito.
+                color: textColor ?? pal[3], fontSize: sz.fs, fontFamily: Fonts.family.display,
+                letterSpacing: 0.3,
                 textTransform: isGhost ? 'none' : 'uppercase',
               }}
             >

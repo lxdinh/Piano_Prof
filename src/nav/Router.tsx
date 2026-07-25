@@ -83,7 +83,7 @@ export function RouterProvider({ screens, initial = 'splash' }: {
           <View pointerEvents="none" style={{ position: 'absolute', bottom: 26, left: 0, right: 0, alignItems: 'center' }}>
             <Text style={{
               backgroundColor: '#2B2722', color: '#fff', paddingVertical: 13, paddingHorizontal: 24,
-              borderRadius: 16, fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 16, overflow: 'hidden',
+              borderRadius: 16, fontFamily: Fonts.family.bold, fontSize: 16, overflow: 'hidden',
             }}>{toastMsg}</Text>
           </View>
         )}
@@ -96,7 +96,7 @@ function Missing() {
   const { colors } = useAppTheme();
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: colors.ink, fontFamily: Fonts.family.bold, fontWeight: '800' }}>Missing screen</Text>
+      <Text style={{ color: colors.ink, fontFamily: Fonts.family.bold }}>Missing screen</Text>
     </View>
   );
 }

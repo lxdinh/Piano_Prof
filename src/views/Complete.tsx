@@ -16,8 +16,8 @@ function Tile({ emoji, value, label }: { emoji: string; value: string; label: st
   return (
     <View style={{ alignItems: 'center', backgroundColor: '#ffffff14', borderRadius: 18, paddingVertical: 16, paddingHorizontal: 22, gap: 4, minWidth: 108 }}>
       <Text style={{ fontSize: 24 }}>{emoji}</Text>
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: '#fff' }}>{value}</Text>
-      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 12, color: '#ffffff99' }}>{label}</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontSize: 24, color: '#fff' }}>{value}</Text>
+      <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: '#ffffff99' }}>{label}</Text>
     </View>
   );
 }
@@ -34,7 +34,7 @@ export default function Complete() {
       <LinearGradient colors={['#16273F', '#0A1320']} style={StyleSheet.absoluteFill} />
       <ScrollFit pad={32} style={{ gap: 10 }}>
       <Maestro mood={stars >= 3 ? 'trophy' : 'cheer'} size={150} bg="#ffffff1a" ring={5} ringColor="#ffffff33" float />
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 34, color: '#fff', marginTop: 8 }}>{tr('complete.title')}</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontSize: 34, color: '#fff', marginTop: 8 }}>{tr('complete.title')}</Text>
       <View style={{ flexDirection: 'row', gap: 8, marginVertical: 8 }}>
         {[0, 1, 2].map((i) => (
           <Icon key={i} name={i < stars ? 'star' : 'starline'} size={44} color={i < stars ? '#F5B800' : '#ffffff40'} />

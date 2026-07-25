@@ -79,7 +79,7 @@ export default function Splash() {
   const gradient: [string, string] = isDark ? ['#16273F', '#0A1424'] : ['#FFFDF6', '#FFE9B8'];
   const tagline = (size: number, marginTop: number, marginBottom = 0) => (
     <Text style={{
-      fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: size,
+      fontFamily: Fonts.family.bold, fontSize: size,
       color: isDark ? colors.inkSoft : '#A98B2E', marginTop, marginBottom,
     }}>
       {t('splash.tagline')}
@@ -91,7 +91,7 @@ export default function Splash() {
     <View style={{ width }}>
       <ProgressBar value={70} color={colors.gold} height={9} />
       <Text style={{
-        fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 12,
+        fontFamily: Fonts.family.bold, fontSize: 12,
         color: colors.inkFaint, marginTop: 6,
       }}>
         {t('splash.tuning')}
@@ -112,7 +112,7 @@ export default function Splash() {
         <Maestro mood="conduct" size={132} ring={6} ringColor="#fff" bg={colors.sky} float />
         <View style={{ height: 22 }} />
         <Text style={{
-          fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 60,
+          fontFamily: Fonts.family.black, fontSize: 60,
           color: colors.skyDeep, letterSpacing: -1.5, textAlign: 'center',
         }} numberOfLines={1}>
           Piano<Text style={{ color: colors.ink }}> Professor</Text>
@@ -140,7 +140,7 @@ export default function Splash() {
       <View style={{ flex: 1, alignItems: 'flex-start' }}>
         <Maestro mood="conduct" size={76} ring={4} ringColor="#fff" bg={colors.sky} float />
         <Text style={{
-          fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 40,
+          fontFamily: Fonts.family.black, fontSize: 40,
           color: colors.skyDeep, marginTop: 12, letterSpacing: -1,
         }} numberOfLines={1}>
           Piano<Text style={{ color: colors.ink }}> Professor</Text>

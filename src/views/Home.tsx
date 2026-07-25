@@ -57,18 +57,18 @@ function PosterCard({ item, shelf }: { item: DerivedItem; shelf: DerivedShelf })
         <Icon name={KIND_ICON[item.kind]} size={34} color="#ffffff" />
         {state === 'active' && (
           <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: '#ffffff33', borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
-            <Text style={{ color: '#fff', fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 9 }}>NEXT UP</Text>
+            <Text style={{ color: '#fff', fontFamily: Fonts.family.black, fontSize: 9 }}>NEXT UP</Text>
           </View>
         )}
         {item.premium && (
           <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: '#00000030', borderRadius: 999, paddingVertical: 2, paddingHorizontal: 7 }}>
-            <Text style={{ color: '#fff', fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 10 }}>PRO</Text>
+            <Text style={{ color: '#fff', fontFamily: Fonts.family.black, fontSize: 10 }}>PRO</Text>
           </View>
         )}
       </LinearGradient>
       <View style={{ padding: 11, gap: 6 }}>
-        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: colors.ink }}>{tr.item(item.id, item.title)}</Text>
-        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkSoft }}>{item.kind === 'song' ? item.sub : tr.sub(item.id, item.sub)}</Text>
+        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.black, fontSize: 15, color: colors.ink }}>{tr.item(item.id, item.title)}</Text>
+        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkSoft }}>{item.kind === 'song' ? item.sub : tr.sub(item.id, item.sub)}</Text>
         <View style={{ minHeight: 20, justifyContent: 'center' }}>
           {state === 'done' && (
             <View style={{ flexDirection: 'row', gap: 2 }}>
@@ -80,12 +80,12 @@ function PosterCard({ item, shelf }: { item: DerivedItem; shelf: DerivedShelf })
           {state === 'active' && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Icon name="play" size={14} color={colors.green} />
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: colors.green }}>{tr('common.start')}</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: colors.green }}>{tr('common.start')}</Text>
             </View>
           )}
           {state === 'locked' && <Icon name="lock" size={16} color={colors.inkFaint} />}
           {state === 'soon' && (
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 11, color: colors.inkFaint }}>Still cooking 👨‍🍳</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 11, color: colors.inkFaint }}>Still cooking 👨‍🍳</Text>
           )}
         </View>
       </View>
@@ -137,10 +137,10 @@ export default function Home() {
       <LinearGradient colors={[heroShelf.color, heroShelf.deep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
         <View style={{ flex: 1, gap: 8 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: '#ffffffcc', letterSpacing: 1 }}>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: '#ffffffcc', letterSpacing: 1 }}>
             {next ? tr('home.continueLearning').toUpperCase() : `${tr(`level.${level.id}`).toUpperCase()} · ${tr('grade').toUpperCase()} ${level.grade}`}
           </Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: '#fff' }}>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: '#fff' }}>
             {next ? tr.item(next.id, heroTitle) : heroTitle}
           </Text>
           <View style={{ maxWidth: 320 }}>
@@ -153,7 +153,7 @@ export default function Home() {
             />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#ffffff33', borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13 }}>
               <Icon name="bolt" size={16} color="#fff" />
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#fff' }}>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: '#fff' }}>
                 {Math.min(todayXp, goalXp)} / {goalXp} XP
               </Text>
             </View>
@@ -161,7 +161,7 @@ export default function Home() {
                 reach, so name the remaining distance once it's small. */}
             {todayXp < goalXp && goalXp - todayXp <= 20 && (
               <View style={{ backgroundColor: '#fff', borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13 }}>
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13, color: heroShelf.deep }}>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 13, color: heroShelf.deep }}>
                   {goalXp - todayXp} XP to your goal!
                 </Text>
               </View>
@@ -185,13 +185,13 @@ export default function Home() {
               <Text style={{ fontSize: 24 }}>🗺️</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: colors.ink }}>Daily Quests</Text>
-              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 13, color: colors.inkSoft }}>{done}/{quests.length} complete today</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.ink }}>Daily Quests</Text>
+              <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkSoft }}>{done}/{quests.length} complete today</Text>
             </View>
             {claimable > 0 ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.gold, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13 }}>
                 <Text style={{ fontSize: 14 }}>💎</Text>
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#5a3d00' }}>Collect {claimable}</Text>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: '#5a3d00' }}>Collect {claimable}</Text>
               </View>
             ) : (
               <Icon name="chevronRight" size={22} color={colors.inkFaint} />
@@ -214,8 +214,8 @@ export default function Home() {
               <Text style={{ fontSize: 24 }}>{mine.medal ?? '🏆'}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: colors.ink }}>Family League</Text>
-              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 13, color: colors.inkSoft }}>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.ink }}>Family League</Text>
+              <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkSoft }}>
                 {ordinal(mine.place)} of {ranks.length} · {mine.xp} XP this week
               </Text>
             </View>
@@ -227,7 +227,7 @@ export default function Home() {
       {/* Shelves */}
       {shelves.map((shelf) => (
         <View key={shelf.levelId} style={{ marginTop: 26 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: colors.ink, marginBottom: 12 }}>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 18, color: colors.ink, marginBottom: 12 }}>
             {tr(`level.${shelf.levelId}`)} · {tr('grade')} {levelById(shelf.levelId).grade}
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingRight: 8 }}>

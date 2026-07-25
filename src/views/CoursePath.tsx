@@ -20,13 +20,13 @@ function PathCard({ icon, title, tag, tagColor, body, onPress, color }: {
       style={{ flex: 1, maxWidth: 320, backgroundColor: colors.surface, borderRadius: 22, borderWidth: 2, borderColor: colors.line, borderBottomWidth: 6, padding: 22, gap: 12, alignItems: 'center' }}
     >
       <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: tagColor, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 }}>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 11, color: '#fff' }}>{tag}</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 11, color: '#fff' }}>{tag}</Text>
       </View>
       <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: color, alignItems: 'center', justifyContent: 'center', marginTop: 8 }}>
         <Icon name={icon} size={38} color="#fff" />
       </View>
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 22, color: colors.ink }}>{title}</Text>
-      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 14, color: colors.inkSoft, textAlign: 'center' }}>{body}</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontSize: 22, color: colors.ink }}>{title}</Text>
+      <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkSoft, textAlign: 'center' }}>{body}</Text>
     </Pressable>
   );
 }
@@ -50,8 +50,8 @@ export default function CoursePath() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollFit pad={32} style={{ gap: 24 }}>
       <View style={{ alignItems: 'center', gap: 6 }}>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink }}>{tr('path.title')}</Text>
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 15, color: colors.inkSoft }}>{tr('path.switch')}</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 28, color: colors.ink }}>{tr('path.title')}</Text>
+        <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: colors.inkSoft }}>{tr('path.switch')}</Text>
       </View>
       <View style={{ flexDirection: 'row', gap: 18, width: '100%', justifyContent: 'center' }}>
         <PathCard

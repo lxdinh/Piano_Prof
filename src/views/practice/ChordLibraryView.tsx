@@ -35,7 +35,7 @@ export default function ChordLibraryView() {
             <Pressable onPress={() => setFamilyId(fam.id)}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, backgroundColor: familyId === fam.id ? colors.selGreen : colors.surface, borderWidth: 2, borderColor: colors.line }}>
               <Text style={{ fontSize: 16 }}>{fam.icon}</Text>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: colors.ink }}>{fam.name}</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 15, color: colors.ink }}>{fam.name}</Text>
             </Pressable>
             {familyId === fam.id && fam.types.map((tid) => {
               const ct = chordTypeById(tid);
@@ -43,7 +43,7 @@ export default function ChordLibraryView() {
               return (
                 <Pressable key={tid} onPress={() => setTypeId(tid)}
                   style={{ marginLeft: 14, marginTop: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: on ? ct.color : 'transparent' }}>
-                  <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 14, color: on ? '#fff' : colors.inkSoft }}>{ct.label}</Text>
+                  <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: on ? '#fff' : colors.inkSoft }}>{ct.label}</Text>
                 </Pressable>
               );
             })}
@@ -58,34 +58,34 @@ export default function ChordLibraryView() {
           {CHORD_ROOTS.map((r, i) => (
             <Pressable key={r.name} onPress={() => setRootIdx(i)}
               style={{ width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: i === rootIdx ? chord.type.color : colors.surface, borderWidth: 2, borderColor: i === rootIdx ? chord.type.deep : colors.line }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: i === rootIdx ? '#fff' : colors.ink }}>{r.name}</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 18, color: i === rootIdx ? '#fff' : colors.ink }}>{r.name}</Text>
             </Pressable>
           ))}
         </View>
 
         {/* name + punch */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 40, color: colors.ink }}>{chord.name}</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 40, color: colors.ink }}>{chord.name}</Text>
           <View style={{ backgroundColor: chord.type.color, borderRadius: 999, paddingVertical: 5, paddingHorizontal: 14 }}>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: '#fff' }}>{chord.type.punch}</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 15, color: '#fff' }}>{chord.type.punch}</Text>
           </View>
           <PPButton label="Play" size="sm" variant="green" icon={<Icon name="play" size={14} color="#fff" />} onPress={play} />
         </View>
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 15, color: colors.inkSoft }}>{chord.type.line}</Text>
+        <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: colors.inkSoft }}>{chord.type.line}</Text>
 
         <View style={{ flexDirection: 'row', gap: 14, flexWrap: 'wrap' }}>
           {/* recipe + spelling */}
           <View style={{ flex: 1, minWidth: 240, gap: 10 }}>
             <View style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.line, padding: 14, gap: 6 }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: colors.inkFaint, textTransform: 'uppercase' }}>Recipe</Text>
-              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15, color: colors.ink }}>{chord.type.steps}</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: colors.inkFaint, textTransform: 'uppercase' }}>Recipe</Text>
+              <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: colors.ink }}>{chord.type.steps}</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
                 {spelled.map((n, i) => (
                   <View key={i} style={{ alignItems: 'center', gap: 2 }}>
                     <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: chord.type.color, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: '#fff' }}>{n.name}</Text>
+                      <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: '#fff' }}>{n.name}</Text>
                     </View>
-                    <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 12, color: colors.inkFaint }}>{chord.type.degrees[i]}</Text>
+                    <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>{chord.type.degrees[i]}</Text>
                   </View>
                 ))}
               </View>

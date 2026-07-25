@@ -22,17 +22,17 @@ export default function PlacementResult() {
       <LinearGradient colors={isDark ? ['#16273F', '#0A1320'] : ['#FFFDF6', '#FFF3D6']} style={StyleSheet.absoluteFill} />
       <ScrollFit pad={32} style={{ gap: 12 }}>
       <Maestro mood="trophy" size={140} bg={colors.surface} ring={5} ringColor="#fff" float />
-      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 17, color: colors.inkSoft, marginTop: 8 }}>{tr('placement.placed')}</Text>
+      <Text style={{ fontFamily: Fonts.family.bold, fontSize: 17, color: colors.inkSoft, marginTop: 8 }}>{tr('placement.placed')}</Text>
 
       <View style={{ alignItems: 'center', gap: 6, marginVertical: 6 }}>
         <View style={{ width: 96, height: 96, borderRadius: 24, backgroundColor: level.color, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 34, color: '#fff' }}>{level.short}</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 34, color: '#fff' }}>{level.short}</Text>
         </View>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 30, color: colors.ink }}>{tr(`level.${level.id}`)}</Text>
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15, color: colors.inkFaint }}>{tr('grade')} {level.grade}</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 30, color: colors.ink }}>{tr(`level.${level.id}`)}</Text>
+        <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: colors.inkFaint }}>{tr('grade')} {level.grade}</Text>
       </View>
 
-      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 16, color: colors.inkSoft, textAlign: 'center', maxWidth: 440 }}>{level.blurb}</Text>
+      <Text style={{ fontFamily: Fonts.family.bold, fontSize: 16, color: colors.inkSoft, textAlign: 'center', maxWidth: 440 }}>{level.blurb}</Text>
       <PPButton label={tr('home.continue')} size="lg" variant="green" onPress={() => go('coursePath', { levelId: level.id })} style={{ marginTop: 12 }} />
       </ScrollFit>
     </View>

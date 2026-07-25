@@ -55,7 +55,7 @@ export default function Calibration() {
             }}>
               {i < step
                 ? <Icon name="check" size={16} color="#fff" />
-                : <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: i === step ? '#fff' : colors.inkFaint }}>{i + 1}</Text>}
+                : <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: i === step ? '#fff' : colors.inkFaint }}>{i + 1}</Text>}
             </View>
           ))}
         </View>
@@ -66,8 +66,8 @@ export default function Calibration() {
             ? <Maestro mood="teach" size={110} bg={colors.surface2} float />
             : null}
 
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: colors.ink }}>{s.title}</Text>
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 15, color: colors.inkSoft, textAlign: 'center', maxWidth: 440 }}>{s.body}</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink }}>{s.title}</Text>
+        <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: colors.inkSoft, textAlign: 'center', maxWidth: 440 }}>{s.body}</Text>
 
         {step <= 1 && (
           <View style={{ width: 500, maxWidth: '100%' }}>

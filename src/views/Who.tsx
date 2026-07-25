@@ -54,7 +54,7 @@ export default function Who() {
       {/* Sizes come from whichever prototype layout matches the live canvas:
           phone-spine.jsx PhWho on the 852x394 phone canvas, the roomier
           standalone mockup on the 1280x800 tablet canvas. */}
-      <Text style={{ textAlign: 'center', fontFamily: Fonts.family.black, fontWeight: '900', fontSize: titleSize, color: colors.ink }}>
+      <Text style={{ textAlign: 'center', fontFamily: Fonts.family.black, fontSize: titleSize, color: colors.ink }}>
         {tr('who.title')}
       </Text>
       <Pressable
@@ -62,7 +62,7 @@ export default function Who() {
         style={{ position: 'absolute', top: insets.top + 24, right: 24, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, borderWidth: 2, borderColor: colors.line, backgroundColor: colors.surface }}
       >
         <Icon name={manage ? 'check' : 'pencil'} size={16} color={colors.inkSoft} />
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 14, color: colors.inkSoft }}>{manage ? tr('who.done') : tr('who.manage')}</Text>
+        <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkSoft }}>{manage ? tr('who.done') : tr('who.manage')}</Text>
       </Pressable>
       <ScrollView
         horizontal
@@ -85,7 +85,7 @@ export default function Who() {
                   borderWidth: 2, borderColor: colors.line,
                 }}>
                   <Text style={{ fontSize: 13 }}>🔥</Text>
-                  <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#C2410C' }}>{p.streak}</Text>
+                  <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: '#C2410C' }}>{p.streak}</Text>
                 </View>
               )}
               {manage && profiles.length > 1 && (
@@ -100,7 +100,7 @@ export default function Who() {
                 </Pressable>
               )}
             </View>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 20, color: colors.ink }}>{p.name}</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 20, color: colors.ink }}>{p.name}</Text>
           </Pressable>
         ))}
 
@@ -112,7 +112,7 @@ export default function Who() {
             }}>
               <Icon name="plus" size={48} color={colors.inkFaint} />
             </View>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 18, color: colors.inkSoft }}>{tr('who.add')}</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 18, color: colors.inkSoft }}>{tr('who.add')}</Text>
           </Pressable>
         )}
       </ScrollView>

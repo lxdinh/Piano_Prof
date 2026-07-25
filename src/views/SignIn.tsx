@@ -47,7 +47,7 @@ export default function SignIn() {
       placeholder={placeholder} placeholderTextColor={colors.inkFaint}
       secureTextEntry={opts?.secure} autoCapitalize={opts?.email ? 'none' : 'words'}
       keyboardType={opts?.email ? 'email-address' : 'default'} autoCorrect={false}
-      style={{ borderWidth: 2.5, borderColor: colors.line, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 16, fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 16, color: colors.ink, backgroundColor: colors.surface }}
+      style={{ borderWidth: 2.5, borderColor: colors.line, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 16, fontFamily: Fonts.family.bold, fontSize: 16, color: colors.ink, backgroundColor: colors.surface }}
     />
   );
 
@@ -55,7 +55,7 @@ export default function SignIn() {
     <Pressable onPress={() => provider(p)} disabled={busy}
       style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 13, borderRadius: 14, borderWidth: 2, borderColor: colors.line, backgroundColor: colors.surface }}>
       <Text style={{ fontSize: 18 }}>{p === 'google' ? '🇬' : ''}</Text>
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: colors.ink }}>{label}</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontSize: 15, color: colors.ink }}>{label}</Text>
     </Pressable>
   );
 
@@ -66,7 +66,7 @@ export default function SignIn() {
       </Pressable>
       <ScrollFit pad={26}>
         <View style={{ width: 400, maxWidth: '100%', gap: 12 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink, textAlign: 'center' }}>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 28, color: colors.ink, textAlign: 'center' }}>
             {isSignup ? 'Create account' : 'Welcome back'}
           </Text>
 
@@ -74,7 +74,7 @@ export default function SignIn() {
           {field(email, setEmail, 'Email', { email: true })}
           {field(password, setPassword, 'Password', { secure: true })}
 
-          {error ? <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 13, color: colors.error, textAlign: 'center' }}>{error}</Text> : null}
+          {error ? <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.error, textAlign: 'center' }}>{error}</Text> : null}
 
           <PPButton
             label={busy ? '' : isSignup ? 'Create account' : 'Sign in'} size="lg" variant="green" full disabled={busy}
@@ -84,14 +84,14 @@ export default function SignIn() {
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 }}>
             <View style={{ flex: 1, height: 1.5, backgroundColor: colors.line }} />
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 12, color: colors.inkFaint }}>OR</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>OR</Text>
             <View style={{ flex: 1, height: 1.5, backgroundColor: colors.line }} />
           </View>
           <ProviderButton p="google" label="Continue with Google" />
           <ProviderButton p="apple" label="Continue with Apple" />
 
           <Pressable onPress={() => { setMode(isSignup ? 'signin' : 'signup'); setError(''); }} style={{ paddingVertical: 8 }}>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 14, color: colors.skyDeep, textAlign: 'center' }}>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.skyDeep, textAlign: 'center' }}>
               {isSignup ? 'Already have an account? Sign in' : 'New here? Create an account'}
             </Text>
           </Pressable>

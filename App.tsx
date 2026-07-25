@@ -6,8 +6,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
 import {
-  useFonts, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black,
+  useFonts, Nunito_700Bold, Nunito_800ExtraBold,
 } from '@expo-google-fonts/nunito';
+import { Baloo2_700Bold, Baloo2_800ExtraBold } from '@expo-google-fonts/baloo-2';
 
 import { AppThemeProvider } from './src/theme/AppTheme';
 import { AppStateProvider } from './src/state/AppState';
@@ -32,7 +33,11 @@ function Root() {
 }
 
 function App() {
-  const [fontsLoaded] = useFonts({ Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black });
+  // Two families: Baloo 2 = chunky rounded display (titles, numbers, buttons),
+  // Nunito = friendly body text. See src/theme/tokens.ts.
+  const [fontsLoaded] = useFonts({
+    Nunito_700Bold, Nunito_800ExtraBold, Baloo2_700Bold, Baloo2_800ExtraBold,
+  });
 
   // The new design is landscape-first (matches the prototype's phone + tablet
   // artboards). Lock landscape, and go immersive full-screen like a game —

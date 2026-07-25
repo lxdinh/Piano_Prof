@@ -58,15 +58,15 @@ export default function SongPreview() {
             <Icon name="music" size={54} color="#ffffffcc" />
           </LinearGradient>
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 30, color: colors.ink }}>{song.title}</Text>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 17, color: colors.inkSoft }}>{song.artist}</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 30, color: colors.ink }}>{song.title}</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 17, color: colors.inkSoft }}>{song.artist}</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
               <View style={{ backgroundColor: colors.selSky, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 12 }}>
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: colors.skyDeep }}>{song.level}</Text>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: colors.skyDeep }}>{song.level}</Text>
               </View>
               {song.premium && !premium && (
                 <View style={{ backgroundColor: colors.selGold, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 12 }}>
-                  <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: '#9A6E00' }}>PREMIUM</Text>
+                  <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: '#9A6E00' }}>PREMIUM</Text>
                 </View>
               )}
             </View>
@@ -78,7 +78,7 @@ export default function SongPreview() {
         </View>
 
         {/* chord chart */}
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 17, color: colors.ink, marginTop: 26, marginBottom: 12 }}>Chord chart</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 17, color: colors.ink, marginTop: 26, marginBottom: 12 }}>Chord chart</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {CHART.map((ch, i) => (
             <Pressable key={i} onPress={() => { setPlayingIdx(i); pianoEngine.playChord(ch.notes, 60).catch(() => {}); setTimeout(() => setPlayingIdx(null), 500); }}
@@ -87,8 +87,8 @@ export default function SongPreview() {
                 backgroundColor: playingIdx === i ? colors.green : colors.surface,
                 borderWidth: 2, borderColor: playingIdx === i ? colors.greenDark : colors.line, borderBottomWidth: 5,
               }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: playingIdx === i ? '#fff' : colors.ink }}>{ch.name}</Text>
-              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 11, color: playingIdx === i ? '#ffffffcc' : colors.inkFaint }}>bar {i + 1}</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 24, color: playingIdx === i ? '#fff' : colors.ink }}>{ch.name}</Text>
+              <Text style={{ fontFamily: Fonts.family.bold, fontSize: 11, color: playingIdx === i ? '#ffffffcc' : colors.inkFaint }}>bar {i + 1}</Text>
             </Pressable>
           ))}
         </View>

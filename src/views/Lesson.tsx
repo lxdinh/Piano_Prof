@@ -250,18 +250,18 @@ export default function Lesson() {
         <Pressable onPress={() => engineRef.current?.skip()} hitSlop={8}><Icon name="play" size={18} color={colors.inkFaint} /></Pressable>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 2, borderColor: 'rgba(0,0,0,0.06)' }}>
           <Text style={{ fontSize: 14 }}>❤️</Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#C81E1E' }}>5</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: '#C81E1E' }}>5</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 2, borderColor: 'rgba(0,0,0,0.06)' }}>
           <Text style={{ fontSize: 14 }}>⚡</Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#9A6E00' }}>{xpTotal}</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: '#9A6E00' }}>{xpTotal}</Text>
         </View>
         <Pressable
           onPress={() => switchMode(isSim ? 'ble' : 'sim')}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 2, borderColor: colors.line, backgroundColor: colors.surface, borderRadius: 999, paddingVertical: 5, paddingHorizontal: 11 }}
         >
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: pillColor }} />
-          <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 12, color: colors.inkSoft }}>{pillLabel}</Text>
+          <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkSoft }}>{pillLabel}</Text>
         </Pressable>
       </View>
 
@@ -271,7 +271,7 @@ export default function Lesson() {
           <Maestro mood={mood} size={78} bg="#FFF0CE" ring={talking ? 4 : 0} ringColor="#58CC0266" float />
         </View>
         <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 18, borderWidth: 2, borderColor: colors.line, borderBottomWidth: 5, paddingVertical: 10, paddingHorizontal: 14, minHeight: 62, flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 17, lineHeight: 23, color: colors.ink }}>{bubble}</Text>
+          <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontSize: 17, lineHeight: 23, color: colors.ink }}>{bubble}</Text>
           <View style={{ flexDirection: 'row', gap: 6, marginLeft: 8 }}>
             <Pressable onPress={() => engineRef.current?.prevLine()} style={{ width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: colors.line, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="chevronLeft" size={17} color={colors.inkSoft} />
@@ -299,11 +299,11 @@ export default function Lesson() {
                   borderWidth: 3, borderColor: done ? colors.greenDark : colors.line,
                   borderStyle: done ? 'solid' : 'dashed',
                 }}>
-                  {done ? <Icon name="check" size={20} color="#fff" /> : <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: colors.inkFaint }}>{i + 1}</Text>}
+                  {done ? <Icon name="check" size={20} color="#fff" /> : <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.inkFaint }}>{i + 1}</Text>}
                 </View>
               );
             })}
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: colors.inkFaint, marginLeft: 6 }}>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: colors.inkFaint, marginLeft: 6 }}>
               {Math.min(stage.filled, stage.count)}/{stage.count}{stage.success ? ' ✓' : ''}
             </Text>
           </View>
@@ -322,10 +322,10 @@ export default function Lesson() {
                     borderWidth: 2.5, borderColor: isC ? colors.green : isW ? '#FFB3B3' : colors.line, borderBottomWidth: 5,
                     opacity: stage.correct !== null && !isC ? 0.45 : 1,
                   }}>
-                  <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 36, color: isW ? '#E05252' : colors.ink }}>{o}</Text>
+                  <Text style={{ fontFamily: Fonts.family.black, fontSize: 36, color: isW ? '#E05252' : colors.ink }}>{o}</Text>
                   {isW && (
                     <View style={{ position: 'absolute', bottom: -12, backgroundColor: colors.error, borderRadius: 999, paddingVertical: 3, paddingHorizontal: 10 }}>
-                      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 11, color: '#fff' }}>{stage.wrong?.label}</Text>
+                      <Text style={{ fontFamily: Fonts.family.black, fontSize: 11, color: '#fff' }}>{stage.wrong?.label}</Text>
                     </View>
                   )}
                   {isC && (
@@ -341,7 +341,7 @@ export default function Lesson() {
 
         {stage?.kind === 'follow' && (
           <View style={{ alignItems: 'center', gap: 12 }}>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 48, color: colors.greenDark }}>{stage.name}</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 48, color: colors.greenDark }}>{stage.name}</Text>
             <View style={{ flexDirection: 'row', gap: 9 }}>
               {stage.done.map((d, i) => (
                 <View key={i} style={{
@@ -357,7 +357,7 @@ export default function Lesson() {
         {stage?.kind === 'song' && (
           <View style={{ width: '100%', gap: 8 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: colors.inkFaint, textTransform: 'uppercase', letterSpacing: 1 }}>{stage.title}</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: colors.inkFaint, textTransform: 'uppercase', letterSpacing: 1 }}>{stage.title}</Text>
               <View style={{ flexDirection: 'row', gap: 5 }}>
                 {[0, 1, 2, 3].map((b) => (
                   <View key={b} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: stage.beat === b ? colors.gold : colors.line }} />
@@ -378,13 +378,13 @@ export default function Lesson() {
                     transform: active ? [{ scale: 1.06 }] : undefined,
                   }}>
                     {active && (
-                      <Text style={{ position: 'absolute', top: -9, fontSize: 8, fontFamily: Fonts.family.black, fontWeight: '900', color: '#B45309', backgroundColor: '#FFF3E4', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1, overflow: 'hidden' }}>
+                      <Text style={{ position: 'absolute', top: -9, fontSize: 8, fontFamily: Fonts.family.black, color: '#B45309', backgroundColor: '#FFF3E4', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1, overflow: 'hidden' }}>
                         {stage.leftHand ? 'LEFT + RIGHT' : 'RIGHT HAND'}
                       </Text>
                     )}
-                    <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 30, color: active ? colors.greenDark : colors.inkFaint }}>{bar.chord}</Text>
+                    <Text style={{ fontFamily: Fonts.family.black, fontSize: 30, color: active ? colors.greenDark : colors.inkFaint }}>{bar.chord}</Text>
                     {stage.showLyrics && (
-                      <Text numberOfLines={2} style={{ fontFamily: Fonts.family.heavy, fontWeight: '700', fontSize: 10, color: colors.inkFaint, textAlign: 'center', minHeight: 26, paddingHorizontal: 4 }}>{bar.lyric || ' '}</Text>
+                      <Text numberOfLines={2} style={{ fontFamily: Fonts.family.heavy, fontSize: 10, color: colors.inkFaint, textAlign: 'center', minHeight: 26, paddingHorizontal: 4 }}>{bar.lyric || ' '}</Text>
                     )}
                   </View>
                 );
@@ -418,9 +418,9 @@ export default function Lesson() {
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,16,10,0.5)', alignItems: 'center', justifyContent: 'center' }}>
           <View style={{ width: 520, maxWidth: '92%', backgroundColor: colors.surface, borderRadius: 26, borderWidth: 2, borderColor: colors.line, padding: 24, alignItems: 'center', gap: 8 }}>
             <Maestro mood="welcome-piano" size={100} bg="#EAF8DC" ring={5} ringColor="#fff" float />
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: colors.gold, textTransform: 'uppercase', letterSpacing: 2 }}>Lesson 1</Text>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: colors.ink }}>First Touch → First Songs</Text>
-            <Text style={{ fontFamily: Fonts.family.heavy, fontWeight: '700', fontSize: 14, color: colors.inkSoft }}>Middle C · the 7 notes · 4 chords · 3 real songs</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: colors.gold, textTransform: 'uppercase', letterSpacing: 2 }}>Lesson 1</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink }}>First Touch → First Songs</Text>
+            <Text style={{ fontFamily: Fonts.family.heavy, fontSize: 14, color: colors.inkSoft }}>Middle C · the 7 notes · 4 chords · 3 real songs</Text>
             <Segmented
               value={mode}
               onChange={(v) => switchMode(v as HwMode)}
@@ -429,20 +429,20 @@ export default function Lesson() {
             {mode === 'ble' ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: status.state === 'connected' ? colors.green : status.state === 'connecting' ? colors.gold : colors.inkFaint }} />
-                <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 13, color: colors.inkSoft }}>
+                <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkSoft }}>
                   {status.state === 'connected' ? (status.detail || 'Connected') : status.state === 'connecting' ? 'Connecting…' : status.state === 'error' ? status.detail : 'Board not connected'}
                 </Text>
                 <PPButton label={status.state === 'connected' ? 'Reconnect' : 'Connect board'} size="sm" variant="sky"
                   onPress={() => hwRef.current?.connect().catch(() => {})} />
               </View>
             ) : (
-              <Text style={{ fontFamily: Fonts.family.heavy, fontWeight: '700', fontSize: 12, color: colors.inkFaint, textAlign: 'center' }}>
+              <Text style={{ fontFamily: Fonts.family.heavy, fontSize: 12, color: colors.inkFaint, textAlign: 'center' }}>
                 No board needed — press and hold the on-screen keys; multi-touch plays chords.
               </Text>
             )}
             <PPButton label={savedStep > 0 ? `Resume · Section ${savedStep + 1}` : 'Start lesson'} size="lg" variant="green"
               onPress={() => startLesson(savedStep)} style={{ marginTop: 6 }} />
-            <Text style={{ fontFamily: Fonts.family.heavy, fontWeight: '700', fontSize: 11, color: colors.inkFaint }}>🔊 Sound on — the professor talks you through it.</Text>
+            <Text style={{ fontFamily: Fonts.family.heavy, fontSize: 11, color: colors.inkFaint }}>🔊 Sound on — the professor talks you through it.</Text>
           </View>
         </View>
       )}
@@ -450,8 +450,8 @@ export default function Lesson() {
       {/* ── complete overlay ── */}
       {phase === 'complete' && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: colors.gold, letterSpacing: 2, textTransform: 'uppercase' }}>Lesson complete</Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 32, color: colors.ink }}>Lesson 1 · First Songs</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.gold, letterSpacing: 2, textTransform: 'uppercase' }}>Lesson complete</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 32, color: colors.ink }}>Lesson 1 · First Songs</Text>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginVertical: 6 }}>
             {[0, 1, 2].map((i) => (
               <View key={i} style={{ marginTop: i === 1 ? -10 : 4, opacity: starsIn > i ? 1 : 0, transform: [{ scale: starsIn > i ? 1 : 0.2 }] }}>
@@ -464,8 +464,8 @@ export default function Lesson() {
             {[['⚡', `+${completeXp} XP`, 'Earned', '#F5B800'], ['🎵', '3', 'Songs played', '#2E84AD'], ['🎹', '4', 'Chords learned', '#58CC02']].map(([e, v, l, c], i) => (
               <View key={i} style={{ minWidth: 110, alignItems: 'center', backgroundColor: colors.surface, borderRadius: 18, borderWidth: 2, borderColor: colors.line, borderBottomWidth: 5, paddingVertical: 12, paddingHorizontal: 16 }}>
                 <Text style={{ fontSize: 22 }}>{e}</Text>
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 20, color: c as string }}>{v}</Text>
-                <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 11, color: colors.inkFaint, textTransform: 'uppercase' }}>{l}</Text>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 20, color: c as string }}>{v}</Text>
+                <Text style={{ fontFamily: Fonts.family.bold, fontSize: 11, color: colors.inkFaint, textTransform: 'uppercase' }}>{l}</Text>
               </View>
             ))}
           </View>

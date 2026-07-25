@@ -18,8 +18,8 @@ function StatTile({ emoji, value, label }: { emoji: string; value: string; label
   return (
     <Card pad={14} style={{ flex: 1, alignItems: 'center', gap: 2 }}>
       <Text style={{ fontSize: 22 }}>{emoji}</Text>
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 22, color: colors.ink }}>{value}</Text>
-      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkFaint }}>{label}</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontSize: 22, color: colors.ink }}>{value}</Text>
+      <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>{label}</Text>
     </Card>
   );
 }
@@ -41,8 +41,8 @@ export default function ProfileView() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
         <Maestro mood={p?.avatar ?? 'cool'} size={110} bg={p?.bg ?? colors.surface2} ring={5} ringColor={level.color} fit="head" />
         <View style={{ flex: 1, gap: 4 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 30, color: colors.ink }}>{p?.name ?? 'Player'}</Text>
-          <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15, color: colors.inkSoft }}>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 30, color: colors.ink }}>{p?.name ?? 'Player'}</Text>
+          <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: colors.inkSoft }}>
             {level.name} · Grade {level.grade} · {p?.path === 'soloist' ? 'Soloist' : 'Chords'} path
           </Text>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
@@ -63,26 +63,26 @@ export default function ProfileView() {
       </View>
 
       {/* weekly XP */}
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: colors.ink, marginTop: 26, marginBottom: 12 }}>{tr('profile.thisWeek')}</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontSize: 18, color: colors.ink, marginTop: 26, marginBottom: 12 }}>{tr('profile.thisWeek')}</Text>
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 110 }}>
           {week.map((w, i) => (
             <View key={i} style={{ alignItems: 'center', gap: 6, flex: 1 }}>
               <View style={{ width: 22, height: Math.max(6, (w.xp / maxXp) * 84), borderRadius: 8, backgroundColor: w.xp >= 50 ? colors.green : w.xp > 0 ? colors.gold : colors.line }} />
-              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 12, color: colors.inkFaint }}>{w.label}</Text>
+              <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>{w.label}</Text>
             </View>
           ))}
         </View>
       </Card>
 
       {/* achievements */}
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: colors.ink, marginTop: 26, marginBottom: 12 }}>{tr('profile.achievements')}</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontSize: 18, color: colors.ink, marginTop: 26, marginBottom: 12 }}>{tr('profile.achievements')}</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {achievements.map((a) => (
           <Card key={a.id} pad={14} style={{ width: 150, alignItems: 'center', gap: 4, opacity: a.done ? 1 : 0.5 }}>
             <Text style={{ fontSize: 28 }}>{a.emoji}</Text>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: colors.ink, textAlign: 'center' }}>{a.name}</Text>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 11, color: a.done ? colors.green : colors.inkFaint }}>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: colors.ink, textAlign: 'center' }}>{a.name}</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 11, color: a.done ? colors.green : colors.inkFaint }}>
               {a.done ? 'Unlocked' : 'Locked'}
             </Text>
           </Card>

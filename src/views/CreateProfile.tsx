@@ -45,24 +45,24 @@ export default function CreateProfile() {
         {/* Sizes per canvas: phone-spine.jsx PhCreateProfile on the phone
             canvas, the roomier standalone mockup on the tablet canvas. */}
         <Maestro mood={avatar.mood} size={isTablet ? 120 : 104} bg={avatar.bg} ring={isTablet ? 5 : 4} ringColor={colors.green} fit="head" float />
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: isTablet ? 28 : 22, color: colors.ink, marginTop: 12 }}>{tr(activeProfile?.placed ? 'create.edit' : 'create.title')}</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: isTablet ? 28 : 22, color: colors.ink, marginTop: 12 }}>{tr(activeProfile?.placed ? 'create.edit' : 'create.title')}</Text>
 
         <View style={{ width: '100%', maxWidth: 520, gap: 16, marginTop: 20 }}>
           <View style={{ gap: 6 }}>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase' }}>{tr('create.firstName')}</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase' }}>{tr('create.firstName')}</Text>
             <TextInput
               value={name} onChangeText={setName} placeholder="Type a name" placeholderTextColor={colors.inkFaint}
-              style={{ borderWidth: 2.5, borderColor: colors.line, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 16, fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 18, color: colors.ink, backgroundColor: colors.surface }}
+              style={{ borderWidth: 2.5, borderColor: colors.line, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 16, fontFamily: Fonts.family.bold, fontSize: 18, color: colors.ink, backgroundColor: colors.surface }}
             />
           </View>
 
           <View style={{ gap: 6 }}>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase' }}>{tr('settings.language')}</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase' }}>{tr('settings.language')}</Text>
             <LangDropdown value={lang} onChange={setLang} />
           </View>
 
           <View style={{ gap: 8 }}>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase' }}>{tr('create.pickMaestro')}</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase' }}>{tr('create.pickMaestro')}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               {AVATARS.map((a, i) => (
                 <Pressable key={a.mood} onPress={() => setAvatarIdx(i)}>

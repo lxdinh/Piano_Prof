@@ -15,8 +15,8 @@ function Row({ label, value }: { label: string; value: string }) {
   const { colors } = useAppTheme();
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1.5, borderBottomColor: colors.line }}>
-      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15, color: colors.inkSoft }}>{label}</Text>
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: colors.ink }}>{value}</Text>
+      <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: colors.inkSoft }}>{label}</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontSize: 15, color: colors.ink }}>{value}</Text>
     </View>
   );
 }
@@ -34,13 +34,13 @@ export default function ManageSub() {
       </Pressable>
       <ScrollFit pad={26}>
         <View style={{ width: 520, maxWidth: '100%', gap: 16 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink }}>Subscription</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 28, color: colors.ink }}>Subscription</Text>
           {premium ? (
             <>
               <Card>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                   <Icon name="crown" size={22} color={colors.gold} />
-                  <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 20, color: colors.ink }}>Family · Annual</Text>
+                  <Text style={{ fontFamily: Fonts.family.black, fontSize: 20, color: colors.ink }}>Family · Annual</Text>
                 </View>
                 <Row label="Profiles" value="3 of 5 used" />
                 <Row label="Next billing date" value="Aug 22, 2026" />
@@ -56,7 +56,7 @@ export default function ManageSub() {
             </>
           ) : (
             <Card>
-              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 16, color: colors.inkSoft, marginBottom: 14 }}>
+              <Text style={{ fontFamily: Fonts.family.bold, fontSize: 16, color: colors.inkSoft, marginBottom: 14 }}>
                 You're on the free plan. Hearts refill over time and some content is locked.
               </Text>
               <PPButton label="See Premium plans" size="md" variant="gold" onPress={() => go('paywall')} />

@@ -36,14 +36,14 @@ function ShopRow({ item }: { item: ShopItem }) {
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 17, color: colors.ink }}>{item.title}</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 17, color: colors.ink }}>{item.title}</Text>
           {owned !== null && (
             <View style={{ backgroundColor: colors.selSky, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 11, color: colors.skyDeep }}>{owned}/{MAX_FREEZES} owned</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 11, color: colors.skyDeep }}>{owned}/{MAX_FREEZES} owned</Text>
             </View>
           )}
         </View>
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 13, color: colors.inkSoft }}>{item.desc}</Text>
+        <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkSoft }}>{item.desc}</Text>
       </View>
       <Pressable
         onPress={buy} disabled={!buyable}
@@ -55,10 +55,10 @@ function ShopRow({ item }: { item: ShopItem }) {
         {buyable ? (
           <>
             <Text style={{ fontSize: 14 }}>💎</Text>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: '#fff' }}>{item.cost}</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: '#fff' }}>{item.cost}</Text>
           </>
         ) : (
-          <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 12, color: colors.inkFaint, textAlign: 'center' }}>{blocked}</Text>
+          <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint, textAlign: 'center' }}>{blocked}</Text>
         )}
       </Pressable>
     </View>
@@ -77,7 +77,7 @@ export default function Shop() {
         <Pressable onPress={back} style={{ padding: 12 }}>
           <Icon name="chevronLeft" size={28} color={colors.ink} />
         </Pressable>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>Gem Shop</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 24, color: colors.ink }}>Gem Shop</Text>
         <View style={{ flex: 1 }} />
         <View style={{ paddingRight: 16 }}>
           <StatChip kind="gems" value={activeProfile?.gems ?? 0} big />
@@ -89,8 +89,8 @@ export default function Shop() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 }}>
             <Maestro mood="magician" size={72} bg={colors.surface2} float />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 20, color: colors.ink }}>Spend your gems</Text>
-              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 14, color: colors.inkSoft }}>Earn more from lessons and Daily Quests</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 20, color: colors.ink }}>Spend your gems</Text>
+              <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkSoft }}>Earn more from lessons and Daily Quests</Text>
             </View>
           </View>
 
@@ -98,7 +98,7 @@ export default function Shop() {
 
           <Pressable onPress={() => go('paywall')} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, marginTop: 4 }}>
             <Icon name="crown" size={18} color={colors.gold} />
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 14, color: colors.inkSoft }}>Go Premium for unlimited hearts</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkSoft }}>Go Premium for unlimited hearts</Text>
           </Pressable>
         </View>
       </ScrollFit>

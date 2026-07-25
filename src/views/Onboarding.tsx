@@ -32,8 +32,8 @@ export default function Onboarding() {
     <LinearGradient colors={isDark ? ['#16273F', '#0A1424'] : ['#FFFDF6', '#FFF3D6']} style={{ flex: 1, paddingTop: insets.top }}>
       <ScrollFit pad={32} style={{ gap: 12 }}>
         <Maestro mood={s.mood} size={150} bg={colors.surface} ring={5} ringColor="#fff" float />
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 30, color: colors.ink, marginTop: 8 }}>{s.title}</Text>
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 17, color: colors.inkSoft, textAlign: 'center', maxWidth: 440 }}>{s.body}</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 30, color: colors.ink, marginTop: 8 }}>{s.title}</Text>
+        <Text style={{ fontFamily: Fonts.family.bold, fontSize: 17, color: colors.inkSoft, textAlign: 'center', maxWidth: 440 }}>{s.body}</Text>
 
         {s.kind === 'piano' && (
           <View style={{ width: 360, marginTop: 8 }}>

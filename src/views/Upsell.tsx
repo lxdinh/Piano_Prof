@@ -31,8 +31,8 @@ export default function Upsell() {
       <View style={{ width: 520, maxWidth: '94%', backgroundColor: colors.surface, borderRadius: 26, borderWidth: 2, borderColor: colors.line, padding: 28, alignItems: 'center', gap: 10 }}>
         <Maestro mood={r.mood} size={110} bg={colors.surface2} ring={5} ringColor={colors.surface} float />
         <Text style={{ fontSize: 34 }}>{r.emoji}</Text>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: colors.ink, textAlign: 'center' }}>{r.title}</Text>
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 15, color: colors.inkSoft, textAlign: 'center', lineHeight: 21 }}>{r.body}</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink, textAlign: 'center' }}>{r.title}</Text>
+        <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: colors.inkSoft, textAlign: 'center', lineHeight: 21 }}>{r.body}</Text>
         <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
           <PPButton label="Maybe later" size="md" variant="ghost" onPress={back} />
           {canRefill ? (

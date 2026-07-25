@@ -81,22 +81,22 @@ export default function CircleTrainer() {
         {/* detail card */}
         <View style={{ width: 300, gap: 10 }}>
           <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderWidth: 2, borderColor: colors.line, padding: 16, gap: 8 }}>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 24, color: colors.ink }}>
               {k.maj} major {mode === 'min' ? `· ${k.min}` : ''}
             </Text>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 14, color: colors.inkSoft }}>{cofSigText(k)}</Text>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 13, color: colors.inkFaint }}>Relative minor: {k.min}</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkSoft }}>{cofSigText(k)}</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkFaint }}>Relative minor: {k.min}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
               {k.scale.map((n, i) => (
                 <View key={i} style={{ paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, backgroundColor: i === 0 ? colors.green : colors.surface2 }}>
-                  <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13, color: i === 0 ? '#fff' : colors.ink }}>{n}</Text>
+                  <Text style={{ fontFamily: Fonts.family.black, fontSize: 13, color: i === 0 ? '#fff' : colors.ink }}>{n}</Text>
                 </View>
               ))}
             </View>
           </View>
 
           <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderWidth: 2, borderColor: colors.line, padding: 16, gap: 10 }}>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase' }}>Song-builder neighbours</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase' }}>Song-builder neighbours</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <PPButton label={`I · ${k.maj}`} size="sm" variant="green" onPress={() => pianoEngine.playChord(majTriad(k.root), 60).catch(() => {})} />
               <PPButton label={`IV · ${COF_KEYS[(sel + 11) % 12].maj}`} size="sm" variant="sky" onPress={() => pianoEngine.playChord(majTriad(COF_KEYS[(sel + 11) % 12].root), 60).catch(() => {})} />

@@ -35,7 +35,7 @@ export default function Streak() {
         <Pressable onPress={back} style={{ padding: 12 }}>
           <Icon name="chevronLeft" size={28} color={colors.ink} />
         </Pressable>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>Your Streak</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 24, color: colors.ink }}>Your Streak</Text>
       </View>
 
       <ScrollFit pad={20}>
@@ -44,14 +44,14 @@ export default function Streak() {
           <View style={{ flex: 1, minWidth: 260, gap: 16 }}>
             <Card style={{ alignItems: 'center', gap: 6, paddingVertical: 22 }}>
               <Text style={{ fontSize: 64 }}>🔥</Text>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 52, color: colors.streak }}>{streak}</Text>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: colors.inkSoft }}>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 52, color: colors.streak }}>{streak}</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.inkSoft }}>
                 {streak === 1 ? 'day streak' : 'day streak'}
               </Text>
               {freezes > 0 && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.selSky, borderRadius: 999, paddingVertical: 5, paddingHorizontal: 12, marginTop: 6 }}>
                   <Text style={{ fontSize: 15 }}>🧊</Text>
-                  <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13, color: colors.skyDeep }}>{freezes} streak freeze{freezes > 1 ? 's' : ''} ready</Text>
+                  <Text style={{ fontFamily: Fonts.family.black, fontSize: 13, color: colors.skyDeep }}>{freezes} streak freeze{freezes > 1 ? 's' : ''} ready</Text>
                 </View>
               )}
             </Card>
@@ -62,19 +62,19 @@ export default function Streak() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={{ fontSize: 24 }}>{next.emoji}</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: colors.ink }}>Next: {next.name}</Text>
-                      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkFaint }}>{next.days - streak} more day{next.days - streak > 1 ? 's' : ''} to go</Text>
+                      <Text style={{ fontFamily: Fonts.family.black, fontSize: 15, color: colors.ink }}>Next: {next.name}</Text>
+                      <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>{next.days - streak} more day{next.days - streak > 1 ? 's' : ''} to go</Text>
                     </View>
-                    <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: colors.streak }}>{streak}/{next.days}</Text>
+                    <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: colors.streak }}>{streak}/{next.days}</Text>
                   </View>
                   <ProgressBar value={milestoneProgress(streak) * 100} height={12} color={colors.streak} />
                 </>
               ) : (
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: colors.ink, textAlign: 'center' }}>🏆 Every milestone earned — legendary!</Text>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 15, color: colors.ink, textAlign: 'center' }}>🏆 Every milestone earned — legendary!</Text>
               )}
               <Pressable onPress={() => go('shop')} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingTop: 4 }}>
                 <Text style={{ fontSize: 14 }}>🧊</Text>
-                <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 13, color: colors.skyDeep }}>Get a streak freeze in the shop</Text>
+                <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.skyDeep }}>Get a streak freeze in the shop</Text>
               </Pressable>
             </Card>
           </View>
@@ -82,10 +82,10 @@ export default function Streak() {
           {/* right column: calendar + badges */}
           <View style={{ flex: 1, minWidth: 260, gap: 16 }}>
             <Card style={{ gap: 10 }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: colors.ink }}>{MONTHS[now.getMonth()]} {now.getFullYear()}</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.ink }}>{MONTHS[now.getMonth()]} {now.getFullYear()}</Text>
               <View style={{ flexDirection: 'row' }}>
                 {DOW.map((d, i) => (
-                  <Text key={i} style={{ flex: 1, textAlign: 'center', fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 11, color: colors.inkFaint }}>{d}</Text>
+                  <Text key={i} style={{ flex: 1, textAlign: 'center', fontFamily: Fonts.family.bold, fontSize: 11, color: colors.inkFaint }}>{d}</Text>
                 ))}
               </View>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -97,7 +97,7 @@ export default function Streak() {
                         backgroundColor: c.active ? colors.streak : 'transparent',
                         borderWidth: c.today && !c.active ? 2 : 0, borderColor: colors.streak,
                       }}>
-                        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 12, color: c.active ? '#fff' : colors.inkSoft }}>{c.day}</Text>
+                        <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: c.active ? '#fff' : colors.inkSoft }}>{c.day}</Text>
                       </View>
                     )}
                   </View>
@@ -106,7 +106,7 @@ export default function Streak() {
             </Card>
 
             <Card style={{ gap: 10 }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: colors.ink }}>Milestones</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.ink }}>Milestones</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                 {MILESTONES.map((m) => {
                   const on = earned.has(m.days);
@@ -115,7 +115,7 @@ export default function Streak() {
                       <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: on ? colors.selGold : colors.surface2, alignItems: 'center', justifyContent: 'center' }}>
                         <Text style={{ fontSize: 22 }}>{m.emoji}</Text>
                       </View>
-                      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 11, color: on ? colors.ink : colors.inkFaint }}>{m.days}d</Text>
+                      <Text style={{ fontFamily: Fonts.family.black, fontSize: 11, color: on ? colors.ink : colors.inkFaint }}>{m.days}d</Text>
                     </View>
                   );
                 })}

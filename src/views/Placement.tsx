@@ -38,7 +38,7 @@ export default function Placement() {
         <View style={{ width: '100%', maxWidth: 640, gap: 24 }}>
           <View style={{ alignItems: 'center', gap: 8 }}>
             <Text style={{ fontSize: 48 }}>{q.emoji}</Text>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: colors.ink, textAlign: 'center' }}>{q.q}</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink, textAlign: 'center' }}>{q.q}</Text>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
             {q.a.map((opt, k) => (
@@ -50,7 +50,7 @@ export default function Placement() {
                   borderWidth: 2, borderColor: colors.line, borderBottomWidth: 5, backgroundColor: colors.surface,
                 }}
               >
-                <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 16, color: colors.ink, textAlign: 'center' }}>{opt.t}</Text>
+                <Text style={{ fontFamily: Fonts.family.bold, fontSize: 16, color: colors.ink, textAlign: 'center' }}>{opt.t}</Text>
               </Pressable>
             ))}
           </View>

@@ -24,21 +24,21 @@ function RankRow({ rank, isMe }: { rank: Rank; isMe: boolean }) {
         {rank.medal ? (
           <Text style={{ fontSize: 24 }}>{rank.medal}</Text>
         ) : (
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: colors.inkFaint }}>{rank.place}</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 18, color: colors.inkFaint }}>{rank.place}</Text>
         )}
       </View>
       <Maestro mood={p.avatar} size={48} bg={p.bg} fit="head" />
       <View style={{ flex: 1 }}>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 17, color: colors.ink }}>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 17, color: colors.ink }}>
           {p.name}{isMe ? ' (you)' : ''}
         </Text>
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkFaint }}>
+        <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>
           {`🔥 ${p.streak} · ⚡ ${p.xp} total`}
         </Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
         <Icon name="bolt" size={16} color={colors.gold} />
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 18, color: colors.ink }}>{rank.xp}</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 18, color: colors.ink }}>{rank.xp}</Text>
       </View>
     </View>
   );
@@ -58,7 +58,7 @@ export default function Leaderboard() {
         <Pressable onPress={back} style={{ padding: 12 }}>
           <Icon name="chevronLeft" size={28} color={colors.ink} />
         </Pressable>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>Family League 🏆</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 24, color: colors.ink }}>Family League 🏆</Text>
       </View>
 
       <ScrollFit>
@@ -66,8 +66,8 @@ export default function Leaderboard() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 2 }}>
             <Maestro mood="trophy" size={72} bg={colors.surface2} float />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 20, color: colors.ink }}>This week's standings</Text>
-              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 14, color: colors.inkSoft }}>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 20, color: colors.ink }}>This week's standings</Text>
+              <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkSoft }}>
                 Ranked by XP earned in the last 7 days
               </Text>
             </View>
@@ -83,7 +83,7 @@ export default function Leaderboard() {
               style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, marginTop: 4, borderRadius: 16, borderWidth: 2, borderColor: colors.line, borderStyle: 'dashed' }}
             >
               <Icon name="plus" size={18} color={colors.green} />
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: colors.green }}>Add family to compete</Text>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: colors.green }}>Add family to compete</Text>
             </Pressable>
           )}
         </View>

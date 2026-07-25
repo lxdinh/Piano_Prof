@@ -30,7 +30,7 @@ export function StatChip({ kind, value, big, onPress }: {
       }}
     >
       <Text style={{ fontSize: big ? 22 : 18 }}>{m.emoji}</Text>
-      <Text style={{ color: m.ink, fontFamily: Fonts.family.black, fontWeight: '900', fontSize: big ? 22 : 17 }}>
+      <Text style={{ color: m.ink, fontFamily: Fonts.family.black, fontSize: big ? 22 : 17 }}>
         {value}
       </Text>
     </Body>
@@ -67,7 +67,7 @@ export function Segmented({ options, value, onChange }: {
         return (
           <Pressable key={o.value} onPress={() => onChange(o.value)}
             style={{ paddingVertical: 8, paddingHorizontal: 18, borderRadius: 11, backgroundColor: on ? colors.segActive : 'transparent' }}>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15, color: on ? colors.ink : colors.inkFaint }}>{o.label}</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: on ? colors.ink : colors.inkFaint }}>{o.label}</Text>
           </Pressable>
         );
       })}

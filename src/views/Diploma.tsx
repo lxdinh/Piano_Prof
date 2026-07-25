@@ -48,12 +48,12 @@ export default function Diploma() {
             <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: GOLD, alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
               <Maestro mood="trophy" size={68} bg="transparent" />
             </View>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13, color: GOLD, letterSpacing: 3 }}>PIANO PROFESSOR ACADEMY</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 13, color: GOLD, letterSpacing: 3 }}>PIANO PROFESSOR ACADEMY</Text>
             <Text style={{ fontSize: 30, fontWeight: '400', color: PAPER_INK, fontStyle: 'italic' }}>Certificate of Achievement</Text>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 13, color: '#8A806A', marginTop: 6 }}>proudly awarded to</Text>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 38, color: PAPER_INK }}>{p?.name ?? 'Player'}</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: '#8A806A', marginTop: 6 }}>proudly awarded to</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 38, color: PAPER_INK }}>{p?.name ?? 'Player'}</Text>
             <View style={{ height: 2, alignSelf: 'stretch', backgroundColor: GOLD, opacity: 0.4, marginVertical: 8 }} />
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 16, color: PAPER_INK, textAlign: 'center' }}>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 16, color: PAPER_INK, textAlign: 'center' }}>
               for completing <Text style={{ color: GOLD }}>{level.name} · Grade {level.grade}</Text>{'\n'}on the {p?.path === 'soloist' ? 'Soloist' : 'Chords'} path
             </Text>
             {/* stat strip */}
@@ -63,12 +63,12 @@ export default function Diploma() {
               ].map(([e, v], i) => (
                 <View key={i} style={{ alignItems: 'center', gap: 2 }}>
                   <Text style={{ fontSize: 18 }}>{e}</Text>
-                  <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: PAPER_INK }}>{v}</Text>
+                  <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: PAPER_INK }}>{v}</Text>
                 </View>
               ))}
             </View>
             <Text style={{ fontSize: 24, color: PAPER_INK, marginTop: 14, fontStyle: 'italic' }}>Maestro 🐧</Text>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 11, color: '#8A806A' }}>Professor of Piano · Head Penguin</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 11, color: '#8A806A' }}>Professor of Piano · Head Penguin</Text>
           </View>
         </View>
 

@@ -126,10 +126,10 @@ export default function Pair() {
         {(phase === 'scan' || phase === 'connecting') && (
           <>
             <Radar />
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: colors.ink }}>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink }}>
               {phase === 'connecting' ? 'Connecting…' : 'Looking for your LED strip…'}
             </Text>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 14, color: colors.inkFaint }}>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkFaint }}>
               {phase === 'connecting' ? detail : "Make sure it's powered on and nearby"}
             </Text>
           </>
@@ -140,8 +140,8 @@ export default function Pair() {
             <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="bluetooth" size={40} color={colors.inkFaint} />
             </View>
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>No board connected</Text>
-            <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 14, color: colors.inkFaint, textAlign: 'center', maxWidth: 460 }}>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 24, color: colors.ink }}>No board connected</Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkFaint, textAlign: 'center', maxWidth: 460 }}>
               {errMsg || 'Could not find your LED strip.'} Power it on, keep it nearby, and make sure Bluetooth is on.
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
@@ -154,7 +154,7 @@ export default function Pair() {
         {phase === 'success' && (
           <>
             <Maestro mood="cheer" size={120} bg={colors.selGreen} ring={5} ringColor={colors.green} float />
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: colors.ink }}>Your keys light up! 🎉</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink }}>Your keys light up! 🎉</Text>
             <View style={{ width: 460, maxWidth: '100%' }}>
               <Piano low={60} high={84} lit={sweep} height={120} interactive={false} />
             </View>

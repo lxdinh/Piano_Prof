@@ -48,12 +48,12 @@ export default function Paywall() {
         <Maestro mood="trophy" size={110} bg="#ffffff55" ring={4} ringColor="#ffffff88" float />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Icon name="crown" size={26} color="#5a3d00" />
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: '#5a3d00' }}>Premium</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 28, color: '#5a3d00' }}>Premium</Text>
         </View>
         {BENEFITS.map((b, i) => (
           <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Icon name="check" size={18} color="#5a3d00" />
-            <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 14, color: '#5a3d00' }}>{b}</Text>
+            <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontSize: 14, color: '#5a3d00' }}>{b}</Text>
           </View>
         ))}
       </LinearGradient>
@@ -76,24 +76,24 @@ export default function Paywall() {
               <Text style={{ fontSize: 30 }}>{p.icon}</Text>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 20, color: colors.ink }}>{p.name}</Text>
+                  <Text style={{ fontFamily: Fonts.family.black, fontSize: 20, color: colors.ink }}>{p.name}</Text>
                   {p.best && (
                     <View style={{ backgroundColor: colors.green, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 9 }}>
-                      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 10, color: '#fff' }}>BEST VALUE</Text>
+                      <Text style={{ fontFamily: Fonts.family.black, fontSize: 10, color: '#fff' }}>BEST VALUE</Text>
                     </View>
                   )}
                 </View>
-                <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 13, color: colors.inkSoft }}>{p.blurb}</Text>
+                <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkSoft }}>{p.blurb}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 22, color: colors.ink }}>${price(p.monthly).toFixed(2)}</Text>
-                <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkFaint }}>/month</Text>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 22, color: colors.ink }}>${price(p.monthly).toFixed(2)}</Text>
+                <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>/month</Text>
               </View>
             </Pressable>
           );
         })}
         <PPButton label="Start 7-day free trial" size="lg" variant="green" full onPress={startTrial} />
-        <Text style={{ textAlign: 'center', fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkFaint }}>
+        <Text style={{ textAlign: 'center', fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>
           Cancel anytime. No charge until the trial ends.
         </Text>
       </ScrollView>

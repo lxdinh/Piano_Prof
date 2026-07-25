@@ -40,7 +40,7 @@ export default function PremiumWelcome() {
       <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }} showsVerticalScrollIndicator={false}>
         <View style={{ alignItems: 'center', gap: 10 }}>
           <Maestro mood="trophy" size={110} bg="#ffffff44" float />
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 30, color: '#fff', textAlign: 'center' }}>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 30, color: '#fff', textAlign: 'center' }}>
             Welcome to Premium! 🎉
           </Text>
           <Animated.View style={{
@@ -49,7 +49,7 @@ export default function PremiumWelcome() {
             transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
           }}>
             <Icon name="gem" size={22} color="#fff" />
-            <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 20, color: '#fff' }}>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 20, color: '#fff' }}>
               +{PREMIUM_WELCOME_GEMS} gems
             </Text>
           </Animated.View>
@@ -64,8 +64,8 @@ export default function PremiumWelcome() {
             }}>
               <Text style={{ fontSize: 22 }}>{p.icon}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: '#fff' }}>{p.title}</Text>
-                <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: '#ffffffcc' }}>{p.desc}</Text>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: '#fff' }}>{p.title}</Text>
+                <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: '#ffffffcc' }}>{p.desc}</Text>
               </View>
             </View>
           ))}
@@ -73,15 +73,15 @@ export default function PremiumWelcome() {
 
         {/* a concrete plan — commitment beats a vague "enjoy premium" */}
         <View style={{ backgroundColor: '#ffffff26', borderRadius: 20, padding: 16, gap: 8 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: '#fff' }}>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 15, color: '#fff' }}>
             Your next 7 days
           </Text>
           {PREMIUM_PLAN.map((d) => (
             <View key={d.day} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#ffffff44', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 12, color: '#fff' }}>{d.day}</Text>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: '#fff' }}>{d.day}</Text>
               </View>
-              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 14, color: '#fff' }}>{d.title}</Text>
+              <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: '#fff' }}>{d.title}</Text>
             </View>
           ))}
         </View>

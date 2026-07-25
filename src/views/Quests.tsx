@@ -29,8 +29,8 @@ function QuestRow({ q, onClaim }: { q: QuestState; onClaim: () => void }) {
       </View>
       <View style={{ flex: 1, gap: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 16, color: colors.ink }}>{q.quest.title}</Text>
-          <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 13, color: colors.inkFaint }}>{Math.min(q.current, q.quest.goal)}/{q.quest.goal}</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.ink }}>{q.quest.title}</Text>
+          <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkFaint }}>{Math.min(q.current, q.quest.goal)}/{q.quest.goal}</Text>
         </View>
         <ProgressBar value={pct} height={12} color={q.done ? colors.green : colors.gold} />
       </View>
@@ -42,12 +42,12 @@ function QuestRow({ q, onClaim }: { q: QuestState; onClaim: () => void }) {
         <Pressable onPress={() => { haptics.success(); onClaim(); }}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.gold, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 3, borderBottomColor: colors.goldDeep }}>
           <Text style={{ fontSize: 14 }}>💎</Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: '#5a3d00' }}>{q.quest.reward}</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 15, color: '#5a3d00' }}>{q.quest.reward}</Text>
         </Pressable>
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, width: 66, justifyContent: 'center', opacity: 0.5 }}>
           <Text style={{ fontSize: 14 }}>💎</Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: colors.inkFaint }}>{q.quest.reward}</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 15, color: colors.inkFaint }}>{q.quest.reward}</Text>
         </View>
       )}
     </View>
@@ -93,17 +93,17 @@ function ChestCard({ available, won, onOpen }: {
         {won != null ? '🎉' : '🎁'}
       </Animated.Text>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 17, color: colors.ink }}>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 17, color: colors.ink }}>
           {won != null ? `You won ${won} gems!` : available ? 'Daily chest' : 'Chest opened'}
         </Text>
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 13, color: colors.inkSoft }}>
+        <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkSoft }}>
           {won != null ? 'Come back tomorrow for another'
             : available ? 'Tap to open — how many gems today?' : 'Next chest tomorrow'}
         </Text>
       </View>
       {available && won == null && (
         <View style={{ backgroundColor: colors.gold, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 14 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13, color: '#5a3d00' }}>OPEN</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 13, color: '#5a3d00' }}>OPEN</Text>
         </View>
       )}
     </Pressable>
@@ -132,7 +132,7 @@ export default function Quests() {
         <Pressable onPress={back} style={{ padding: 12 }}>
           <Icon name="chevronLeft" size={28} color={colors.ink} />
         </Pressable>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>Daily Quests</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 24, color: colors.ink }}>Daily Quests</Text>
       </View>
 
       <ScrollFit>
@@ -140,10 +140,10 @@ export default function Quests() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 }}>
             <Maestro mood={doneCount === quests.length ? 'trophy' : 'conduct'} size={72} bg={colors.surface2} float />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 20, color: colors.ink }}>
+              <Text style={{ fontFamily: Fonts.family.black, fontSize: 20, color: colors.ink }}>
                 {doneCount === quests.length ? 'All done — see you tomorrow!' : "Today's goals"}
               </Text>
-              <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 14, color: colors.inkSoft }}>
+              <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkSoft }}>
                 {doneCount}/{quests.length} complete · resets at midnight
               </Text>
             </View>

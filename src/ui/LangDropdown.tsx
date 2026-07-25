@@ -23,7 +23,7 @@ export default function LangDropdown({ value, onChange }: {
         }}
       >
         <Text style={{ fontSize: 20 }}>{cur.flag}</Text>
-        <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 16, color: colors.ink }}>{cur.native}</Text>
+        <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontSize: 16, color: colors.ink }}>{cur.native}</Text>
         <Icon name="chevronDown" size={18} color={colors.inkFaint} />
       </Pressable>
 
@@ -40,7 +40,7 @@ export default function LangDropdown({ value, onChange }: {
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 12, borderRadius: 10, backgroundColor: on ? colors.selSky : 'transparent' }}
                   >
                     <Text style={{ fontSize: 19 }}>{l.flag}</Text>
-                    <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15, color: colors.ink }}>{l.native}</Text>
+                    <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontSize: 15, color: colors.ink }}>{l.native}</Text>
                     {on && <Icon name="check" size={16} color={colors.skyDeep} />}
                   </Pressable>
                 );

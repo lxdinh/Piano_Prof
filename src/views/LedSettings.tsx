@@ -44,7 +44,7 @@ export default function LedSettings() {
       </Pressable>
 
       <ScrollFit pad={26} style={{ gap: 18 }}>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink }}>LED settings</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 28, color: colors.ink }}>LED settings</Text>
 
         <View style={{ width: 560, maxWidth: '100%' }}>
           <Piano low={60} high={84} lit={lit} height={130} interactive={false} hideNoteNames />
@@ -62,7 +62,7 @@ export default function LedSettings() {
                     <View key={i} style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: c, borderWidth: c === '#FFFFFF' ? 1 : 0, borderColor: colors.line }} />
                   ))}
                 </View>
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13, color: colors.ink }}>{t.name}</Text>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 13, color: colors.ink }}>{t.name}</Text>
               </Pressable>
             );
           })}
@@ -70,14 +70,14 @@ export default function LedSettings() {
 
         {/* brightness */}
         <View style={{ alignItems: 'center', gap: 8 }}>
-          <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase' }}>Brightness</Text>
+          <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase' }}>Brightness</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {BRIGHTNESS.map((b) => {
               const on = led.brightness === b;
               return (
                 <Pressable key={b} onPress={() => setLed({ brightness: b })}
                   style={{ paddingVertical: 9, paddingHorizontal: 18, borderRadius: 999, backgroundColor: on ? colors.gold : colors.surface, borderWidth: 2, borderColor: on ? colors.goldDeep : colors.line }}>
-                  <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: on ? '#5a3d00' : colors.inkSoft }}>{b}%</Text>
+                  <Text style={{ fontFamily: Fonts.family.black, fontSize: 15, color: on ? '#5a3d00' : colors.inkSoft }}>{b}%</Text>
                 </Pressable>
               );
             })}

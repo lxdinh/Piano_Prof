@@ -17,8 +17,8 @@ function Row({ label, value }: { label: string; value: string }) {
   const { colors } = useAppTheme();
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 11, borderBottomWidth: 1.5, borderBottomColor: colors.line }}>
-      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15, color: colors.inkSoft }}>{label}</Text>
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 15, color: colors.ink }}>{value}</Text>
+      <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: colors.inkSoft }}>{label}</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontSize: 15, color: colors.ink }}>{value}</Text>
     </View>
   );
 }
@@ -45,7 +45,7 @@ export default function Account() {
             <>
               <View style={{ alignItems: 'center', gap: 6 }}>
                 <Maestro mood="cool" size={96} bg={colors.surface2} ring={4} ringColor={colors.green} float />
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: colors.ink }}>{account?.displayName ?? 'Your account'}</Text>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink }}>{account?.displayName ?? 'Your account'}</Text>
               </View>
               <Card>
                 <Row label="Email" value={account?.email ?? '—'} />
@@ -59,14 +59,14 @@ export default function Account() {
             <>
               <View style={{ alignItems: 'center', gap: 8 }}>
                 <Maestro mood="wow" size={110} bg={colors.selSky} ring={5} ringColor={colors.sky} float />
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 26, color: colors.ink, textAlign: 'center' }}>Save your progress</Text>
-                <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 15, color: colors.inkSoft, textAlign: 'center', maxWidth: 420 }}>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink, textAlign: 'center' }}>Save your progress</Text>
+                <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: colors.inkSoft, textAlign: 'center', maxWidth: 420 }}>
                   Create a free account to back up your family's streaks and XP, and pick up on any device.
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', backgroundColor: colors.surface2, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 14 }}>
                 <Icon name="shield" size={16} color={colors.green} />
-                <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 13, color: colors.inkSoft }}>Your progress is safe on this device right now</Text>
+                <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkSoft }}>Your progress is safe on this device right now</Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 12, justifyContent: 'center' }}>
                 <PPButton label="Sign in" size="md" variant="white" onPress={() => go('signIn', { mode: 'signin' })} />

@@ -34,7 +34,7 @@ function RailButton({ icon, label, active, onPress, color, iconSize, padV, fontS
       }}
     >
       <Icon name={icon} size={iconSize} color={active ? colors.skyDeep : color} />
-      <Text numberOfLines={1} style={{ fontSize, fontFamily: Fonts.family.bold, fontWeight: '800', color: active ? colors.skyDeep : color }}>
+      <Text numberOfLines={1} style={{ fontSize, fontFamily: Fonts.family.bold, color: active ? colors.skyDeep : color }}>
         {label}
       </Text>
     </Pressable>
@@ -107,7 +107,7 @@ export default function Shell({ active, children, scroll = true }: {
           gap: 12, borderBottomWidth: 2, borderBottomColor: colors.line,
         }}>
           <Maestro mood={p?.avatar ?? 'cool'} size={44} bg={p?.bg ?? colors.surface2} fit="head" onPress={() => go('who')} />
-          <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 20, color: colors.ink }}>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 20, color: colors.ink }}>
             {p ? `${tr('home.hi')} ${p.name}!` : 'Piano Professor'}
           </Text>
           <View style={{ flex: 1 }} />
@@ -128,7 +128,7 @@ export default function Shell({ active, children, scroll = true }: {
                 }}
               >
                 <Icon name="crown" size={16} color="#5a3d00" />
-                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13, color: '#5a3d00' }}>PRO</Text>
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 13, color: '#5a3d00' }}>PRO</Text>
               </Pressable>
             )}
           </View>

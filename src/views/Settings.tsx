@@ -27,7 +27,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   const { colors } = useAppTheme();
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase', letterSpacing: 0.8 }}>{title}</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontSize: 13, color: colors.inkFaint, textTransform: 'uppercase', letterSpacing: 0.8 }}>{title}</Text>
       <Card pad={14}>{children}</Card>
     </View>
   );
@@ -38,8 +38,8 @@ function LinkRow({ icon, label, value, onPress }: { icon: IconName; label: strin
   return (
     <Pressable onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 }}>
       <Icon name={icon} size={22} color={colors.skyDeep} />
-      <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 16, color: colors.ink }}>{label}</Text>
-      {value && <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 14, color: colors.inkFaint }}>{value}</Text>}
+      <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontSize: 16, color: colors.ink }}>{label}</Text>
+      {value && <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkFaint }}>{value}</Text>}
       <Icon name="chevronRight" size={20} color={colors.inkFaint} />
     </Pressable>
   );
@@ -50,7 +50,7 @@ function ToggleRow({ icon, label, value, onChange }: { icon: IconName; label: st
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 }}>
       <Icon name={icon} size={22} color={colors.skyDeep} />
-      <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 16, color: colors.ink }}>{label}</Text>
+      <Text style={{ flex: 1, fontFamily: Fonts.family.bold, fontSize: 16, color: colors.ink }}>{label}</Text>
       <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.green, false: colors.line }} thumbColor="#fff" />
     </View>
   );
@@ -78,7 +78,7 @@ export default function Settings() {
         <Pressable onPress={back} style={{ padding: 12 }}>
           <Icon name="chevronLeft" size={28} color={colors.ink} />
         </Pressable>
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 24, color: colors.ink }}>{tr('settings.title')}</Text>
+        <Text style={{ fontFamily: Fonts.family.black, fontSize: 24, color: colors.ink }}>{tr('settings.title')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 22, paddingBottom: insets.bottom + 30 }}>
@@ -94,8 +94,8 @@ export default function Settings() {
                   const on = g.xp === goalXp;
                   return (
                     <Pressable key={g.xp} onPress={() => updateActive({ dailyGoalXp: g.xp })} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: on ? colors.selGreen : colors.surface2, borderWidth: 2, borderColor: on ? colors.green : 'transparent' }}>
-                      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 14, color: colors.ink }}>{tr(g.key)}</Text>
-                      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '700', fontSize: 12, color: colors.inkFaint }}>{g.xp} XP</Text>
+                      <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: colors.ink }}>{tr(g.key)}</Text>
+                      <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>{g.xp} XP</Text>
                     </Pressable>
                   );
                 })}
@@ -122,7 +122,7 @@ export default function Settings() {
                       }}
                     >
                       <Text style={{
-                        fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13,
+                        fontFamily: Fonts.family.black, fontSize: 13,
                         color: h === reminderHour ? '#fff' : colors.inkSoft,
                       }}>
                         {formatHour(h)}

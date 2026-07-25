@@ -121,11 +121,11 @@ export default function Piano({
                   }}>
                   {c ? <LinearGradient colors={['#ffffff', c]} style={StyleSheet.absoluteFill} pointerEvents="none" /> : null}
                   {(labels[m] || (c && !hideNoteNames)) ? (
-                    <Text style={{ fontSize: 13, fontFamily: Fonts.family.black, fontWeight: '900', color: c ? '#2a6b00' : '#B6AC8C' }}>
+                    <Text style={{ fontSize: 13, fontFamily: Fonts.family.black, color: c ? '#2a6b00' : '#B6AC8C' }}>
                       {labels[m] ?? midiName(m)}
                     </Text>
                   ) : octLabel ? (
-                    <Text style={{ fontSize: 10, fontFamily: Fonts.family.black, fontWeight: '900', color: isP ? '#46A302' : '#C9BFA2' }}>{octLabel}</Text>
+                    <Text style={{ fontSize: 10, fontFamily: Fonts.family.black, color: isP ? '#46A302' : '#C9BFA2' }}>{octLabel}</Text>
                   ) : null}
                 </Pressable>
               );
@@ -150,7 +150,7 @@ export default function Piano({
                   transform: isP ? [{ translateY: 2 }] : undefined,
                 }}>
                 {c && !hideNoteNames && (
-                  <Text style={{ fontSize: 9, fontFamily: Fonts.family.black, fontWeight: '900', color: '#fff' }}>{midiName(b.midi)}</Text>
+                  <Text style={{ fontSize: 9, fontFamily: Fonts.family.black, color: '#fff' }}>{midiName(b.midi)}</Text>
                 )}
               </Pressable>
             );
