@@ -13,6 +13,7 @@ import PPButton from '../ui/PPButton';
 import { ProgressBar } from '../ui/atoms';
 import { ItemKind, levelById } from '../data/content';
 import { useT } from '../i18n/useT';
+import { useStage } from '../theme/responsive';
 import {
   deriveShelves, DerivedItem, DerivedShelf, activeItem, activeShelf, shelfProgressPct,
 } from '../data/progress';
@@ -33,6 +34,7 @@ const KIND_ICON: Record<ItemKind, IconName> = {
 function PosterCard({ item, shelf }: { item: DerivedItem; shelf: DerivedShelf }) {
   const { colors } = useAppTheme();
   const { go, toast } = useRouter();
+  const { isTablet } = useStage();
   const tr = useT();
   const state = item.derivedState;
 
@@ -47,14 +49,16 @@ function PosterCard({ item, shelf }: { item: DerivedItem; shelf: DerivedShelf })
   };
 
   return (
+    // Poster sized per canvas — the prototype's compact 150x74 phone card
+    // (app/phone-main.jsx PhPoster) vs the roomier standalone one.
     <Pressable onPress={onPress} style={{
-      width: 156, borderRadius: 18, backgroundColor: colors.surface,
-      borderWidth: 2, borderColor: colors.line, borderBottomWidth: 5, overflow: 'hidden',
+      width: isTablet ? 156 : 150, borderRadius: 16, backgroundColor: colors.surface,
+      borderWidth: 2, borderColor: colors.line, borderBottomWidth: 4, overflow: 'hidden',
       opacity: state === 'locked' || state === 'soon' ? 0.75 : 1,
     }}>
       <LinearGradient colors={[shelf.color, shelf.deep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={{ height: 82, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name={KIND_ICON[item.kind]} size={34} color="#ffffff" />
+        style={{ height: isTablet ? 82 : 74, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name={KIND_ICON[item.kind]} size={isTablet ? 34 : 30} color="#ffffff" />
         {state === 'active' && (
           <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: '#ffffff33', borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 }}>
             <Text style={{ color: '#fff', fontFamily: Fonts.family.black, fontSize: 9 }}>NEXT UP</Text>
@@ -67,8 +71,8 @@ function PosterCard({ item, shelf }: { item: DerivedItem; shelf: DerivedShelf })
         )}
       </LinearGradient>
       <View style={{ padding: 11, gap: 6 }}>
-        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.black, fontSize: 15, color: colors.ink }}>{tr.item(item.id, item.title)}</Text>
-        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkSoft }}>{item.kind === 'song' ? item.sub : tr.sub(item.id, item.sub)}</Text>
+        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.black, fontSize: isTablet ? 15 : 14, color: colors.ink }}>{tr.item(item.id, item.title)}</Text>
+        <Text numberOfLines={1} style={{ fontFamily: Fonts.family.bold, fontSize: isTablet ? 12 : 11, color: colors.inkSoft }}>{item.kind === 'song' ? item.sub : tr.sub(item.id, item.sub)}</Text>
         <View style={{ minHeight: 20, justifyContent: 'center' }}>
           {state === 'done' && (
             <View style={{ flexDirection: 'row', gap: 2 }}>
@@ -117,6 +121,7 @@ export default function Home() {
   const { colors } = useAppTheme();
   const { activeProfile, profiles, ready } = useApp();
   const { go } = useRouter();
+  const { isTablet } = useStage();
   const tr = useT();
 
   if (!ready) return <Skeleton />;
@@ -135,16 +140,16 @@ export default function Home() {
     <Shell active="home">
       {/* Continue hero */}
       <LinearGradient colors={[heroShelf.color, heroShelf.deep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+        style={{ borderRadius: 20, padding: isTablet ? 20 : 16, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
         <View style={{ flex: 1, gap: 8 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: '#ffffffcc', letterSpacing: 1 }}>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: isTablet ? 12 : 10.5, color: '#ffffffcc', letterSpacing: 0.8 }}>
             {next ? tr('home.continueLearning').toUpperCase() : `${tr(`level.${level.id}`).toUpperCase()} · ${tr('grade').toUpperCase()} ${level.grade}`}
           </Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: '#fff' }}>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: isTablet ? 26 : 24, color: '#fff' }}>
             {next ? tr.item(next.id, heroTitle) : heroTitle}
           </Text>
-          <View style={{ maxWidth: 320 }}>
-            <ProgressBar value={pct} height={12} color="#fff" track="#ffffff44" />
+          <View style={{ maxWidth: isTablet ? 320 : 280 }}>
+            <ProgressBar value={pct} height={isTablet ? 12 : 11} color="#fff" track="#ffffff44" />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
             <PPButton
@@ -168,7 +173,7 @@ export default function Home() {
             )}
           </View>
         </View>
-        <Maestro mood={next ? 'cheer' : 'trophy'} size={116} bg="#ffffff33" float />
+        <Maestro mood={next ? 'cheer' : 'trophy'} size={isTablet ? 116 : 88} bg="#ffffff33" ring={3} ringColor="#ffffff55" float />
       </LinearGradient>
 
       {/* Daily Quests */}

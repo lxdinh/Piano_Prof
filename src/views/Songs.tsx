@@ -10,6 +10,7 @@ import Icon from '../ui/Icon';
 import PPButton from '../ui/PPButton';
 import { SONGS, Song, artColors } from '../data/content';
 import { useT } from '../i18n/useT';
+import { useStage } from '../theme/responsive';
 
 export function SongCover({ song, size = 132, onPress }: { song: Song; size?: number; onPress?: () => void }) {
   const { colors } = useAppTheme();
@@ -37,9 +38,10 @@ export function SongCover({ song, size = 132, onPress }: { song: Song; size?: nu
 function ShelfRow({ title, songs }: { title: string; songs: Song[] }) {
   const { colors } = useAppTheme();
   const { go } = useRouter();
+  const { isTablet } = useStage();
   return (
     <View style={{ marginTop: 26 }}>
-      <Text style={{ fontFamily: Fonts.family.black, fontSize: 18, color: colors.ink, marginBottom: 12 }}>{title}</Text>
+      <Text style={{ fontFamily: Fonts.family.black, fontSize: isTablet ? 18 : 15, color: colors.ink, marginBottom: 10 }}>{title}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingRight: 8 }}>
         {songs.map((s) => <SongCover key={s.id} song={s} onPress={() => go('songPreview', { song: s })} />)}
       </ScrollView>
@@ -49,6 +51,7 @@ function ShelfRow({ title, songs }: { title: string; songs: Song[] }) {
 
 export default function Songs() {
   const { go } = useRouter();
+  const { isTablet } = useStage();
   const tr = useT();
   const f = SONGS.featured;
   const [c0, c1] = artColors(f.hue);
@@ -58,13 +61,13 @@ export default function Songs() {
       {/* featured hero */}
       <LinearGradient colors={[c0, c1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ borderRadius: 24, padding: 22, flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-        <View style={{ width: 110, height: 110, borderRadius: 18, backgroundColor: '#ffffff2e', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="music" size={48} color="#fff" />
+        <View style={{ width: isTablet ? 110 : 92, height: isTablet ? 110 : 92, borderRadius: 16, backgroundColor: '#ffffff2e', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="music" size={isTablet ? 48 : 40} color="#fff" />
         </View>
         <View style={{ flex: 1, gap: 4 }}>
-          <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: '#ffffffcc', letterSpacing: 1 }}>{tr('songs.featured').toUpperCase()}</Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: '#fff' }}>{f.title}</Text>
-          <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: '#ffffffcc' }}>{f.artist} · {f.level}</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: isTablet ? 12 : 10.5, color: '#ffffffcc', letterSpacing: 0.8 }}>{tr('songs.featured').toUpperCase()}</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: isTablet ? 26 : 24, color: '#fff' }}>{f.title}</Text>
+          <Text style={{ fontFamily: Fonts.family.bold, fontSize: isTablet ? 15 : 13, color: '#ffffffcc' }}>{f.artist} · {f.level}</Text>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
             <PPButton label="Play" size="sm" variant="white" icon={<Icon name="play" size={15} color="#2E84AD" />} onPress={() => go('songPreview', { song: f })} />
             <PPButton label="Import sheet" size="sm" variant="ghost" textColor="#fff" icon={<Icon name="camera" size={16} color="#fff" />} onPress={() => go('import')} />
