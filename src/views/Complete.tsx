@@ -1,5 +1,5 @@
 // Piano Professor — Lesson complete celebration.
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet } from 'react-native';
@@ -24,10 +24,18 @@ function Tile({ emoji, value, label }: { emoji: string; value: string; label: st
 
 export default function Complete() {
   const { activeProfile } = useApp();
-  const { params, go } = useRouter();
+  const { params, go, reward } = useRouter();
   const tr = useT();
   const stars: number = params.stars ?? 3;
   const xp: number = params.xp ?? 40;
+
+  // Show the haul landing in the stash (1 gem per star, as applyCompletion pays).
+  const popped = useRef(false);
+  useEffect(() => {
+    if (popped.current) return;
+    popped.current = true;
+    reward('gems', stars);
+  }, [stars, reward]);
 
   return (
     <View style={{ flex: 1 }}>

@@ -113,7 +113,7 @@ function ChestCard({ available, won, onOpen }: {
 export default function Quests() {
   const { colors } = useAppTheme();
   const { activeProfile, claimQuest, openChest } = useApp();
-  const { back } = useRouter();
+  const { back, reward } = useRouter();
   const insets = useSafeAreaInsets();
   const [won, setWon] = useState<number | null>(null);
 
@@ -123,7 +123,7 @@ export default function Quests() {
 
   const open = () => {
     const gems = openChest();
-    if (gems > 0) setWon(gems);
+    if (gems > 0) { setWon(gems); reward('gems', gems); }
   };
 
   return (
@@ -149,7 +149,10 @@ export default function Quests() {
             </View>
           </View>
           {quests.map((q) => (
-            <QuestRow key={q.quest.id} q={q} onClaim={() => claimQuest(q.quest.id)} />
+            <QuestRow
+              key={q.quest.id} q={q}
+              onClaim={() => { claimQuest(q.quest.id); reward('gems', q.quest.reward); }}
+            />
           ))}
           <ChestCard available={chestReady} won={won} onOpen={open} />
         </View>

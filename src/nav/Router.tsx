@@ -9,6 +9,7 @@ import { useAppTheme } from '../theme/AppTheme';
 import { Fonts } from '../theme/tokens';
 import * as ambient from '../audio/ambient';
 import Stage from './Stage';
+import RewardPopup, { Reward, RewardKind } from '../ui/RewardPopup';
 
 // Screens where the relaxed background piano should stay quiet.
 const AMBIENT_QUIET = new Set(['lesson', 'practice']);
@@ -23,6 +24,8 @@ interface RouterAPI {
   go: (name: ScreenName, params?: ScreenParams) => void;
   back: () => void;
   toast: (msg: string) => void;
+  /** Pop "+N 💎" over the screen when something is earned (see RewardPopup). */
+  reward: (kind: RewardKind, amount: number) => void;
 }
 
 const Ctx = createContext<RouterAPI | null>(null);
@@ -36,6 +39,8 @@ export function RouterProvider({ screens, initial = 'splash' }: {
   const historyRef = useRef<{ screen: ScreenName; params: ScreenParams }[]>([]);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const rewardSeq = useRef(0);
   const fade = useRef(new Animated.Value(1)).current;
 
   const swap = useCallback((name: ScreenName, p: ScreenParams) => {
@@ -61,13 +66,22 @@ export function RouterProvider({ screens, initial = 'splash' }: {
     toastTimer.current = setTimeout(() => setToastMsg(null), 2600);
   }, []);
 
+  const reward = useCallback((kind: RewardKind, amount: number) => {
+    if (amount <= 0) return;
+    const id = ++rewardSeq.current;
+    setRewards((rs) => [...rs, { id, kind, amount }]);
+  }, []);
+  const clearReward = useCallback((id: number) => {
+    setRewards((rs) => rs.filter((r) => r.id !== id));
+  }, []);
+
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   // Ambient relaxed piano everywhere except the lesson/practice players.
   useEffect(() => { ambient.kick(); }, []);
   useEffect(() => { ambient.setSuppressed(AMBIENT_QUIET.has(screen)); }, [screen]);
 
-  const api = useMemo<RouterAPI>(() => ({ screen, params, go, back, toast }), [screen, params, go, back, toast]);
+  const api = useMemo<RouterAPI>(() => ({ screen, params, go, back, toast, reward }), [screen, params, go, back, toast, reward]);
   const Comp = screens[screen] ?? Missing;
 
   return (
@@ -79,6 +93,7 @@ export function RouterProvider({ screens, initial = 'splash' }: {
             <Comp />
           </Animated.View>
         </Stage>
+        <RewardPopup rewards={rewards} onDone={clearReward} />
         {toastMsg && (
           <View pointerEvents="none" style={{ position: 'absolute', bottom: 26, left: 0, right: 0, alignItems: 'center' }}>
             <Text style={{

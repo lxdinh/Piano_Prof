@@ -23,7 +23,7 @@ const PERKS: { icon: string; title: string; desc: string }[] = [
 export default function PremiumWelcome() {
   const { colors } = useAppTheme();
   const { activeProfile, updateActive } = useApp();
-  const { go } = useRouter();
+  const { go, reward } = useRouter();
   const granted = useRef(false);
   const pop = useRef(new Animated.Value(0)).current;
 
@@ -31,9 +31,12 @@ export default function PremiumWelcome() {
   useEffect(() => {
     if (granted.current || !activeProfile) return;
     granted.current = true;
-    if (!hasPremiumWelcome(activeProfile)) updateActive(applyPremiumWelcome(activeProfile));
+    if (!hasPremiumWelcome(activeProfile)) {
+      updateActive(applyPremiumWelcome(activeProfile));
+      reward('gems', PREMIUM_WELCOME_GEMS);
+    }
     Animated.spring(pop, { toValue: 1, friction: 5, useNativeDriver: true }).start();
-  }, [activeProfile, updateActive, pop]);
+  }, [activeProfile, updateActive, pop, reward]);
 
   return (
     <LinearGradient colors={[colors.gold, '#FF9600']} style={{ flex: 1 }}>

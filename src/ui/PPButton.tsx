@@ -22,11 +22,15 @@ const PALETTE: Record<PPVariant, [string, string, string, string]> = {
   ghost:  ['transparent', 'transparent', 'transparent', '#2D2A26'],
 };
 
+// Padding is deliberately tight: Baloo 2 carries much taller ascent/descent
+// metrics than Nunito, so the text box is already generous. The label below
+// also pins an explicit lineHeight — without both, the plate ends up floating
+// well below the text instead of hugging it.
 const SIZES: Record<PPSize, { padV: number; padH: number; fs: number; plate: number; radius: number }> = {
-  sm: { padV: 9, padH: 16, fs: 15, plate: 4, radius: 14 },
-  md: { padV: 14, padH: 24, fs: 18, plate: 5, radius: 18 },
-  lg: { padV: 18, padH: 30, fs: 21, plate: 6, radius: 22 },
-  xl: { padV: 22, padH: 38, fs: 25, plate: 6, radius: 26 },
+  sm: { padV: 6, padH: 16, fs: 15, plate: 4, radius: 14 },
+  md: { padV: 9, padH: 24, fs: 18, plate: 5, radius: 18 },
+  lg: { padV: 12, padH: 30, fs: 21, plate: 6, radius: 22 },
+  xl: { padV: 15, padH: 38, fs: 25, plate: 6, radius: 26 },
 };
 
 interface Props {
@@ -95,6 +99,9 @@ export default function PPButton({
               style={{
                 // Buttons are display type — chunky Baloo, not body Nunito.
                 color: textColor ?? pal[3], fontSize: sz.fs, fontFamily: Fonts.family.display,
+                // Pin the line box to the glyphs so the plate sits close to the
+                // text rather than below a tall empty line.
+                lineHeight: Math.round(sz.fs * 1.18),
                 letterSpacing: 0.3,
                 textTransform: isGhost ? 'none' : 'uppercase',
               }}

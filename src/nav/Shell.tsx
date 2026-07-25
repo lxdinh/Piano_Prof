@@ -144,17 +144,20 @@ export default function Shell({ active, children, scroll = true, title, sub }: {
           </View>
           <View style={{ flex: 1 }} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: chipGap }}>
+            {/* Only PROGRESS lives up here — streak and XP. Gems and hearts are
+                inventory: they pop up when earned (RewardPopup) and the running
+                totals live in the Shop, so the bar stops stealing room from the
+                lessons and practice content underneath. Hearts still appear in
+                the lesson topbar, where they actually matter. */}
             <StatChip kind="streak" value={p?.streak ?? 0} onPress={() => go('streak')} />
-            {/* XP is abbreviated on the phone canvas so four-digit totals don't
+            {/* XP abbreviated on the phone canvas so four-digit totals don't
                 crowd the header (prototype PhHeader). */}
             <StatChip kind="xp" value={isTablet ? (p?.xp ?? 0) : shortXp(p?.xp ?? 0)} />
-            {/* The prototype's phone header carries streak/XP/hearts only —
-                gems live one tap away in the shop. */}
-            {isTablet && <StatChip kind="gems" value={p?.gems ?? 0} onPress={() => go('shop')} />}
-            <StatChip
-              kind="hearts" value={premium ? '∞' : (p?.hearts ?? 5)}
-              onPress={() => ((p?.hearts ?? 5) <= 0 && !premium ? go('upsell', { reason: 'hearts' }) : go('shop'))}
-            />
+            {/* Out of hearts is the one state worth surfacing here — it blocks
+                practice, so it needs a visible way back. */}
+            {!premium && (p?.hearts ?? 5) <= 0 && (
+              <StatChip kind="hearts" value={0} onPress={() => go('upsell', { reason: 'hearts' })} />
+            )}
             {!premium && (
               <Pressable
                 onPress={() => go('paywall')}
