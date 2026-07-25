@@ -3,7 +3,7 @@
 // applies lesson-completion rewards (XP, gems, streak, daily goal).
 
 import { SHELVES, Shelf, ShelfItem, ItemState, Profile } from './content';
-import { todayKey, dayKey, isYesterday } from '../services/dateKey';
+import { todayKey, dayKey, isYesterday, nowMs } from '../services/dateKey';
 
 export const DAILY_GOAL_XP = 50;
 export const HEART_REFILL_MS = 30 * 60 * 1000; // 1 heart per 30 minutes
@@ -66,44 +66,78 @@ export function shelfProgressPct(progress: ProgressMap): number {
   return Math.round((done / items.length) * 100);
 }
 
+export interface CompletionOpts {
+  /** Trusted "now" in ms (defaults to the trusted clock). */
+  now?: number;
+  /** XP multiplier — 2 for premium ("Double XP"). Base XP is tracked separately. */
+  xpMultiplier?: number;
+  /** Premium unlocks one free streak repair per calendar month. */
+  premium?: boolean;
+  /**
+   * Clock tampering detected: hold the day rollover. The lesson still counts
+   * and still pays XP, but no free streak day and no quest/daily reset — so a
+   * forward clock jump cannot manufacture rewards.
+   */
+  deferDayRewards?: boolean;
+}
+
 /**
  * Apply a lesson completion to a profile — pure so it's unit-testable.
- * Rewards: XP, 1 gem per star, streak (+1 on a new day; reset if the chain
- * broke), daily-goal XP bucket, progress map, next unit title.
+ * Rewards: XP (x multiplier), 1 gem per star, streak (+1 on a new day; saved by
+ * a freeze or a premium monthly repair if the chain broke), daily-goal bucket,
+ * progress map, next unit title.
  */
 export function applyCompletion(
   p: Profile, itemId: string, stars: number, xp: number, today = todayKey(),
+  opts: CompletionOpts = {},
 ): Profile {
-  const newDay = p.lastActiveDate !== today;
-  const chainAlive = !p.lastActiveDate || isYesterday(p.lastActiveDate, today) || p.lastActiveDate === today;
+  const { xpMultiplier = 1, premium = false, deferDayRewards = false, now = nowMs() } = opts;
+  const gainedXp = Math.round(xp * xpMultiplier);
+
+  // A tampered clock defers the day rollover — everything below then behaves as
+  // if the learner were still on their last genuine active day.
+  const day = deferDayRewards ? (p.lastActiveDate ?? today) : today;
+  const newDay = p.lastActiveDate !== day;
+  const chainAlive = !p.lastActiveDate || isYesterday(p.lastActiveDate, day) || p.lastActiveDate === day;
   const progress: ProgressMap = { ...(p.progress ?? {}), [itemId]: Math.max(stars, p.progress?.[itemId] ?? 0) };
   const next = activeItem(progress);
-  // Streak resolution — a streak freeze saves the run after a missed day.
+  // Streak resolution — a freeze, then (for premium) a monthly repair, saves the
+  // run after a missed day.
   const freezes = p.streakFreezes ?? 0;
+  const month = day.slice(0, 7); // YYYY-MM
   let streak = p.streak;
   let usedFreeze = false;
+  let usedRepair = false;
   if (newDay) {
     if (chainAlive) streak = p.streak + 1;
     else if (freezes > 0) { streak = p.streak + 1; usedFreeze = true; }
+    else if (premium && p.lastRepairMonth !== month) { streak = p.streak + 1; usedRepair = true; }
     else streak = 1;
   }
-  // per-day XP history, pruned to the last 14 days
+  // Per-day XP history, pruned to the last 14 days. This tracks BASE xp: the
+  // premium 2x boost accelerates the headline lifetime number, but must not
+  // shrink the daily practice goal or let a paying parent dominate the family
+  // league — those both read from this history.
   const history: Record<string, number> = { ...(p.history ?? {}) };
-  history[today] = (history[today] ?? 0) + xp;
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 14);
+  history[day] = (history[day] ?? 0) + xp;
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 14);
   for (const k of Object.keys(history)) if (k < dayKey(cutoff)) delete history[k];
   return {
     ...p,
     progress,
     history,
-    xp: p.xp + xp,
+    xp: p.xp + gainedXp,
+    // Lifetime XP without the multiplier — the league's tie-break.
+    baseXp: (p.baseXp ?? p.xp) + xp,
     gems: p.gems + stars,
     todayXp: (newDay ? 0 : (p.todayXp ?? 0)) + xp,
     todayLessons: (newDay ? 0 : (p.todayLessons ?? 0)) + 1,
     todayPerfect: (newDay ? false : (p.todayPerfect ?? false)) || stars >= 3,
     streak,
     streakFreezes: usedFreeze ? freezes - 1 : freezes,
-    lastActiveDate: today,
+    lastRepairMonth: usedRepair ? month : p.lastRepairMonth,
+    streakAt: newDay ? now : p.streakAt,
+    lastActiveDate: day,
     lastUnit: next?.title ?? p.lastUnit,
   };
 }
@@ -155,10 +189,21 @@ export function songsLearned(p: Profile): number {
   return SHELVES.flatMap((s) => s.items).filter((i) => i.kind === 'song' && doneIds.has(i.id)).length;
 }
 
-/** Timed heart refill: 1 heart per 30 min since the last heart was lost. */
-export function applyHeartRefill(p: Profile, now = Date.now()): Profile {
-  if (p.hearts >= 5 || !p.heartsAt) return p;
-  const refills = Math.floor((now - p.heartsAt) / HEART_REFILL_MS);
+/**
+ * Timed heart refill: 1 heart per 30 min since the last heart was lost.
+ *
+ * `now` comes from the TRUSTED clock, which is monotonic within a session — so
+ * moving the device clock forward while the app runs or sits backgrounded (the
+ * realistic attack on the energy economy) grants nothing. `suspicious` defers
+ * refills entirely while an active tamper signal is present. Hearts genuinely
+ * earned while the app was closed still land, because trusted time keeps
+ * advancing across sessions.
+ */
+export function applyHeartRefill(
+  p: Profile, now = nowMs(), suspicious = false,
+): Profile {
+  if (p.hearts >= 5 || !p.heartsAt || suspicious) return p;
+  const refills = Math.floor(Math.max(0, now - p.heartsAt) / HEART_REFILL_MS);
   if (refills <= 0) return p;
   const hearts = Math.min(5, p.hearts + refills);
   return { ...p, hearts, heartsAt: hearts >= 5 ? undefined : p.heartsAt + refills * HEART_REFILL_MS };

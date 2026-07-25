@@ -16,6 +16,7 @@ import { RouterProvider } from './src/nav/Router';
 import { registry } from './src/nav/registry';
 import { initTelemetry, wrapRoot } from './src/telemetry/sentry';
 import * as pianoEngine from './src/audio/pianoEngine';
+import * as trustedTime from './src/services/trustedTime';
 
 // Start crash reporting as early as possible (no-op until a DSN is set).
 initTelemetry();
@@ -44,8 +45,18 @@ function App() {
       NavigationBar.setBehaviorAsync('overlay-swipe').catch(() => {});
     };
     hideNavBar();
+    // Trusted clock for the whole reward economy: load the stored anchor, then
+    // re-anchor to network time on launch and on every resume — which is when a
+    // device-clock change would have happened.
+    trustedTime.initTrustedTime()
+      .then(() => trustedTime.syncFromNetwork())
+      .catch(() => {});
     // Android restores the nav bar after some interactions / on resume — re-hide.
-    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') hideNavBar(); });
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s !== 'active') return;
+      hideNavBar();
+      void trustedTime.syncFromNetwork().catch(() => {});
+    });
     // Configure the audio session + warm the piano samples so the first note
     // plays instantly and Android media output is correctly routed.
     pianoEngine.initAudio().then(() => pianoEngine.preloadCore()).catch(() => {});

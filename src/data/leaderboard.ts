@@ -18,15 +18,17 @@ export function weeklyXpTotal(p: Profile, today = new Date()): number {
 }
 
 /**
- * Rank the household by weekly XP (desc). Ties break by lifetime XP, then name
- * so the order is stable. The top three earn medals.
+ * Rank the household by weekly XP (desc). Ties break by lifetime BASE xp (not
+ * the premium-boosted total, so a paying member can't outrank the family just
+ * by subscribing), then name so the order is stable. Top three earn medals.
  */
 export function leaderboard(profiles: Profile[], today = new Date()): Rank[] {
+  const base = (p: Profile) => p.baseXp ?? p.xp;
   return profiles
     .map((p) => ({ profile: p, xp: weeklyXpTotal(p, today) }))
     .sort((a, b) =>
       b.xp - a.xp ||
-      b.profile.xp - a.profile.xp ||
+      base(b.profile) - base(a.profile) ||
       a.profile.name.localeCompare(b.profile.name))
     .map((r, i) => ({ ...r, place: i + 1, medal: MEDALS[i] ?? null }));
 }

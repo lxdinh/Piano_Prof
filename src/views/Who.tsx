@@ -10,6 +10,8 @@ import { Fonts } from '../theme/tokens';
 import Maestro from '../ui/Maestro';
 import Icon from '../ui/Icon';
 import { useT } from '../i18n/useT';
+import { NEW_PROFILE_GIFTS } from '../data/content';
+import { todayKey } from '../services/dateKey';
 
 export default function Who() {
   const { colors, isDark } = useAppTheme();
@@ -26,11 +28,15 @@ export default function Who() {
   };
 
   const add = () => {
-    // seed a fresh profile then jump to onboarding (create screen refines it)
+    // seed a fresh profile then jump to onboarding (create screen refines it).
+    // New learners start ENDOWED (streak already alive, gems in the bank) —
+    // see NEW_PROFILE_GIFTS for why.
     const id = addProfile({
       name: 'New', avatar: 'cool', bg: '#FFE38A', color: colors.green,
-      streak: 0, xp: 0, gems: 0, hearts: 5, levelId: 'kg', grade: 1,
+      ...NEW_PROFILE_GIFTS,
+      xp: 0, levelId: 'kg', grade: 1,
       placed: false, path: 'chords', lastUnit: 'First 3 Notes', lang: 'en',
+      lastActiveDate: todayKey(), // makes day 1 of the streak genuine
     });
     setActive(id);
     go('createProfile');

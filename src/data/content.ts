@@ -78,7 +78,34 @@ export interface Profile {
   history?: Record<string, number>;
   /** Timestamp of the last heart loss — drives the 30-min refill timer. */
   heartsAt?: number;
+  /**
+   * Lifetime XP WITHOUT the premium multiplier. The family league ranks on this
+   * so a paying parent's 2x boost can't push free family members down.
+   */
+  baseXp?: number;
+  /** Trusted timestamp of the last streak advance (anti-tamper audit trail). */
+  streakAt?: number;
+  /** Month (YYYY-MM) a premium free streak repair was last used. */
+  lastRepairMonth?: string;
+  /** Day (YYYY-MM-DD) the daily chest was last opened. */
+  chestDay?: string;
+  /** Trusted timestamp the premium welcome bonus was granted (idempotency). */
+  premiumGrantedAt?: number;
 }
+
+/**
+ * Every new learner starts endowed rather than empty — the endowed-progress
+ * effect (Nunes & Drèze 2006): a head start on a goal measurably raises
+ * completion. Day 1 of the streak is already alive so there is something to
+ * PROTECT (loss aversion) instead of something to begin, and 50 gems sits just
+ * under the 100-gem streak freeze so the first goal to earn toward is visible.
+ */
+export const NEW_PROFILE_GIFTS = {
+  streak: 1,
+  hearts: 5,
+  gems: 50,
+  streakFreezes: 1,
+} as const;
 
 export type ItemKind = 'lesson' | 'song' | 'concept' | 'exercise';
 export type ItemState = 'done' | 'active' | 'locked' | 'soon';

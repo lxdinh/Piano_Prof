@@ -10,6 +10,10 @@ import { Profile, PROFILES_SEED } from '../data/content';
 import { applyCompletion, applyHeartRefill } from '../data/progress';
 import { applyClaim } from '../data/quests';
 import { applyPurchase, canBuy, ShopItem } from '../data/shop';
+import * as trustedTime from '../services/trustedTime';
+
+/** Premium perk: Double XP on every lesson. */
+export const PREMIUM_XP_MULTIPLIER = 2;
 
 const STORAGE_KEY = 'pp.appstate.v1';
 export const MAX_PROFILES = 5;
@@ -80,7 +84,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           const p = JSON.parse(raw) as Persisted;
           if (Array.isArray(p.profiles) && p.profiles.length) {
             // apply elapsed timed heart refills on boot
-            setProfiles(p.profiles.map((pr) => applyHeartRefill(pr)));
+            // Trusted clock + tamper guard: hearts accrue only over real time.
+            const now = trustedTime.now();
+            const sus = trustedTime.isSuspicious();
+            setProfiles(p.profiles.map((pr) => applyHeartRefill(pr, now, sus)));
           }
           if (p.activeId) setActiveId(p.activeId);
           if (typeof p.premium === 'boolean') setPremium(p.premium);
@@ -138,8 +145,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const completeItem = useCallback((itemId: string, stars: number, xp: number) => {
     if (!activeId) return;
-    setProfiles((ps) => ps.map((p) => (p.id === activeId ? applyCompletion(p, itemId, stars, xp) : p)));
-  }, [activeId]);
+    // Premium earns Double XP; a tampered device clock defers the day rollover
+    // so a forward jump can't mint streak days or reset quests.
+    const opts = {
+      now: trustedTime.now(),
+      xpMultiplier: premium ? PREMIUM_XP_MULTIPLIER : 1,
+      premium,
+      deferDayRewards: trustedTime.isSuspicious(),
+    };
+    setProfiles((ps) => ps.map((p) => (p.id === activeId
+      ? applyCompletion(p, itemId, stars, xp, trustedTime.todayKey(), opts) : p)));
+  }, [activeId, premium]);
 
   const claimQuest = useCallback((questId: string) => {
     if (!activeId) return;
@@ -155,10 +171,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const loseHeart = useCallback(() => {
     if (!activeId) return;
+    if (premium) return; // Premium perk: unlimited hearts — never blocked mid-practice.
     setProfiles((ps) => ps.map((p) => (p.id === activeId
-      ? { ...p, hearts: Math.max(0, p.hearts - 1), heartsAt: p.heartsAt ?? Date.now() }
+      ? { ...p, hearts: Math.max(0, p.hearts - 1), heartsAt: p.heartsAt ?? trustedTime.now() }
       : p)));
-  }, [activeId]);
+  }, [activeId, premium]);
 
   const refillHearts = useCallback(() => {
     if (!activeId) return;
