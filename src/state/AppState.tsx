@@ -10,6 +10,7 @@ import { Profile, PROFILES_SEED } from '../data/content';
 import { applyCompletion, applyHeartRefill } from '../data/progress';
 import { applyClaim } from '../data/quests';
 import { applyPurchase, canBuy, ShopItem } from '../data/shop';
+import { applyChestOpen, canOpenChest, chestTier } from '../data/chest';
 import * as trustedTime from '../services/trustedTime';
 
 /** Premium perk: Double XP on every lesson. */
@@ -39,6 +40,8 @@ export interface AppState {
   importAll: (profiles: Profile[], activeId: string | null, premium: boolean) => void;
   completeItem: (itemId: string, stars: number, xp: number) => void;
   claimQuest: (questId: string) => void;
+  /** Open today's free chest. Returns gems won, or 0 if already opened. */
+  openChest: () => number;
   /** Spend gems in the shop. Returns true if the purchase went through. */
   buyShopItem: (id: ShopItem['id']) => boolean;
   loseHeart: () => void;
@@ -159,8 +162,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const claimQuest = useCallback((questId: string) => {
     if (!activeId) return;
-    setProfiles((ps) => ps.map((p) => (p.id === activeId ? applyClaim(p, questId) : p)));
+    setProfiles((ps) => ps.map((p) => (p.id === activeId
+      ? applyClaim(p, questId, trustedTime.todayKey()) : p)));
   }, [activeId]);
+
+  /** Open today's free chest. Returns the gems won, or 0 if unavailable. */
+  const openChest = useCallback((): number => {
+    const p = profiles.find((x) => x.id === activeId);
+    const day = trustedTime.todayKey();
+    const sus = trustedTime.isSuspicious();
+    if (!p || !canOpenChest(p, day, sus)) return 0;
+    const won = chestTier(p.id, day).gems;
+    setProfiles((ps) => ps.map((x) => (x.id === activeId ? applyChestOpen(x, day, sus) : x)));
+    return won;
+  }, [profiles, activeId]);
 
   const buyShopItem = useCallback((id: ShopItem['id']): boolean => {
     const p = profiles.find((x) => x.id === activeId);
@@ -189,10 +204,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AppState>(() => ({
     ready, profiles, activeId, activeProfile,
     setActive, addProfile, updateProfile, removeProfile, updateActive, importAll,
-    completeItem, claimQuest, buyShopItem, loseHeart, refillHearts,
+    completeItem, claimQuest, openChest, buyShopItem, loseHeart, refillHearts,
     premium, setPremium, led, setLed, muted, setMuted, ambient, setAmbient,
   }), [ready, profiles, activeId, activeProfile, setActive, addProfile, updateProfile,
-    removeProfile, updateActive, importAll, completeItem, claimQuest, buyShopItem, loseHeart, refillHearts, premium, led, setLed, muted, ambient]);
+    removeProfile, updateActive, importAll, completeItem, claimQuest, openChest, buyShopItem, loseHeart, refillHearts, premium, led, setLed, muted, ambient]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

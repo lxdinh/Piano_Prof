@@ -23,7 +23,7 @@ const BENEFITS = [
 export default function Paywall() {
   const { colors } = useAppTheme();
   const { setPremium } = useApp();
-  const { back, toast } = useRouter();
+  const { go, back } = useRouter();
   const insets = useSafeAreaInsets();
   const [cycle, setCycle] = useState('annual');
   const [planId, setPlanId] = useState('family');
@@ -32,8 +32,10 @@ export default function Paywall() {
 
   const startTrial = () => {
     setPremium(true);
-    toast('Premium unlocked — 7-day free trial started 🎉');
-    back();
+    // Straight to the welcome moment (gems + 7-day plan) rather than dropping
+    // the buyer back where they were — the immediate win is what converts a
+    // purchase into practice.
+    go('premiumWelcome');
   };
 
   return (

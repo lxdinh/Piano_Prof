@@ -16,6 +16,7 @@ import ImportSheet from '../views/ImportSheet';
 import Practice from '../views/Practice';
 import ProfileView from '../views/ProfileView';
 import Paywall from '../views/Paywall';
+import PremiumWelcome from '../views/PremiumWelcome';
 import Upsell from '../views/Upsell';
 import ManageSub from '../views/ManageSub';
 import Pair from '../views/Pair';
@@ -48,6 +49,7 @@ export const registry: ScreenRegistry = {
   lesson: Lesson,
   complete: Complete,
   paywall: Paywall,
+  premiumWelcome: PremiumWelcome,
   upsell: Upsell,
   manageSub: ManageSub,
   pair: Pair,

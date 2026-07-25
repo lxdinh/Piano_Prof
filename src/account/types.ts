@@ -26,6 +26,13 @@ export interface SyncData {
   profiles: unknown[];
   activeId: string | null;
   premium: boolean;
+  /**
+   * Monotonic revision counter — the ONLY thing sync conflicts are ordered by.
+   * A wall-clock timestamp would let a device with a skewed clock overwrite
+   * good data with stale data. Bumped on every local mutation.
+   */
+  rev?: number;
+  /** Informational only (display "last synced"); never used to resolve conflicts. */
   updatedAt: number;
 }
 

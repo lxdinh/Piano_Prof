@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { Account, AuthResult, SyncData } from './types';
 import { getAuthBackend } from './backend';
+import { mergeSync } from './merge';
 import { useApp } from '../state/AppState';
 import { Profile } from '../data/content';
 
@@ -14,6 +15,8 @@ export interface AccountAPI {
   ready: boolean;
   account: Account | null;
   syncedAt: number | null;
+  /** True when a sync failed and is waiting to retry (offline / server down). */
+  pendingSync: boolean;
   signUp: (email: string, password: string, name: string) => Promise<AuthResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signInProvider: (provider: 'google' | 'apple') => Promise<AuthResult>;
@@ -28,23 +31,30 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [account, setAccount] = useState<Account | null>(null);
   const [ready, setReady] = useState(false);
   const [syncedAt, setSyncedAt] = useState<number | null>(null);
+  const [pendingSync, setPendingSync] = useState(false);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Monotonic revision — sync conflicts order by this, never by a wall clock. */
+  const revRef = useRef(0);
 
   useEffect(() => {
     backend.init().then((a) => { setAccount(a); setReady(true); }).catch(() => setReady(true));
   }, [backend]);
 
   const snapshot = useCallback((): SyncData => ({
-    profiles: profiles as unknown[], activeId, premium, updatedAt: Date.now(),
+    profiles: profiles as unknown[], activeId, premium,
+    rev: ++revRef.current, updatedAt: Date.now(),
   }), [profiles, activeId, premium]);
 
-  // Auto-sync the household up whenever it changes (only for real accounts).
+  // Auto-sync the household up whenever it changes — INCLUDING anonymous
+  // accounts, so a learner's progress is never stranded on one device.
   useEffect(() => {
-    if (!account || account.isAnonymous) return;
+    if (!account) return;
     if (debounce.current) clearTimeout(debounce.current);
     debounce.current = setTimeout(() => {
       const data = snapshot();
-      backend.syncUp(account.uid, data).then(() => setSyncedAt(data.updatedAt)).catch(() => {});
+      backend.syncUp(account.uid, data)
+        .then(() => { setSyncedAt(data.updatedAt); setPendingSync(false); })
+        .catch(() => setPendingSync(true)); // retried on the next change/foreground
     }, 800);
     return () => { if (debounce.current) clearTimeout(debounce.current); };
   }, [account, snapshot, backend]);
@@ -54,11 +64,16 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     const acc = res.account;
     const cloud = await backend.syncDown(acc.uid).catch(() => null);
     if (cloud && Array.isArray(cloud.profiles) && cloud.profiles.length) {
-      importAll(cloud.profiles as Profile[], cloud.activeId, !!cloud.premium); // restore the account
-      setSyncedAt(cloud.updatedAt);
+      // MERGE, never replace: signing in must not discard progress made on this
+      // device, and the cloud copy must not lose lessons completed elsewhere.
+      const merged = claimLocal ? mergeSync(snapshot(), cloud) : cloud;
+      revRef.current = Math.max(revRef.current, merged.rev ?? 0);
+      importAll(merged.profiles as Profile[], merged.activeId, !!merged.premium);
+      await backend.syncUp(acc.uid, merged).catch(() => setPendingSync(true));
+      setSyncedAt(merged.updatedAt);
     } else if (claimLocal) {
       const data = snapshot(); // claim the on-device household into the new account
-      await backend.syncUp(acc.uid, data).catch(() => {});
+      await backend.syncUp(acc.uid, data).catch(() => setPendingSync(true));
       setSyncedAt(data.updatedAt);
     }
     setAccount(acc);
@@ -79,8 +94,8 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   }, [backend]);
 
   const value = useMemo<AccountAPI>(() => ({
-    ready, account, syncedAt, signUp, signIn, signInProvider, signOut,
-  }), [ready, account, syncedAt, signUp, signIn, signInProvider, signOut]);
+    ready, account, syncedAt, pendingSync, signUp, signIn, signInProvider, signOut,
+  }), [ready, account, syncedAt, pendingSync, signUp, signIn, signInProvider, signOut]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
