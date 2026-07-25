@@ -157,6 +157,15 @@ export default function Home() {
                 {Math.min(todayXp, goalXp)} / {goalXp} XP
               </Text>
             </View>
+            {/* Goal-gradient effect: effort rises sharply as a goal comes into
+                reach, so name the remaining distance once it's small. */}
+            {todayXp < goalXp && goalXp - todayXp <= 20 && (
+              <View style={{ backgroundColor: '#fff', borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13 }}>
+                <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13, color: heroShelf.deep }}>
+                  {goalXp - todayXp} XP to your goal!
+                </Text>
+              </View>
+            )}
           </View>
         </View>
         <Maestro mood={next ? 'cheer' : 'trophy'} size={116} bg="#ffffff33" float />

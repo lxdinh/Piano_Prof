@@ -69,8 +69,11 @@ interface Persisted {
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
+  // Real installs start EMPTY so the first thing a family sees is their own
+  // profile, not three strangers' streaks. The demo household stays available
+  // in development for screenshots and manual testing.
   const [profiles, setProfiles] = useState<Profile[]>(() =>
-    JSON.parse(JSON.stringify(PROFILES_SEED)) as Profile[]);
+    (__DEV__ ? JSON.parse(JSON.stringify(PROFILES_SEED)) as Profile[] : []));
   const [activeId, setActiveId] = useState<string | null>(null);
   const [premium, setPremium] = useState(false);
   const [led, setLedState] = useState<LedState>({ connected: false, brightness: 80, theme: 'rainbow', calibrated: false });

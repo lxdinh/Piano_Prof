@@ -11,7 +11,9 @@ import LangDropdown from '../ui/LangDropdown';
 import { Card } from '../ui/atoms';
 import * as ambientAudio from '../audio/ambient';
 import * as pianoEngine from '../audio/pianoEngine';
-import { isReminderOn, setReminder } from '../notifications/reminders';
+import {
+  isReminderOn, setReminder, getReminderHour, formatHour, REMINDER_HOURS,
+} from '../notifications/reminders';
 import { Audio } from 'expo-av';
 import { useAccount } from '../account/AccountProvider';
 import { useT } from '../i18n/useT';
@@ -64,7 +66,11 @@ export default function Settings() {
   const accountLabel = account && !account.isAnonymous ? (account.email ?? 'Signed in') : 'Sign in to sync';
   const goalXp = activeProfile?.dailyGoalXp ?? 50;
   const [reminders, setReminders] = useState(false);
-  useEffect(() => { isReminderOn().then(setReminders); }, []);
+  const [reminderHour, setReminderHour] = useState(18);
+  useEffect(() => {
+    isReminderOn().then(setReminders);
+    getReminderHour().then(setReminderHour);
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
@@ -99,7 +105,32 @@ export default function Settings() {
             <Section title={tr('settings.lessonSound')}>
               <ToggleRow icon="sound" label="Sound effects" value={!muted} onChange={(v) => { setMuted(!v); pianoEngine.setPianoEnabled(v); ambientAudio.setMuted(!v); }} />
               <ToggleRow icon="headphones" label={tr('settings.bgMusic')} value={backgroundMusic} onChange={(v) => { setAmbient(v); ambientAudio.setEnabled(v); }} />
-              <ToggleRow icon="bell" label={`${tr('settings.reminders')} · 6 PM`} value={reminders} onChange={async (v) => { setReminders(v); const ok = await setReminder(v); setReminders(ok); }} />
+              <ToggleRow icon="bell" label={`${tr('settings.reminders')} · ${formatHour(reminderHour)}`} value={reminders} onChange={async (v) => { setReminders(v); const ok = await setReminder(v, reminderHour); setReminders(ok); }} />
+              {/* Choosing the practice time is the point: a specific committed
+                  time ("I practise at 5 PM") follows through far better than a
+                  vague intention to practise. */}
+              {reminders && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 14, paddingBottom: 12 }}>
+                  {REMINDER_HOURS.map((h) => (
+                    <Pressable
+                      key={h}
+                      onPress={async () => { setReminderHour(h); await setReminder(true, h); }}
+                      style={{
+                        paddingVertical: 7, paddingHorizontal: 13, borderRadius: 999,
+                        backgroundColor: h === reminderHour ? colors.green : colors.surface2,
+                        borderWidth: 2, borderColor: h === reminderHour ? colors.green : colors.line,
+                      }}
+                    >
+                      <Text style={{
+                        fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 13,
+                        color: h === reminderHour ? '#fff' : colors.inkSoft,
+                      }}>
+                        {formatHour(h)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </Section>
 
             <Section title="Appearance">
