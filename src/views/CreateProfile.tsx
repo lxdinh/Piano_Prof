@@ -40,8 +40,9 @@ export default function CreateProfile() {
         <Icon name="chevronLeft" size={26} color={colors.ink} />
       </Pressable>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 30, paddingBottom: insets.bottom + 30, alignItems: 'center' }}>
-        <Maestro mood={avatar.mood} size={120} bg={avatar.bg} ring={5} ringColor={colors.green} fit="head" float />
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 28, color: colors.ink, marginTop: 12 }}>{tr(activeProfile?.placed ? 'create.edit' : 'create.title')}</Text>
+        {/* Prototype PHONE sizes (app/phone-spine.jsx PhCreateProfile). */}
+        <Maestro mood={avatar.mood} size={104} bg={avatar.bg} ring={4} ringColor={colors.green} fit="head" float />
+        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 22, color: colors.ink, marginTop: 12 }}>{tr(activeProfile?.placed ? 'create.edit' : 'create.title')}</Text>
 
         <View style={{ width: '100%', maxWidth: 520, gap: 16, marginTop: 20 }}>
           <View style={{ gap: 6 }}>

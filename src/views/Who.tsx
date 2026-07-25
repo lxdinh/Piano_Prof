@@ -47,7 +47,10 @@ export default function Who() {
       colors={isDark ? ['#0E2136', '#0A1424'] : ['#EAF9DA', '#FFFAEC']}
       style={{ flex: 1, paddingTop: insets.top + 30 }}
     >
-      <Text style={{ textAlign: 'center', fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 32, color: colors.ink }}>
+      {/* Sizes follow the prototype's PHONE layout (app/phone-spine.jsx PhWho),
+          which is authored for this 852x394 canvas — the standalone/tablet
+          mockup's larger sizes made this screen feel zoomed in on a phone. */}
+      <Text style={{ textAlign: 'center', fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 30, color: colors.ink }}>
         {tr('who.title')}
       </Text>
       <Pressable
@@ -66,7 +69,7 @@ export default function Who() {
         {profiles.map((p) => (
           <Pressable key={p.id} onPress={() => pick(p.id, p.placed)} style={{ alignItems: 'center', gap: 12, opacity: manage ? 0.9 : 1 }}>
             <View>
-              <Maestro mood={p.avatar} size={132} bg={p.bg} ring={4} ringColor={manage ? colors.line : p.color} fit="head" />
+              <Maestro mood={p.avatar} size={84} bg={p.bg} ring={3} ringColor={manage ? colors.line : p.color} fit="head" />
               {manage ? (
                 <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' } as any}>
                   <Icon name="pencil" size={30} color={colors.ink} />

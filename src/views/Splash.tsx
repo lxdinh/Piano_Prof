@@ -1,44 +1,122 @@
 // Piano Professor — Splash / brand screen.
-import React, { useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
+//
+// LAYOUT MATCHES THE PROTOTYPE (app/phone-spine.jsx `PhSplash`): a landscape
+// two-column scene — brand stack on the left, a lit demo keyboard on the right —
+// NOT a tall vertical stack. The old vertical version was ~466px tall inside the
+// 852x394 logical canvas, so its top and bottom were cropped on device. Every
+// size below is the prototype's, which fits the canvas with room to spare.
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '../theme/AppTheme';
 import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Maestro from '../ui/Maestro';
+import Piano from '../ui/Piano';
 import PPButton from '../ui/PPButton';
+import { ProgressBar } from '../ui/atoms';
 import { t } from '../i18n';
+
+/** Colour sweep across the demo keyboard, as in the prototype. */
+const SWEEP_NOTES = [60, 62, 64, 65, 67, 69, 71, 72];
+const SWEEP_COLORS = ['#58CC02', '#F5B800', '#5BB8E3', '#FF7A52'];
+
+function useSweep(): Record<number, string> {
+  const [lit, setLit] = useState<Record<number, string>>({});
+  useEffect(() => {
+    let i = 0;
+    const id = setInterval(() => {
+      const note = SWEEP_NOTES[i % SWEEP_NOTES.length];
+      setLit({ [note]: SWEEP_COLORS[i % SWEEP_COLORS.length] });
+      i++;
+    }, 200);
+    return () => clearInterval(id);
+  }, []);
+  return lit;
+}
+
+/** Drifting music notes in the background (prototype's pp-float decorations). */
+function FloatingNote({ emoji, size, left, top, delay }: {
+  emoji: string; size: number; left: string; top: string; delay: number;
+}) {
+  const drift = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.delay(delay),
+      Animated.timing(drift, { toValue: 1, duration: 1800, useNativeDriver: true }),
+      Animated.timing(drift, { toValue: 0, duration: 1800, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [drift, delay]);
+  return (
+    <Animated.Text style={{
+      position: 'absolute', left: left as never, top: top as never,
+      fontSize: size, opacity: 0.5,
+      transform: [{ translateY: drift.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) }],
+    }}>
+      {emoji}
+    </Animated.Text>
+  );
+}
 
 export default function Splash() {
   const { colors, isDark } = useAppTheme();
   const { go } = useRouter();
   const [ready, setReady] = useState(false);
+  const lit = useSweep();
 
   useEffect(() => {
-    const id = setTimeout(() => setReady(true), 1100);
+    const id = setTimeout(() => setReady(true), 1300);
     return () => clearTimeout(id);
   }, []);
 
   return (
     <LinearGradient
-      colors={isDark ? ['#16273F', '#0A1424'] : ['#FFFDF6', '#FFF3D6']}
-      style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 32 }}
+      colors={isDark ? ['#16273F', '#0A1424'] : ['#FFFDF6', '#FFE9B8']}
+      style={{
+        flex: 1, flexDirection: 'row', alignItems: 'center',
+        gap: 30, paddingHorizontal: 46,
+      }}
     >
-      <Maestro mood="conduct" size={180} bg={colors.surface} ring={6} ringColor="#fff" float />
-      <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 40, color: colors.ink, marginTop: 14 }}>
-        Piano Professor
-      </Text>
-      <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 18, color: colors.inkSoft }}>
-        {t('splash.tagline')}
-      </Text>
-      <View style={{ height: 28 }} />
-      {ready ? (
-        <PPButton label={t('splash.play')} size="lg" variant="green" onPress={() => go('who')} />
-      ) : (
-        <Text style={{ fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15, color: colors.inkFaint }}>
-          {t('splash.tuning')}
+      <FloatingNote emoji="🎵" size={22} left="8%" top="16%" delay={0} />
+      <FloatingNote emoji="🎶" size={18} left="88%" top="20%" delay={300} />
+      <FloatingNote emoji="✨" size={16} left="60%" top="10%" delay={600} />
+
+      {/* left: brand */}
+      <View style={{ flex: 1, alignItems: 'flex-start' }}>
+        <Maestro mood="conduct" size={76} ring={4} ringColor="#fff" bg={colors.sky} float />
+        <Text style={{
+          fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 40,
+          color: colors.skyDeep, marginTop: 12, letterSpacing: -1,
+        }} numberOfLines={1}>
+          Piano<Text style={{ color: colors.ink }}> Professor</Text>
         </Text>
-      )}
+        <Text style={{
+          fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 15,
+          color: isDark ? colors.inkSoft : '#A98B2E', marginTop: 8, marginBottom: 16,
+        }}>
+          {t('splash.tagline')}
+        </Text>
+        {ready ? (
+          <PPButton label={t('splash.play')} size="lg" variant="sky" onPress={() => go('who')} />
+        ) : (
+          <View style={{ width: 180 }}>
+            <ProgressBar value={70} color={colors.gold} height={9} />
+            <Text style={{
+              fontFamily: Fonts.family.bold, fontWeight: '800', fontSize: 12,
+              color: colors.inkFaint, marginTop: 6,
+            }}>
+              {t('splash.tuning')}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* right: lit demo keyboard */}
+      <View style={{ width: 360, flexShrink: 0 }}>
+        <Piano low={60} high={72} lit={lit} led interactive={false} hideNoteNames height={120} />
+      </View>
     </LinearGradient>
   );
 }
