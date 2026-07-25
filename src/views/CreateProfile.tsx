@@ -12,11 +12,13 @@ import PPButton from '../ui/PPButton';
 import LangDropdown from '../ui/LangDropdown';
 import { AVATARS } from '../data/content';
 import { useT } from '../i18n/useT';
+import { useStage } from '../theme/responsive';
 
 export default function CreateProfile() {
   const { colors } = useAppTheme();
   const { activeProfile, updateActive } = useApp();
   const { go, back } = useRouter();
+  const { isTablet } = useStage();
   const insets = useSafeAreaInsets();
   const tr = useT();
 
@@ -40,9 +42,10 @@ export default function CreateProfile() {
         <Icon name="chevronLeft" size={26} color={colors.ink} />
       </Pressable>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 30, paddingBottom: insets.bottom + 30, alignItems: 'center' }}>
-        {/* Prototype PHONE sizes (app/phone-spine.jsx PhCreateProfile). */}
-        <Maestro mood={avatar.mood} size={104} bg={avatar.bg} ring={4} ringColor={colors.green} fit="head" float />
-        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 22, color: colors.ink, marginTop: 12 }}>{tr(activeProfile?.placed ? 'create.edit' : 'create.title')}</Text>
+        {/* Sizes per canvas: phone-spine.jsx PhCreateProfile on the phone
+            canvas, the roomier standalone mockup on the tablet canvas. */}
+        <Maestro mood={avatar.mood} size={isTablet ? 120 : 104} bg={avatar.bg} ring={isTablet ? 5 : 4} ringColor={colors.green} fit="head" float />
+        <Text style={{ fontFamily: Fonts.family.black, fontWeight: '900', fontSize: isTablet ? 28 : 22, color: colors.ink, marginTop: 12 }}>{tr(activeProfile?.placed ? 'create.edit' : 'create.title')}</Text>
 
         <View style={{ width: '100%', maxWidth: 520, gap: 16, marginTop: 20 }}>
           <View style={{ gap: 6 }}>

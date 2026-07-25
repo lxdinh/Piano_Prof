@@ -12,6 +12,7 @@ import Icon from '../ui/Icon';
 import { useT } from '../i18n/useT';
 import { NEW_PROFILE_GIFTS } from '../data/content';
 import { todayKey } from '../services/dateKey';
+import { useStage } from '../theme/responsive';
 
 export default function Who() {
   const { colors, isDark } = useAppTheme();
@@ -19,7 +20,10 @@ export default function Who() {
   const { go } = useRouter();
   const insets = useSafeAreaInsets();
   const tr = useT();
+  const { isTablet } = useStage();
   const [manage, setManage] = useState(false);
+  const avatarSize = isTablet ? 132 : 84;
+  const titleSize = isTablet ? 32 : 30;
 
   const pick = (id: string, placed: boolean) => {
     if (manage) { setActive(id); go('editProfile'); return; }
@@ -47,10 +51,10 @@ export default function Who() {
       colors={isDark ? ['#0E2136', '#0A1424'] : ['#EAF9DA', '#FFFAEC']}
       style={{ flex: 1, paddingTop: insets.top + 30 }}
     >
-      {/* Sizes follow the prototype's PHONE layout (app/phone-spine.jsx PhWho),
-          which is authored for this 852x394 canvas — the standalone/tablet
-          mockup's larger sizes made this screen feel zoomed in on a phone. */}
-      <Text style={{ textAlign: 'center', fontFamily: Fonts.family.black, fontWeight: '900', fontSize: 30, color: colors.ink }}>
+      {/* Sizes come from whichever prototype layout matches the live canvas:
+          phone-spine.jsx PhWho on the 852x394 phone canvas, the roomier
+          standalone mockup on the 1280x800 tablet canvas. */}
+      <Text style={{ textAlign: 'center', fontFamily: Fonts.family.black, fontWeight: '900', fontSize: titleSize, color: colors.ink }}>
         {tr('who.title')}
       </Text>
       <Pressable
@@ -69,7 +73,7 @@ export default function Who() {
         {profiles.map((p) => (
           <Pressable key={p.id} onPress={() => pick(p.id, p.placed)} style={{ alignItems: 'center', gap: 12, opacity: manage ? 0.9 : 1 }}>
             <View>
-              <Maestro mood={p.avatar} size={84} bg={p.bg} ring={3} ringColor={manage ? colors.line : p.color} fit="head" />
+              <Maestro mood={p.avatar} size={avatarSize} bg={p.bg} ring={isTablet ? 4 : 3} ringColor={manage ? colors.line : p.color} fit="head" />
               {manage ? (
                 <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' } as any}>
                   <Icon name="pencil" size={30} color={colors.ink} />
