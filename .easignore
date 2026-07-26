@@ -1,0 +1,44 @@
+# Files EAS Build does not need. Without this the project archive is ~224 MB,
+# which is slow to upload and was failing with ECONNRESET mid-transfer.
+#
+# NOTE: when .easignore exists, EAS uses it INSTEAD of .gitignore — so the
+# usual local-only directories have to be repeated here.
+
+node_modules/
+.git/
+.expo/
+dist/
+web-build/
+
+# Design mockups, uploads and reference material (~95 MB)
+project/
+
+# KiCad PCB / gerbers / fab outputs for the controller + LED modules (~24 MB)
+hardware/
+firmware/
+
+# Superseded web prototype (~9 MB)
+legacy/
+
+# The Flutter app lives on another branch; never needed by the RN build
+mobile/
+
+# Server-side pieces, notes and transcripts
+backend/
+docs/
+chats/
+*.md
+!README.md
+
+# Loose prototype/web files at the repo root
+index.html
+styles.css
+app.js
+lessons.js
+sfx.js
+
+# Large binaries that are not app assets
+*.pdf
+*.zip
+*.step
+*.stl
