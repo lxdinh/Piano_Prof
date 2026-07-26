@@ -17,21 +17,20 @@ import {
   BLE_CONNECT_TIMEOUT_MS,
   BLE_SERVICE_UUID,
   BLE_CHAR_LED_CMD,
-  BLE_CHAR_LED_COUNT,
-  BLE_CHAR_CALIBRATE,
-  BLE_CHAR_CONFIG,
+  BLE_CHAR_NOTE_EVENT,
+  BLE_CHAR_STATUS,
   CAL_TARGET_NOTES,
   CAL_STEPS,
+  DEFAULT_LED_COUNT,
 } from './constants';
 import {
-  cmdRainbow,
   cmdClearAll,
-  cmdCommit,
-  cmdEnterCalibration,
-  cmdExitCalibration,
+  cmdSetMulti,
   cmdCalibrationHighlight,
+  calibrationPositions,
   CalibrationAnchor,
 } from './protocol';
+import { bytesToBase64, base64ToBytes } from './base64';
 
 // ── State machine types ─────────────────────────────────────────
 
@@ -218,21 +217,25 @@ export function useBLE(): UseBLEReturn {
   // listeners (lesson engine, free-play, etc.) that want key-press events.
   const noteSubscriptionRef = useRef<{ remove(): void } | null>(null);
   const noteListenersRef    = useRef<Set<(midiNote: number) => void>>(new Set());
+  // Strip length reported by the device; needed by helpers that run before the
+  // reducer state has caught up.
+  const ledCountRef         = useRef<number>(DEFAULT_LED_COUNT);
 
   const subscribeNotes = useCallback((cb: (midiNote: number) => void) => {
     noteListenersRef.current.add(cb);
     return () => { noteListenersRef.current.delete(cb); };
   }, []);
 
-  // Begin monitoring key presses on the calibrate characteristic. The firmware
-  // reuses [0x01, midiNote, ledIndex] notifications for normal play, so a single
-  // monitor feeds both calibration and lesson grading. Idempotent.
+  // Begin monitoring key presses on the note-event characteristic. The firmware
+  // sends [type (0 = off, 1 = on), midiNote, velocity, source] for every key, so
+  // a single monitor feeds both calibration and lesson grading. Note-offs are
+  // ignored here — listeners only care about presses. Idempotent.
   const startNoteMonitor = useCallback(() => {
     if (noteSubscriptionRef.current || !calCharRef.current) return;
     noteSubscriptionRef.current = calCharRef.current.monitor((error, char) => {
       if (error || !char?.value) return;
-      const bytes = Buffer.from(char.value, 'base64');
-      if (bytes[0] !== 0x01) return;
+      const bytes = base64ToBytes(char.value);
+      if (bytes.length < 2 || bytes[0] !== 0x01) return; // 0x01 = note-on
       const midiNote = bytes[1];
       noteListenersRef.current.forEach((cb) => {
         try { cb(midiNote); } catch { /* one bad listener shouldn't break others */ }
@@ -299,8 +302,12 @@ export function useBLE(): UseBLEReturn {
       }
     }, BLE_SCAN_TIMEOUT_MS);
 
+    // Scan unfiltered and match by name in JS. We cannot filter on
+    // [BLE_SERVICE_UUID] here: the controller's advertising packet has no room
+    // for a 128-bit UUID once the device name is included, so it advertises the
+    // name only. A service-UUID scan filter matches nothing.
     manager.startDeviceScan(
-      [BLE_SERVICE_UUID],  // filter by service UUID — avoids listing unrelated devices
+      null,
       { allowDuplicates: false },
       (error, device) => {
         if (error) {
@@ -345,6 +352,15 @@ export function useBLE(): UseBLEReturn {
 
     connectedDeviceRef.current = device;
 
+    // Ask for a larger MTU so multi-LED frames fit in one write. The default
+    // 23-byte ATT MTU only carries 4 LEDs per SET_MANY. Android-only; iOS
+    // negotiates on its own and rejecting this is not fatal.
+    try {
+      await device.requestMTU(185);
+    } catch {
+      /* keep the default MTU */
+    }
+
     // Disconnect listener
     device.onDisconnected(() => {
       calSubscriptionRef.current?.remove();
@@ -370,24 +386,25 @@ export function useBLE(): UseBLEReturn {
       const byUuid = Object.fromEntries(chars.map(c => [c.uuid.toUpperCase(), c]));
 
       ledCmdCharRef.current = byUuid[BLE_CHAR_LED_CMD.toUpperCase()] ?? null;
-      calCharRef.current    = byUuid[BLE_CHAR_CALIBRATE.toUpperCase()] ?? null;
+      calCharRef.current    = byUuid[BLE_CHAR_NOTE_EVENT.toUpperCase()] ?? null;
 
       if (!ledCmdCharRef.current) {
         dispatch({ type: 'ERROR', message: 'Piano Professor service not found on this device.' });
         return;
       }
 
-      // Read LED count
-      let ledCount = 60; // safe default
-      const countChar = byUuid[BLE_CHAR_LED_COUNT.toUpperCase()];
-      if (countChar) {
-        const read = await countChar.read();
+      // Read LED count from the status frame: [ledCount, fwMajor, fwMinor, source]
+      let ledCount = DEFAULT_LED_COUNT;
+      const statusChar = byUuid[BLE_CHAR_STATUS.toUpperCase()];
+      if (statusChar) {
+        const read = await statusChar.read();
         if (read.value) {
-          const bytes = Buffer.from(read.value, 'base64');
-          ledCount = bytes[0] ?? 60;
+          const bytes = base64ToBytes(read.value);
+          if (bytes[0]) ledCount = bytes[0];
         }
       }
 
+      ledCountRef.current = ledCount;
       dispatch({ type: 'SERVICE_READY', ledCount });
     } catch (e) {
       dispatch({ type: 'ERROR', message: 'Could not read device characteristics.' });
@@ -399,17 +416,33 @@ export function useBLE(): UseBLEReturn {
     // Start listening for key presses for the whole connection (lesson grading).
     startNoteMonitor();
 
-    // Celebrate with rainbow
-    await writeToLed(cmdRainbow(25));
-    await writeToLed(cmdCommit());
+    // Confirm the link visually: flash the strip green, then clear.
+    await fillStrip(0x58, 0xcc, 0x02);
+    setTimeout(() => { void writeToLed(cmdClearAll()); }, 800);
   }, [startNoteMonitor]);
 
   // ── Internal write helper ─────────────────────────────────────
   async function writeToLed(bytes: Uint8Array): Promise<void> {
     const char = ledCmdCharRef.current;
     if (!char || !connectedDeviceRef.current) return;
-    const b64 = Buffer.from(bytes).toString('base64');
-    await char.writeWithoutResponse(b64);
+    // Unsupported commands (COMMIT, patterns, calibration mode) encode to an
+    // empty payload — dropping them here keeps those call-sites harmless.
+    if (bytes.length === 0) return;
+    await char.writeWithoutResponse(bytesToBase64(bytes));
+  }
+
+  // Paint the whole strip one color. The firmware has no fill command, so this
+  // sends SET_MANY frames chunked to stay inside the negotiated MTU
+  // (182 usable bytes at MTU 185 → 45 LEDs; 40 leaves headroom).
+  const MAX_LEDS_PER_FRAME = 40;
+  async function fillStrip(r: number, g: number, b: number): Promise<void> {
+    const count = ledCountRef.current;
+    for (let start = 0; start < count; start += MAX_LEDS_PER_FRAME) {
+      const end = Math.min(count, start + MAX_LEDS_PER_FRAME);
+      const entries: Array<{ index: number; rgb: [number, number, number] }> = [];
+      for (let i = start; i < end; i++) entries.push({ index: i, rgb: [r, g, b] });
+      await writeToLed(cmdSetMulti(entries));
+    }
   }
 
   // ── Public write ──────────────────────────────────────────────
@@ -424,26 +457,34 @@ export function useBLE(): UseBLEReturn {
       return;
     }
 
-    // Tell firmware to enter calibration mode
-    await writeToLed(cmdEnterCalibration());
+    // The firmware has no calibration mode — it streams every key press on the
+    // note-event characteristic. So the app runs calibration itself: light one
+    // target at a time and pair each press with the LED currently lit.
+    const positions = calibrationPositions(state.ledCount);
 
-    // Light the 3 target LEDs green
-    await writeToLed(cmdCalibrationHighlight(state.ledCount));
-    await writeToLed(cmdCommit());
+    await writeToLed(cmdClearAll());
+    await writeToLed(cmdCalibrationHighlight(state.ledCount, 0));
 
     dispatch({ type: 'CAL_START' });
 
-    // Subscribe to calibration notifications
-    // The firmware sends [0x01, midiNote] when a key is pressed
+    let step = 0;
     calSubscriptionRef.current = calCharRef.current.monitor((error, char) => {
       if (error || !char?.value) return;
-      const bytes = Buffer.from(char.value, 'base64');
-      if (bytes[0] !== 0x01) return;
+      const bytes = base64ToBytes(char.value);
+      if (bytes.length < 2 || bytes[0] !== 0x01) return; // note-on only
+      if (step >= CAL_STEPS) return;
 
       const midiNote = bytes[1];
-      const ledIndex = bytes[2]; // firmware also reports which LED it maps to
-
+      const ledIndex = positions[Math.min(step, positions.length - 1)];
       dispatch({ type: 'CAL_KEY_CONFIRMED', midiNote, ledIndex });
+
+      step += 1;
+      if (step < CAL_STEPS) {
+        void (async () => {
+          await writeToLed(cmdClearAll());
+          await writeToLed(cmdCalibrationHighlight(state.ledCount, step));
+        })();
+      }
     });
   }, [state.ledCount]);
 
@@ -457,10 +498,9 @@ export function useBLE(): UseBLEReturn {
         calSubscriptionRef.current?.remove();
         calSubscriptionRef.current = null;
 
-        await writeToLed(cmdExitCalibration());
         await writeToLed(cmdClearAll());
-        await writeToLed(cmdRainbow(25));
-        await writeToLed(cmdCommit());
+        await fillStrip(0x58, 0xcc, 0x02);
+        setTimeout(() => { void writeToLed(cmdClearAll()); }, 800);
 
         dispatch({ type: 'CAL_COMPLETE' });
       })();
@@ -472,10 +512,7 @@ export function useBLE(): UseBLEReturn {
     calSubscriptionRef.current?.remove();
     calSubscriptionRef.current = null;
 
-    await writeToLed(cmdExitCalibration());
     await writeToLed(cmdClearAll());
-    await writeToLed(cmdRainbow(25));
-    await writeToLed(cmdCommit());
 
     dispatch({ type: 'CAL_COMPLETE' });
   }, []);

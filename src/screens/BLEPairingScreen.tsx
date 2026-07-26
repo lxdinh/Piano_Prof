@@ -24,7 +24,7 @@ import Svg, {
 import { FoundDevice, BLEPhase } from '../ble/useBLE';
 import { useBLEContext } from '../ble/BLEContext';
 import { CAL_STEPS, CAL_TARGET_NOTES } from '../ble/constants';
-import { cmdRainbow, cmdCommit } from '../ble/protocol';
+import { cmdSetSingle, cmdClearAll } from '../ble/protocol';
 import { Colors, Fonts, Radii, Spacing } from '../theme/tokens';
 
 // ── Shared icon components ───────────────────────────────────────
@@ -391,10 +391,15 @@ function ConnectedScreen({
 
   async function handleTestLights() {
     setIsAnimating(true);
-    await sendLedCommand(cmdRainbow(25));
-    await sendLedCommand(cmdCommit());
+    // The firmware has no pattern engine, so animate from the app: sweep a
+    // single lit LED down the strip, then clear.
+    const LEDS = 60;
+    for (let i = 0; i < LEDS; i++) {
+      await sendLedCommand(cmdSetSingle(i, 0x58, 0xcc, 0x02));
+    }
+    await sendLedCommand(cmdClearAll());
     onTestLights();
-    setTimeout(() => setIsAnimating(false), 3000);
+    setTimeout(() => setIsAnimating(false), 500);
   }
 
   const stars = Array.from({ length: 60 }, (_, i) => ({
