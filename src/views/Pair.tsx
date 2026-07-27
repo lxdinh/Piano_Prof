@@ -15,7 +15,7 @@ import Piano from '../ui/Piano';
 import ScrollFit from '../ui/ScrollFit';
 import { HwFacade, HwStatus } from '../lesson1/hal';
 
-type Phase = 'scan' | 'connecting' | 'success' | 'error';
+type Phase = 'scan' | 'connecting' | 'success' | 'recovery' | 'error';
 
 function Radar() {
   const { colors } = useAppTheme();
@@ -92,6 +92,13 @@ export default function Pair() {
         setPhase('success');
         setLed({ connected: true });
         try { hw.ledEffect('celebration', []); } catch { /* ignore */ }
+      } else if (s.state === 'recovery') {
+        // The board is alive but running only the factory image — it has no
+        // LEDs and no note events until firmware is pushed to it. That is a
+        // routing decision, not an error.
+        setPhase('recovery');
+        setDetail(s.detail);
+        setLed({ connected: false });
       } else if (s.state === 'connecting') {
         setPhase(/scan/i.test(s.detail) ? 'scan' : 'connecting');
         setDetail(s.detail || 'Connecting…');
@@ -146,6 +153,26 @@ export default function Pair() {
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
               <PPButton label="Try again" size="md" variant="sky" onPress={retry} />
+              <PPButton label="Not now" size="md" variant="ghost" onPress={() => go('home')} />
+            </View>
+          </>
+        )}
+
+        {phase === 'recovery' && (
+          <>
+            <Maestro mood="teach" size={110} bg={colors.selGold} ring={5} ringColor={colors.gold} float />
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 24, color: colors.ink }}>
+              Your module needs firmware
+            </Text>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkFaint, textAlign: 'center', maxWidth: 480 }}>
+              {detail || 'Found it in recovery mode.'} It can\u2019t light your keys yet \u2014 send it
+              the controller firmware and it will be ready.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
+              <PPButton
+                label="Update module" size="md" variant="sky"
+                onPress={() => go('firmwareUpdate', { device: hwRef.current?.bleDevice ?? null })}
+              />
               <PPButton label="Not now" size="md" variant="ghost" onPress={() => go('home')} />
             </View>
           </>

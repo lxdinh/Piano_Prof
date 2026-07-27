@@ -17,6 +17,7 @@ import Practice from '../views/Practice';
 import ProfileView from '../views/ProfileView';
 import Paywall from '../views/Paywall';
 import PremiumWelcome from '../views/PremiumWelcome';
+import FirmwareUpdate from '../views/FirmwareUpdate';
 import Upsell from '../views/Upsell';
 import ManageSub from '../views/ManageSub';
 import Pair from '../views/Pair';
@@ -50,6 +51,7 @@ export const registry: ScreenRegistry = {
   complete: Complete,
   paywall: Paywall,
   premiumWelcome: PremiumWelcome,
+  firmwareUpdate: FirmwareUpdate,
   upsell: Upsell,
   manageSub: ManageSub,
   pair: Pair,

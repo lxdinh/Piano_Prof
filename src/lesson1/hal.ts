@@ -2,19 +2,27 @@
 // PianoHardware interface (the engine talks ONLY to this): connect, onNoteOn,
 // onNoteOff, ledSet/ledOn/ledOff/ledOffMany/ledClear/ledEffect, chordWindowMs.
 //
-// ESP32-S3 BLE GATT protocol (per the spec):
-//   Service   7e400001-b5a3-f393-e0a9-e50e24dcca9e
-//   CHAR_KEYS 7e400002-… (Notify, board→app)  3-byte packets, parse strides of 3:
-//             [0x90, midiNote, velocity] on · [0x80, midiNote, 0] off
-//   CHAR_LED  7e400003-… (WriteWithoutResponse, app→board)
-//             [0x01, count, (ledIndex,r,g,b)×count] · [0x02] clear ·
-//             [0x03, effectId, count, ledIndex×count]
+// BLE GATT: the contract lives in src/ble/constants + src/ble/protocol, which
+// track the SHIPPING ESP32-S3 firmware (firmware/controller). Summary:
+//   Service     f0a1d2c3-0001-… — LEDs + note events
+//   LED command f0a1d2c3-0002-… (write)   SET_MULTI frames, drawn immediately
+//   Note event  f0a1d2c3-0003-… (notify)  [type, midiNote, velocity, source]
+//   Status      f0a1d2c3-0004-… (read)    [ledCount, fwMajor, fwMinor, source]
+//   OTA service f0a1d2c3-0010-… — present alone when the board is in recovery
 //   ledIndex = midiNote − 36 (C2=36→LED0 … B6=95→LED59); C7 has NO LED.
-//   Writes coalesced per 60ms tick, LED sets chunked ≤14 per packet.
+//   Writes coalesced per 40ms tick and split to the negotiated MTU.
 
 import { Platform, PermissionsAndroid } from 'react-native';
 import { BleManager, Device, Characteristic, Subscription, State } from 'react-native-ble-plx';
-import { parseMidiPackets } from './midi';
+import {
+  BLE_SERVICE_UUID, BLE_CHAR_LED_CMD, BLE_CHAR_NOTE_EVENT,
+  BLE_CHAR_DEVICE_STATUS, BLE_OTA_SERVICE_UUID,
+} from '../ble/constants';
+import {
+  cmdSetMultiChunked, cmdSetBrightness,
+  parseNoteEvent, parseDeviceStatus, DeviceStatus,
+} from '../ble/protocol';
+import { base64ToBytes, bytesToBase64 } from '../ble/base64';
 import {
   noteToMidi, midiToNote, noteToLedIndex, WRONG_FLASH_MS,
   LED_LOW_MIDI, LED_HIGH_MIDI, KEY_LOW_MIDI, KEY_HIGH_MIDI,
@@ -57,10 +65,23 @@ function waitForBluetoothOn(manager: BleManager, timeoutMs = 6000): Promise<void
   });
 }
 
+/**
+ * GATT ids re-exported from the single source of truth (src/ble/constants),
+ * which tracks the SHIPPING firmware.
+ *
+ * These replaced a `7e4000xx` set invented from a spec document that no board
+ * ever implemented. Worse than merely different: that set had the two
+ * characteristic roles INVERTED — `…0002…` was treated as key-notify and
+ * `…0003…` as the LED write, whereas the real firmware uses `…0002…` for LED
+ * commands and `…0003…` for note events. Anything built against the old ids
+ * could not talk to real hardware at all.
+ */
 export const BLE_IDS = {
-  SERVICE: '7e400001-b5a3-f393-e0a9-e50e24dcca9e',
-  CHAR_KEYS: '7e400002-b5a3-f393-e0a9-e50e24dcca9e',
-  CHAR_LED: '7e400003-b5a3-f393-e0a9-e50e24dcca9e',
+  SERVICE: BLE_SERVICE_UUID,
+  CHAR_LED: BLE_CHAR_LED_CMD,      // app → board (write, LED command frames)
+  CHAR_NOTES: BLE_CHAR_NOTE_EVENT, // board → app (notify, key presses)
+  CHAR_STATUS: BLE_CHAR_DEVICE_STATUS,
+  OTA_SERVICE: BLE_OTA_SERVICE_UUID,
 };
 
 const SIM_CLICK_SUSTAIN_MS = 1000; // tapped keys stay "held" this long
@@ -68,7 +89,8 @@ const SIM_CLICK_SUSTAIN_MS = 1000; // tapped keys stay "held" this long
 export interface LedEntry { note: string; r: number; g: number; b: number; }
 export type LedSnapshot = Map<number, string>; // midi -> css color visible now
 
-export interface HwStatus { state: 'idle' | 'sim' | 'connecting' | 'connected' | 'disconnected' | 'error'; detail: string; }
+/** 'recovery' = the board is running the factory image and needs firmware. */
+export interface HwStatus { state: 'idle' | 'sim' | 'connecting' | 'connected' | 'recovery' | 'disconnected' | 'error'; detail: string; }
 export { bytesToB64, b64ToBytes };
 
 type RGB3 = [number, number, number];
@@ -321,6 +343,8 @@ export class BLEPiano extends PianoBackend {
   private pending = new Map<number, [number, number, number]>(); // ledIndex → rgb to send
   private lastSent = new Map<number, string>(); // ledIndex → last rgb sent (diffing)
   private timer: ReturnType<typeof setInterval> | null = null;
+  private recovery = false;
+  private deviceStatus: DeviceStatus | null = null;
 
   constructor() { super(); this.setStatus('idle', 'Not connected'); }
 
@@ -331,9 +355,12 @@ export class BLEPiano extends PianoBackend {
       const manager = getManager();
       await waitForBluetoothOn(manager);
       this.setStatus('connecting', 'Scanning for your board…');
+      // Scan for BOTH services. A board in recovery advertises only the OTA
+      // service — filtering on the main service alone would make exactly the
+      // boards that need new firmware invisible.
       const device = await new Promise<Device>((resolve, reject) => {
         const to = setTimeout(() => { manager.stopDeviceScan(); reject(new Error('No board found — is it powered on?')); }, 12000);
-        manager.startDeviceScan([BLE_IDS.SERVICE], null, (err, d) => {
+        manager.startDeviceScan([BLE_IDS.SERVICE, BLE_IDS.OTA_SERVICE], null, (err, d) => {
           if (err) { clearTimeout(to); manager.stopDeviceScan(); reject(err); return; }
           if (d) { clearTimeout(to); manager.stopDeviceScan(); resolve(d); }
         });
@@ -343,33 +370,64 @@ export class BLEPiano extends PianoBackend {
       this.device.onDisconnected(() => this.setStatus('disconnected', 'Connection lost'));
       await this.device.discoverAllServicesAndCharacteristics();
       try { await this.device.requestMTU(185); } catch { /* default MTU still fits chunks */ }
-      this.keySub = this.device.monitorCharacteristicForService(
-        BLE_IDS.SERVICE, BLE_IDS.CHAR_KEYS,
-        (err, ch) => { if (!err && ch?.value) this.onPacket(b64ToBytes(ch.value)); },
-      );
+
       const svcs = await this.device.services();
-      const svc = svcs.find((s) => s.uuid.toLowerCase() === BLE_IDS.SERVICE);
+      const has = (uuid: string) => svcs.some((s) => s.uuid.toLowerCase() === uuid.toLowerCase());
+
+      // Recovery mode is a legitimate state, not a failure: the factory image
+      // has no LEDs and no note events until real firmware is pushed to it.
+      if (!has(BLE_IDS.SERVICE) && has(BLE_IDS.OTA_SERVICE)) {
+        this.recovery = true;
+        this.setStatus('recovery', this.device.name ?? 'Module needs firmware');
+        return;
+      }
+      this.recovery = false;
+
+      this.keySub = this.device.monitorCharacteristicForService(
+        BLE_IDS.SERVICE, BLE_IDS.CHAR_NOTES,
+        (err, ch) => { if (!err && ch?.value) this.onNoteFrame(base64ToBytes(ch.value)); },
+      );
+      const svc = svcs.find((s) => s.uuid.toLowerCase() === BLE_IDS.SERVICE.toLowerCase());
       const chars = svc ? await svc.characteristics() : [];
-      this.charLed = chars.find((c) => c.uuid.toLowerCase() === BLE_IDS.CHAR_LED) ?? null;
+      this.charLed = chars.find((c) => c.uuid.toLowerCase() === BLE_IDS.CHAR_LED.toLowerCase()) ?? null;
+
+      // Ask the board how many LEDs it drives and what firmware it runs.
+      try {
+        const st = await this.device.readCharacteristicForService(BLE_IDS.SERVICE, BLE_IDS.CHAR_STATUS);
+        if (st?.value) this.deviceStatus = parseDeviceStatus(base64ToBytes(st.value));
+      } catch { /* older firmware may not expose status — defaults are fine */ }
+
       this.startFlush();
-      this.setStatus('connected', this.device.name ?? 'ESP32-S3');
+      const fw = this.deviceStatus ? ` · fw ${this.deviceStatus.firmware}` : '';
+      this.setStatus('connected', `${this.device.name ?? 'Piano-Prof'}${fw}`);
     } catch (err: any) {
       if (this.status.state !== 'error') this.setStatus('error', err?.message ?? 'Connection failed');
       throw err;
     }
   }
+
+  /** The connected board, so the firmware-update screen can drive OTA on it. */
+  get bleDevice(): Device | null { return this.device; }
+  get isRecovery(): boolean { return this.recovery; }
+  get status_(): DeviceStatus | null { return this.deviceStatus; }
   dispose() {
     if (this.timer) { clearInterval(this.timer); this.timer = null; }
     this.keySub?.remove(); this.keySub = null;
     this.device?.cancelConnection().catch(() => {});
     this.device = null;
   }
-  private onPacket(bytes: number[]) {
-    for (const ev of parseMidiPackets(bytes)) {
-      if (ev.type === 'on') this.emitOn(ev.note, ev.vel);
-      else if (ev.type === 'off') this.emitOff(ev.note, ev.vel);
-      else this.emitPedal(ev.down);
-    }
+  /**
+   * Note events arrive as the firmware's 4-byte frame
+   * `[type(0=off,1=on), midiNote, velocity, source]` — NOT raw MIDI. Velocity
+   * and hold duration still reach the grader, because PianoBackend timestamps
+   * emitOn/emitOff itself. The board sends no sustain-pedal event, so the
+   * pedal stays up until the firmware grows CC64 support.
+   */
+  private onNoteFrame(bytes: Uint8Array) {
+    const ev = parseNoteEvent(bytes);
+    if (!ev) return;
+    if (ev.on && ev.velocity > 0) this.emitOn(ev.midiNote, ev.velocity);
+    else this.emitOff(ev.midiNote, ev.velocity);
   }
   // Diff each enveloped frame against what the strip is currently showing and
   // queue only the LEDs that changed (LEDs that dropped out are set to black).
@@ -392,17 +450,26 @@ export class BLEPiano extends PianoBackend {
     try {
       const entries = [...this.pending];
       this.pending.clear();
-      for (let i = 0; i < entries.length; i += 14) {
-        const chunk = entries.slice(i, i + 14);
-        const bytes = [0x01, chunk.length];
-        chunk.forEach(([idx, rgb]) => bytes.push(idx, rgb[0], rgb[1], rgb[2]));
+      // SET_MULTI frames, split to the negotiated MTU. The firmware draws on
+      // every write, so there is no commit step.
+      const mtu = this.device.mtu ?? 23;
+      const frames = cmdSetMultiChunked(
+        entries.map(([index, rgb]) => ({ index, rgb })), mtu,
+      );
+      for (const f of frames) {
         // eslint-disable-next-line no-await-in-loop
-        await this.write(bytes);
+        await this.write(f);
       }
     } catch { /* dropped write — the next frame refreshes state */ }
   }
-  private write(bytes: number[]) {
-    return this.charLed!.writeWithoutResponse(bytesToB64(bytes));
+  /** Board-side brightness (0..255), mirroring the LED-settings slider. */
+  async setDeviceBrightness(level: number) {
+    if (!this.charLed) return;
+    try { await this.write(cmdSetBrightness(level)); } catch { /* ignore */ }
+  }
+  private write(bytes: Uint8Array) {
+    if (!bytes.length) return Promise.resolve(null); // cmdCommit() is a no-op frame
+    return this.charLed!.writeWithoutResponse(bytesToBase64(bytes));
   }
 }
 
@@ -446,6 +513,14 @@ export class HwFacade {
   ledClear() { this.backend.ledClear(); }
   ledEffect(e: string, ns: string[]) { this.backend.ledEffect(e, ns); }
   setBrightness(v: number) { this.backend.setBrightness(v); }
+  /** The live BLE device (null on the simulator) — used by the OTA screen. */
+  get bleDevice(): Device | null {
+    return this.backend instanceof BLEPiano ? this.backend.bleDevice : null;
+  }
+  /** True when the connected board runs only the factory recovery image. */
+  get isRecovery(): boolean {
+    return this.backend instanceof BLEPiano && this.backend.isRecovery;
+  }
   chordWindowMs(b: number) { return this.backend.chordWindowMs(b); }
   dispose() { try { this.backend.ledClear(); this.backend.dispose(); } catch { /* ignore */ } }
 }

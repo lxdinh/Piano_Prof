@@ -1,0 +1,32 @@
+# Piano Prof — shared partition table for the ESP32-S3-MINI-1-N4R2 (4 MB flash).
+#
+# Used by BOTH firmware/factory and firmware/controller. The two projects MUST
+# agree on this layout: the bootloader reads one table from flash, so a mismatch
+# means whichever image was flashed last silently relocates the other's slots.
+#
+# Layout rationale
+#   factory  the minimal BLE + OTA recovery image (firmware/factory). Flashed
+#            once over USB. Nothing ever overwrites it, because
+#            esp_ota_get_next_update_partition() only ever cycles ota_0/ota_1.
+#            With empty/invalid otadata the bootloader boots factory, so a
+#            virgin board comes up advertising BLE.
+#   ota_0    \ the real application (firmware/controller), delivered over BLE.
+#   ota_1    / Updates alternate between the two, so a half-written image can
+#            never clobber the copy that is currently running.
+#
+# All three app slots are 0x140000 (1.25 MB) — the same size Arduino's stock
+# default.csv gives an app — so anything that fits the normal build fits here.
+#
+# Offsets: app partitions must be aligned to 0x10000.
+#   0x010000 + 0x140000 = 0x150000
+#   0x150000 + 0x140000 = 0x290000
+#   0x290000 + 0x140000 = 0x3D0000
+#   0x3D0000 + 0x010000 = 0x3E0000  (< 0x400000, 128 KB spare)
+#
+# Name,     Type, SubType,  Offset,    Size,      Flags
+nvs,        data, nvs,      0x9000,    0x5000,
+otadata,    data, ota,      0xE000,    0x2000,
+factory,    app,  factory,  0x10000,   0x140000,
+ota_0,      app,  ota_0,    0x150000,  0x140000,
+ota_1,      app,  ota_1,    0x290000,  0x140000,
+coredump,   data, coredump, 0x3D0000,  0x10000,

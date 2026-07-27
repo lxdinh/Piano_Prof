@@ -23,7 +23,7 @@ export function cmdSetSingle(index: number, r: number, g: number, b: number): Ui
 // Used by the lesson engine to light the exact keys for the current chord.
 // One frame carries 4 bytes per LED after a 2-byte header, so how many fit
 // depends on the negotiated MTU — see `maxEntriesPerFrame`.
-export function cmdSetMulti(entries: Array<{ index: number; rgb: RGB }>): Uint8Array {
+export function cmdSetMulti(entries: { index: number; rgb: RGB }[]): Uint8Array {
   const payload = [CMD.SET_MULTI, entries.length & 0xff];
   for (const { index, rgb } of entries) {
     payload.push(index & 0xff, clamp(rgb[0]), clamp(rgb[1]), clamp(rgb[2]));
@@ -38,7 +38,7 @@ export function maxEntriesPerFrame(mtu: number): number {
 
 /** Split a large highlight into MTU-safe frames. */
 export function cmdSetMultiChunked(
-  entries: Array<{ index: number; rgb: RGB }>,
+  entries: { index: number; rgb: RGB }[],
   mtu: number,
 ): Uint8Array[] {
   const per = maxEntriesPerFrame(mtu);
@@ -59,7 +59,7 @@ export function cmdSetRange(
   g: number,
   b: number,
 ): Uint8Array {
-  const entries: Array<{ index: number; rgb: RGB }> = [];
+  const entries: { index: number; rgb: RGB }[] = [];
   for (let i = start; i <= end; i++) entries.push({ index: i, rgb: [r, g, b] });
   return cmdSetMulti(entries);
 }

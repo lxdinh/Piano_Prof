@@ -5,6 +5,9 @@ module.exports = {
   extends: ['expo', 'prettier'],
   ignorePatterns: [
     'node_modules/',
+    // Reference copies of the other app architecture's BLE layer — kept for
+    // porting, never compiled or shipped (also excluded in tsconfig.json).
+    'refs/',
     'android/',
     'ios/',
     'dist/',
