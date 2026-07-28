@@ -4,6 +4,7 @@
 
 import { SHELVES, Shelf, ShelfItem, ItemState, Profile } from './content';
 import { todayKey, dayKey, isYesterday, nowMs } from '../services/dateKey';
+import { GlyphName } from '../ui/GlyphIcon';
 
 export const DAILY_GOAL_XP = 50;
 export const HEART_REFILL_MS = 30 * 60 * 1000; // 1 heart per 30 minutes
@@ -159,7 +160,7 @@ export function weeklyXp(p: Profile, today = new Date()): { label: string; xp: n
   return out;
 }
 
-export interface Achievement { id: string; emoji: string; name: string; done: boolean; }
+export interface Achievement { id: string; glyph: GlyphName; name: string; done: boolean; }
 
 /** Derive the achievements grid from real profile state. */
 export function deriveAchievements(p: Profile): Achievement[] {
@@ -174,12 +175,12 @@ export function deriveAchievements(p: Profile): Achievement[] {
     return items.length > 0 && items.every((i) => doneIds.has(i.id));
   });
   return [
-    { id: 'streak7', emoji: '🔥', name: '7-Day Streak', done: p.streak >= 7 },
-    { id: 'firstSong', emoji: '🎵', name: 'First Song', done: doneSongs >= 1 },
-    { id: 'perfect', emoji: '⭐', name: 'Perfect Lesson', done: perfectCount >= 1 },
-    { id: 'xp1000', emoji: '⚡', name: '1000 XP', done: p.xp >= 1000 },
-    { id: 'chordMaster', emoji: '🎹', name: 'Chord Master', done: doneIds.has('e1') },
-    { id: 'graduate', emoji: '🎓', name: 'Grade Graduate', done: graduated },
+    { id: 'streak7', glyph: 'streak', name: '7-Day Streak', done: p.streak >= 7 },
+    { id: 'firstSong', glyph: 'songs', name: 'First Song', done: doneSongs >= 1 },
+    { id: 'perfect', glyph: 'perfect', name: 'Perfect Lesson', done: perfectCount >= 1 },
+    { id: 'xp1000', glyph: 'xp', name: '1000 XP', done: p.xp >= 1000 },
+    { id: 'chordMaster', glyph: 'chord', name: 'Chord Master', done: doneIds.has('e1') },
+    { id: 'graduate', glyph: 'diploma', name: 'Grade Graduate', done: graduated },
   ];
 }
 

@@ -17,6 +17,9 @@ import { useStage } from '../theme/responsive';
 // scaled. This overrides useSafeAreaInsets() for every screen.
 const ZERO_INSETS = { top: 0, bottom: 0, left: 0, right: 0 };
 
+/** Minimum breathing room (dp) between content and the physical screen edge. */
+const EDGE_GUTTER = 10;
+
 export default function Stage({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
@@ -27,10 +30,24 @@ export default function Stage({ children }: { children: React.ReactNode }) {
     if (width !== box.w || height !== box.h) setBox({ w: width, h: height });
   };
 
+  // Horizontal gutters: a camera cutout where there is one, and never less than
+  // EDGE_GUTTER, so a chip or button at the end of a row can't sit flush against
+  // the physical edge of the screen (it reads as clipped, and on curved glass it
+  // partly is).
+  const padL = Math.max(insets.left, EDGE_GUTTER);
+  const padR = Math.max(insets.right, EDGE_GUTTER);
+
   // Fill-to-height: scale so the canvas height exactly fills the screen height,
   // then derive the logical width so the scaled result fills the width too.
+  //
+  // The width MUST come from the padded content box, not the full measured box.
+  // Deriving it from box.w made the scaled child wider than the space it was
+  // laid out in, so it overflowed the padding symmetrically and got clipped —
+  // which silently cancelled the safe-area insets and pushed content hard
+  // against both edges.
   const s = box.h > 0 ? box.h / canvas.h : 0;
-  const logicalW = s > 0 ? box.w / s : canvas.w;
+  const contentW = Math.max(0, box.w - padL - padR);
+  const logicalW = s > 0 ? contentW / s : canvas.w;
 
   return (
     <View
@@ -41,9 +58,8 @@ export default function Stage({ children }: { children: React.ReactNode }) {
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
-        // Pad only a landscape camera cutout; system bars are hidden (immersive).
-        paddingLeft: insets.left,
-        paddingRight: insets.right,
+        paddingLeft: padL,
+        paddingRight: padR,
       }}
     >
       {s > 0 && (

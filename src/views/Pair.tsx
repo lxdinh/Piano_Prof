@@ -165,7 +165,7 @@ export default function Pair() {
               Your module needs firmware
             </Text>
             <Text style={{ fontFamily: Fonts.family.bold, fontSize: 14, color: colors.inkFaint, textAlign: 'center', maxWidth: 480 }}>
-              {detail || 'Found it in recovery mode.'} It can\u2019t light your keys yet \u2014 send it
+              {detail || 'Found it in recovery mode.'} It can’t light your keys yet — send it
               the controller firmware and it will be ready.
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>

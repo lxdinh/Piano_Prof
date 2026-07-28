@@ -12,12 +12,14 @@ import { Card } from '../ui/atoms';
 import { levelById, Profile } from '../data/content';
 import { weeklyXp, deriveAchievements, songsLearned } from '../data/progress';
 import { useT } from '../i18n/useT';
+import GlyphIcon, { GlyphName } from '../ui/GlyphIcon';
 
-function StatTile({ emoji, value, label }: { emoji: string; value: string; label: string }) {
+function StatTile({ glyph, value, label }: { glyph: GlyphName; value: string; label: string }) {
   const { colors } = useAppTheme();
   return (
     <Card pad={14} style={{ flex: 1, alignItems: 'center', gap: 2 }}>
-      <Text style={{ fontSize: 22 }}>{emoji}</Text>
+      {/* vector, not emoji — stays crisp under the canvas scale */}
+      <GlyphIcon name={glyph} size={26} />
       <Text style={{ fontFamily: Fonts.family.black, fontSize: 22, color: colors.ink }}>{value}</Text>
       <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>{label}</Text>
     </Card>
@@ -48,18 +50,18 @@ export default function ProfileView() {
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
             <PPButton label={tr('profile.edit')} size="sm" variant="white" onPress={() => go('editProfile')} />
             <PPButton label={tr('profile.switch')} size="sm" variant="ghost" onPress={() => go('who')} />
-            <PPButton label="League 🏆" size="sm" variant="sky" onPress={() => go('leaderboard')} />
-            <PPButton label="Diploma 🎓" size="sm" variant="gold" onPress={() => go('diploma')} />
+            <PPButton label="League" size="sm" variant="sky" icon={<GlyphIcon name="league" size={16} color="#fff" />} onPress={() => go('leaderboard')} />
+            <PPButton label="Diploma" size="sm" variant="gold" icon={<GlyphIcon name="diploma" size={16} color="#5a3d00" />} onPress={() => go('diploma')} />
           </View>
         </View>
       </View>
 
       {/* stat tiles */}
       <View style={{ flexDirection: 'row', gap: 12, marginTop: 22 }}>
-        <StatTile emoji="🔥" value={`${p?.streak ?? 0}`} label="Day streak" />
-        <StatTile emoji="⚡" value={`${p?.xp ?? 0}`} label="Total XP" />
-        <StatTile emoji="💎" value={`${p?.gems ?? 0}`} label="Gems" />
-        <StatTile emoji="🎵" value={`${p ? songsLearned(p) : 0}`} label="Songs learned" />
+        <StatTile glyph="streak" value={`${p?.streak ?? 0}`} label="Day streak" />
+        <StatTile glyph="xp" value={`${p?.xp ?? 0}`} label="Total XP" />
+        <StatTile glyph="gems" value={`${p?.gems ?? 0}`} label="Gems" />
+        <StatTile glyph="songs" value={`${p ? songsLearned(p) : 0}`} label="Songs learned" />
       </View>
 
       {/* weekly XP */}
@@ -80,7 +82,7 @@ export default function ProfileView() {
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {achievements.map((a) => (
           <Card key={a.id} pad={14} style={{ width: 150, alignItems: 'center', gap: 4, opacity: a.done ? 1 : 0.5 }}>
-            <Text style={{ fontSize: 28 }}>{a.emoji}</Text>
+            <GlyphIcon name={a.glyph} size={28} />
             <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: colors.ink, textAlign: 'center' }}>{a.name}</Text>
             <Text style={{ fontFamily: Fonts.family.bold, fontSize: 11, color: a.done ? colors.green : colors.inkFaint }}>
               {a.done ? 'Unlocked' : 'Locked'}

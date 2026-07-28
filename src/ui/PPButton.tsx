@@ -5,6 +5,7 @@ import React, { useRef } from 'react';
 import { Animated, Pressable, Text, View, ViewStyle, StyleProp } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Fonts } from '../theme/tokens';
+import { useAppTheme } from '../theme/AppTheme';
 import * as haptics from '../feedback/haptics';
 
 export type PPVariant = 'green' | 'gold' | 'sky' | 'streak' | 'danger' | 'white' | 'dark' | 'ghost';
@@ -22,15 +23,14 @@ const PALETTE: Record<PPVariant, [string, string, string, string]> = {
   ghost:  ['transparent', 'transparent', 'transparent', '#2D2A26'],
 };
 
-// Padding is deliberately tight: Baloo 2 carries much taller ascent/descent
-// metrics than Nunito, so the text box is already generous. The label below
-// also pins an explicit lineHeight — without both, the plate ends up floating
-// well below the text instead of hugging it.
+// The label sets includeFontPadding:false, so these paddings are the real
+// optical padding around the glyphs rather than around Baloo 2's tall metric
+// box — hence slightly larger numbers than looked right before.
 const SIZES: Record<PPSize, { padV: number; padH: number; fs: number; plate: number; radius: number }> = {
-  sm: { padV: 6, padH: 16, fs: 15, plate: 4, radius: 14 },
-  md: { padV: 9, padH: 24, fs: 18, plate: 5, radius: 18 },
-  lg: { padV: 12, padH: 30, fs: 21, plate: 6, radius: 22 },
-  xl: { padV: 15, padH: 38, fs: 25, plate: 6, radius: 26 },
+  sm: { padV: 9, padH: 16, fs: 15, plate: 4, radius: 14 },
+  md: { padV: 13, padH: 24, fs: 18, plate: 5, radius: 18 },
+  lg: { padV: 16, padH: 30, fs: 21, plate: 6, radius: 22 },
+  xl: { padV: 20, padH: 38, fs: 25, plate: 6, radius: 26 },
 };
 
 interface Props {
@@ -51,6 +51,10 @@ export default function PPButton({
   const pal = PALETTE[variant];
   const sz = SIZES[size];
   const isGhost = variant === 'ghost';
+  // Ghost is the only variant with no fill of its own, so its ink and outline
+  // must follow the theme — the palette's fixed near-black text was invisible
+  // against the dark background.
+  const { colors: theme } = useAppTheme();
   const press = useRef(new Animated.Value(0)).current;
 
   const to = (v: number) =>
@@ -90,7 +94,7 @@ export default function PPButton({
               flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
               paddingVertical: sz.padV, paddingHorizontal: sz.padH, borderRadius: sz.radius,
               borderWidth: variant === 'white' || isGhost ? 2 : 0,
-              borderColor: variant === 'white' ? '#EAE0C4' : isGhost ? '#EAE0C4' : 'transparent',
+              borderColor: variant === 'white' ? '#EAE0C4' : isGhost ? theme.line : 'transparent',
             }}
           >
             {icon}
@@ -98,10 +102,15 @@ export default function PPButton({
               numberOfLines={1}
               style={{
                 // Buttons are display type — chunky Baloo, not body Nunito.
-                color: textColor ?? pal[3], fontSize: sz.fs, fontFamily: Fonts.family.display,
-                // Pin the line box to the glyphs so the plate sits close to the
-                // text rather than below a tall empty line.
-                lineHeight: Math.round(sz.fs * 1.18),
+                color: textColor ?? (isGhost ? theme.inkSoft : pal[3]), fontSize: sz.fs, fontFamily: Fonts.family.display,
+                // Baloo 2 declares tall ascent/descent, and Android adds that as
+                // invisible padding around the glyphs — which is what made the
+                // label sit high with dead space beneath it. Dropping the font
+                // padding centres the glyphs themselves; an explicit lineHeight
+                // does NOT fix this (it just moves the baseline inside a shorter
+                // box, which is what made the text ride high).
+                includeFontPadding: false,
+                textAlignVertical: 'center',
                 letterSpacing: 0.3,
                 textTransform: isGhost ? 'none' : 'uppercase',
               }}
