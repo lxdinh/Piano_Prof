@@ -5,6 +5,7 @@
 import React, {
   createContext, useContext, useEffect, useMemo, useRef, useState, useCallback,
 } from 'react';
+import { AppState as RNAppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Profile, PROFILES_SEED } from '../data/content';
 import { applyCompletion, applyHeartRefill } from '../data/progress';
@@ -202,6 +203,27 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const setLed = useCallback((patch: Partial<LedState>) => {
     setLedState((cur) => ({ ...cur, ...patch }));
+  }, []);
+
+  // Timed heart refills used to be applied ONLY at hydration, so a learner who
+  // ran out and kept the app open never got a heart back — they had to restart
+  // the app to collect what the clock already owed them. Re-check on a timer and
+  // whenever the app comes back to the foreground (where a backgrounded app
+  // silently accrues the most).
+  useEffect(() => {
+    const tick = () => {
+      const now = trustedTime.now();
+      const sus = trustedTime.isSuspicious();
+      setProfiles((ps) => {
+        const next = ps.map((p) => applyHeartRefill(p, now, sus));
+        // applyHeartRefill returns the SAME object when nothing is owed, so this
+        // keeps the timer from re-rendering the whole tree every minute.
+        return next.some((p, i) => p !== ps[i]) ? next : ps;
+      });
+    };
+    const timer = setInterval(tick, 60_000);
+    const sub = RNAppState.addEventListener('change', (s) => { if (s === 'active') tick(); });
+    return () => { clearInterval(timer); sub.remove(); };
   }, []);
 
   const value = useMemo<AppState>(() => ({

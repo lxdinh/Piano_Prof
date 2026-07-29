@@ -34,7 +34,7 @@ const CARD_W = 104;
 
 export default function Lesson() {
   const { colors } = useAppTheme();
-  const { completeItem } = useApp();
+  const { completeItem, loseHeart, activeProfile, premium } = useApp();
   const { params, go, back } = useRouter();
   const { isTablet } = useStage();
   const insets = useSafeAreaInsets();
@@ -63,6 +63,10 @@ export default function Lesson() {
   const [starsIn, setStarsIn] = useState(0);
 
   const engineRef = useRef<LessonEngine | null>(null);
+  // The engine is built once; this keeps its wrongAnswer hook pointing at the
+  // current profile's loseHeart without tearing the lesson down to rebind it.
+  const loseHeartRef = useRef(loseHeart);
+  useEffect(() => { loseHeartRef.current = loseHeart; }, [loseHeart]);
   const typeTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const typePausedRef = useRef(false);
   const moodTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -187,6 +191,10 @@ export default function Lesson() {
         };
       },
       awardXP: (amount, total) => setXpTotal(total),
+      // A wrong quiz answer is what a heart actually costs. `loseHeart` is a
+      // no-op for Premium, so the unlimited-hearts perk needs no branch here.
+      // Called through a ref so that rebinding it never rebuilds the engine.
+      wrongAnswer: () => loseHeartRef.current(),
       completeScreen: (xp) => { setCompleteXp(xp); setPhase('complete'); },
       hideComplete: () => setPhase((p) => (p === 'complete' ? 'run' : p)),
       prefLyrics: () => SHOW_LYRICS,
@@ -234,6 +242,15 @@ export default function Lesson() {
 
   const sim = hw.backend as SimulatorPiano | undefined;
   const isSim = mode === 'sim';
+  const hearts = activeProfile?.hearts ?? 5;
+
+  // Out of hearts stops the lesson. Leaving unmounts this screen, and the
+  // cleanup already stops the engine and detaches its listeners, so there is
+  // nothing to tear down here. Premium never reaches zero.
+  useEffect(() => {
+    if (premium || phase !== 'run' || hearts > 0) return;
+    go('upsell', { reason: 'hearts' });
+  }, [premium, phase, hearts, go]);
 
   const pillColor = isSim || status.state === 'connected' ? colors.green : status.state === 'connecting' ? colors.gold : colors.streak;
   const pillLabel = isSim ? 'Simulator' : status.state === 'connected' ? (status.detail || 'Connected') : status.state === 'connecting' ? 'Connecting…' : 'Not connected';
@@ -256,7 +273,11 @@ export default function Lesson() {
         <Pressable onPress={() => engineRef.current?.skip()} hitSlop={8}><Icon name="play" size={18} color={colors.inkFaint} /></Pressable>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 2, borderColor: 'rgba(0,0,0,0.06)' }}>
           <Text style={{ fontSize: 14 }}>❤️</Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: '#C81E1E' }}>5</Text>
+          {/* Was hardcoded to "5", so it read full however many the learner had
+              actually spent — the one place hearts are supposed to be visible. */}
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: '#C81E1E' }}>
+            {premium ? '∞' : hearts}
+          </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 2, borderColor: 'rgba(0,0,0,0.06)' }}>
           <Text style={{ fontSize: 14 }}>⚡</Text>
