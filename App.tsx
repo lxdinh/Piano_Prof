@@ -12,6 +12,7 @@ import { Baloo2_700Bold, Baloo2_800ExtraBold } from '@expo-google-fonts/baloo-2'
 
 import { AppThemeProvider } from './src/theme/AppTheme';
 import { AppStateProvider } from './src/state/AppState';
+import { HardwareProvider } from './src/state/HardwareProvider';
 import { AccountProvider } from './src/account/AccountProvider';
 import { RouterProvider } from './src/nav/Router';
 import { registry } from './src/nav/registry';
@@ -81,7 +82,10 @@ function App() {
       <AppThemeProvider>
         <AppStateProvider>
           <AccountProvider>
-            <Root />
+            {/* Above the router on purpose: the BLE link must survive `go()`. */}
+            <HardwareProvider>
+              <Root />
+            </HardwareProvider>
           </AccountProvider>
         </AppStateProvider>
       </AppThemeProvider>

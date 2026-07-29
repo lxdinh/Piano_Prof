@@ -19,13 +19,18 @@ import ScrollFit from '../ui/ScrollFit';
 import { ProgressBar } from '../ui/atoms';
 import { base64ToBytes } from '../ble/base64';
 import { OtaSession, OtaProgress, OTA_PHASE_LABEL, OtaError } from '../ble/ota';
+import { useHardware } from '../state/HardwareProvider';
 
 const fmtKb = (n: number) => `${Math.round(n / 1024)} KB`;
 
 export default function FirmwareUpdate() {
   const { colors } = useAppTheme();
   const { params, back, go, toast } = useRouter();
-  const device = params.device as Device | undefined;
+  // Prefer the provider's live handle. A Device passed through route params is
+  // only as good as whoever owned it — which is exactly how this screen used to
+  // receive an already-cancelled connection.
+  const { bleDevice } = useHardware();
+  const device = bleDevice ?? (params.device as Device | undefined) ?? undefined;
 
   const [image, setImage] = useState<Uint8Array | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -62,12 +67,18 @@ export default function FirmwareUpdate() {
     const session = new OtaSession(device);
     sessionRef.current = session;
     try {
-      await session.run(image, setProgress);
-      toast('Module updated 🎉');
+      // `run` resolves false when the user cancelled — congratulating them on an
+      // update they just stopped is worse than saying nothing.
+      if (await session.run(image, setProgress)) toast('Module updated 🎉');
     } catch (e) {
       setError(e instanceof OtaError ? e.message : String(e));
     }
   }, [device, image, toast]);
+
+  // The transfer hides every other way off this screen, so this is the only
+  // escape from a module that has stopped acking. Without it a stalled update
+  // meant force-quitting the app.
+  const cancel = useCallback(() => { sessionRef.current?.cancel(); }, []);
 
   // ── no board handed in ──
   if (!device) {
@@ -150,9 +161,12 @@ export default function FirmwareUpdate() {
         )}
 
         {busy && (
-          <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkFaint, textAlign: 'center' }}>
-            Keep the phone close and leave the module powered.
-          </Text>
+          <>
+            <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkFaint, textAlign: 'center' }}>
+              Keep the phone close and leave the module powered.
+            </Text>
+            <PPButton label="Cancel update" size="sm" variant="ghost" onPress={cancel} />
+          </>
         )}
 
         {error && (

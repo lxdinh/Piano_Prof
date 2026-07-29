@@ -13,7 +13,8 @@ import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
 import Piano from '../ui/Piano';
 import ScrollFit from '../ui/ScrollFit';
-import { HwFacade, HwStatus } from '../lesson1/hal';
+import { HwStatus } from '../lesson1/hal';
+import { useHardware } from '../state/HardwareProvider';
 
 type Phase = 'scan' | 'connecting' | 'success' | 'recovery' | 'error';
 
@@ -78,15 +79,14 @@ export default function Pair() {
   const [detail, setDetail] = useState('Looking for your LED strip…');
   const [errMsg, setErrMsg] = useState('');
   const sweep = useSweep(phase === 'success', 60, 84);
-  const hwRef = useRef<HwFacade | null>(null);
+  // The link is owned by HardwareProvider, not by this screen — leaving Pair
+  // must not cancel the connection the firmware-update screen is about to use.
+  const { hw, connect, bleDevice } = useHardware();
   const mounted = useRef(true);
 
   useEffect(() => {
     mounted.current = true;
-    const hw = new HwFacade();
-    hwRef.current = hw;
-    hw.setMode('ble');
-    hw.onStatus((s: HwStatus) => {
+    const off = hw.onStatus((s: HwStatus) => {
       if (!mounted.current) return;
       if (s.state === 'connected') {
         setPhase('success');
@@ -108,11 +108,12 @@ export default function Pair() {
         setLed({ connected: false });
       }
     });
-    hw.connect().catch(() => { /* status listener shows the error */ });
+    connect().catch(() => { /* status listener shows the error */ });
+    // Detach the listener only. The radio stays up: `led.connected` keeps
+    // reflecting a link that is genuinely still live after we navigate away.
     return () => {
       mounted.current = false;
-      setLed({ connected: false }); // honest: no live link once we leave
-      hw.dispose();
+      off();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -120,7 +121,7 @@ export default function Pair() {
   const retry = () => {
     setErrMsg('');
     setPhase('scan');
-    hwRef.current?.connect().catch(() => {});
+    connect().catch(() => {});
   };
 
   return (
@@ -171,7 +172,7 @@ export default function Pair() {
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
               <PPButton
                 label="Update module" size="md" variant="sky"
-                onPress={() => go('firmwareUpdate', { device: hwRef.current?.bleDevice ?? null })}
+                onPress={() => go('firmwareUpdate', { device: bleDevice })}
               />
               <PPButton label="Not now" size="md" variant="ghost" onPress={() => go('home')} />
             </View>

@@ -146,11 +146,18 @@ export class LessonEngine {
   private resumeFn: (() => void) | null = null;
   private trail: { step: number; seg: number }[] = [];
 
+  // The facade outlives this engine (it belongs to HardwareProvider), so these
+  // have to come back off in stop() — otherwise a second lesson would be graded
+  // by every engine ever constructed.
+  private offs: (() => void)[] = [];
+
   constructor(lesson: Lesson1, hal: HwFacade, ui: EngineUI) {
     this.L = lesson; this.hal = hal; this.ui = ui;
-    hal.onNoteOn((note, vel, t) => this.noteOn(note, vel, t));
-    hal.onNoteOff((note, _relVel, _t, durMs) => this.noteOff(note, durMs));
-    hal.onPedal((down) => { this.pedalDown = down; });
+    this.offs = [
+      hal.onNoteOn((note, vel, t) => this.noteOn(note, vel, t)),
+      hal.onNoteOff((note, _relVel, _t, durMs) => this.noteOff(note, durMs)),
+      hal.onPedal((down) => { this.pedalDown = down; }),
+    ];
   }
   private noteOn(note: string, vel = 100, t = Date.now()) {
     this.held.set(note, t);
@@ -169,7 +176,11 @@ export class LessonEngine {
   }
 
   start(step = 0) { void this.gotoStep(step); }
-  stop() { this.run++; Speech.cancel(); Backing.stop(); this.hal.ledClear(); }
+  stop() {
+    this.run++; Speech.cancel(); Backing.stop(); this.hal.ledClear();
+    this.offs.forEach((off) => off());
+    this.offs = [];
+  }
 
   async gotoStep(i: number, fromSeg = 0) {
     const tk = ++this.run;

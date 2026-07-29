@@ -475,7 +475,21 @@ export class BLEPiano extends PianoBackend {
 
 export type HwMode = 'sim' | 'ble';
 
-/* HW facade — swaps backends behind stable listeners. */
+/** Detach a listener. Returned by every HwFacade `on*` subscription. */
+export type Unsubscribe = () => void;
+
+function subscribe<T>(list: T[], cb: T): Unsubscribe {
+  list.push(cb);
+  return () => {
+    const i = list.indexOf(cb);
+    if (i >= 0) list.splice(i, 1);
+  };
+}
+
+/* HW facade — swaps backends behind stable listeners.
+   The facade outlives the screens (it is owned by HardwareProvider), so every
+   subscription hands back an unsubscribe: a screen that mounts twice used to
+   leave its old callbacks attached forever, double-handling every note. */
 export class HwFacade {
   backend: PianoBackend = new SimulatorPiano();
   mode: HwMode = 'sim';
@@ -501,11 +515,19 @@ export class HwFacade {
     this.ledCbs.forEach((cb) => cb(this.backend.leds.snapshot()));
   }
   connect() { return this.backend.connect(); }
-  onNoteOn(cb: NoteOnCb) { this.on.push(cb); }
-  onNoteOff(cb: NoteOffCb) { this.off.push(cb); }
-  onPedal(cb: PedalCb) { this.pedalCbs.push(cb); }
-  onStatus(cb: (s: HwStatus) => void) { this.statusCbs.push(cb); cb(this.backend.status); }
-  onLed(cb: (snap: LedSnapshot) => void) { this.ledCbs.push(cb); cb(this.backend.leds.snapshot()); }
+  onNoteOn(cb: NoteOnCb): Unsubscribe { return subscribe(this.on, cb); }
+  onNoteOff(cb: NoteOffCb): Unsubscribe { return subscribe(this.off, cb); }
+  onPedal(cb: PedalCb): Unsubscribe { return subscribe(this.pedalCbs, cb); }
+  onStatus(cb: (s: HwStatus) => void): Unsubscribe {
+    const off = subscribe(this.statusCbs, cb);
+    cb(this.backend.status);
+    return off;
+  }
+  onLed(cb: (snap: LedSnapshot) => void): Unsubscribe {
+    const off = subscribe(this.ledCbs, cb);
+    cb(this.backend.leds.snapshot());
+    return off;
+  }
   ledSet(l: LedEntry[]) { this.backend.ledSet(l); }
   ledOn(n: string, r: number, g: number, b: number) { this.backend.ledOn(n, r, g, b); }
   ledOff(n: string) { this.backend.ledOff(n); }

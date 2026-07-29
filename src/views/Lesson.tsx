@@ -18,7 +18,8 @@ import PPButton from '../ui/PPButton';
 import Piano from '../ui/Piano';
 import { Segmented } from '../ui/atoms';
 import { LESSON_1, SongConfig, noteToMidi, KEY_LOW_MIDI, KEY_HIGH_MIDI, SHOW_LYRICS } from '../lesson1/data';
-import { HwFacade, HwStatus, SimulatorPiano, HwMode } from '../lesson1/hal';
+import { HwStatus, SimulatorPiano, HwMode } from '../lesson1/hal';
+import { useHardware } from '../state/HardwareProvider';
 import { LessonEngine, EngineUI, Speech, Cues, LS_NS, SongCtl } from '../lesson1/engine';
 import * as pianoEngine from '../audio/pianoEngine';
 
@@ -43,8 +44,11 @@ export default function Lesson() {
 
   const [phase, setPhase] = useState<'start' | 'run' | 'complete'>('start');
   const [savedStep, setSavedStep] = useState(0);
-  const [mode, setMode] = useState<HwMode>('sim');
-  const [status, setStatus] = useState<HwStatus>({ state: 'sim', detail: '' });
+  // The facade is app-wide, so it may already be on a paired board — seed the
+  // toggle from it rather than assuming the simulator.
+  const { hw, connect } = useHardware();
+  const [mode, setMode] = useState<HwMode>(() => hw.mode);
+  const [status, setStatus] = useState<HwStatus>(() => hw.backend.status);
   const [bubble, setBubble] = useState('');
   const [talking, setTalking] = useState(false);
   const [mood, setMood] = useState('teach');
@@ -58,7 +62,6 @@ export default function Lesson() {
   const [completeXp, setCompleteXp] = useState(0);
   const [starsIn, setStarsIn] = useState(0);
 
-  const hwRef = useRef<HwFacade | null>(null);
   const engineRef = useRef<LessonEngine | null>(null);
   const typeTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const typePausedRef = useRef(false);
@@ -81,21 +84,23 @@ export default function Lesson() {
     }, 26);
   }), []);
 
-  // ── build hardware + engine once ──
+  // ── subscribe to the shared hardware + build the engine once ──
+  // The facade belongs to HardwareProvider; this screen only attaches listeners
+  // and must detach them on unmount, never dispose the radio.
   useEffect(() => {
-    const hw = new HwFacade();
-    hwRef.current = hw;
-    hw.onLed((snap) => {
-      const rec: Record<number, string> = {};
-      snap.forEach((c, m) => { rec[m] = c; });
-      setLedSnap(rec);
-    });
-    hw.onStatus((s) => setStatus(s));
-    hw.onNoteOn((n) => {
-      setDowns((d) => ({ ...d, [noteToMidi(n)]: true }));
-      if (hw.mode === 'sim') pianoEngine.playMidi(noteToMidi(n), 0.5).catch(() => {});
-    });
-    hw.onNoteOff((n) => setDowns((d) => { const nd = { ...d }; delete nd[noteToMidi(n)]; return nd; }));
+    const offs = [
+      hw.onLed((snap) => {
+        const rec: Record<number, string> = {};
+        snap.forEach((c, m) => { rec[m] = c; });
+        setLedSnap(rec);
+      }),
+      hw.onStatus((s) => setStatus(s)),
+      hw.onNoteOn((n) => {
+        setDowns((d) => ({ ...d, [noteToMidi(n)]: true }));
+        if (hw.mode === 'sim') pianoEngine.playMidi(noteToMidi(n), 0.5).catch(() => {});
+      }),
+      hw.onNoteOff((n) => setDowns((d) => { const nd = { ...d }; delete nd[noteToMidi(n)]; return nd; })),
+    ];
 
     const ui: EngineUI = {
       KB: {
@@ -196,12 +201,13 @@ export default function Lesson() {
 
     return () => {
       engineRef.current?.stop();
-      hw.dispose();
+      offs.forEach((off) => off());
+      hw.ledClear();
       Speech.cancel();
       if (typeTimer.current) clearInterval(typeTimer.current);
       pianoEngine.stopAll().catch(() => {});
     };
-  }, [typeText]);
+  }, [typeText, hw]);
 
   // complete: staggered stars + write rewards to the profile (once per finish)
   useEffect(() => {
@@ -217,7 +223,7 @@ export default function Lesson() {
 
   const switchMode = (m: HwMode) => {
     setMode(m);
-    hwRef.current?.setMode(m);
+    hw.setMode(m);
     setDowns({});
   };
 
@@ -226,7 +232,7 @@ export default function Lesson() {
     engineRef.current?.start(from);
   };
 
-  const sim = hwRef.current?.backend as SimulatorPiano | undefined;
+  const sim = hw.backend as SimulatorPiano | undefined;
   const isSim = mode === 'sim';
 
   const pillColor = isSim || status.state === 'connected' ? colors.green : status.state === 'connecting' ? colors.gold : colors.streak;
@@ -433,7 +439,7 @@ export default function Lesson() {
                   {status.state === 'connected' ? (status.detail || 'Connected') : status.state === 'connecting' ? 'Connecting…' : status.state === 'error' ? status.detail : 'Board not connected'}
                 </Text>
                 <PPButton label={status.state === 'connected' ? 'Reconnect' : 'Connect board'} size="sm" variant="sky"
-                  onPress={() => hwRef.current?.connect().catch(() => {})} />
+                  onPress={() => connect().catch(() => {})} />
               </View>
             ) : (
               <Text style={{ fontFamily: Fonts.family.heavy, fontSize: 12, color: colors.inkFaint, textAlign: 'center' }}>

@@ -126,11 +126,15 @@ export class OtaSession {
   /**
    * Push `image` (the contents of a PlatformIO `firmware.bin`) and reboot the
    * module into it. Throws [OtaError] with a user-presentable message.
+   *
+   * Resolves `true` when the module took the firmware, `false` when the caller
+   * cancelled. Cancelling used to resolve indistinguishably from success, so
+   * the screen congratulated the user on an update they had just stopped.
    */
   async run(
     image: Uint8Array,
     onProgress: (p: OtaProgress) => void,
-  ): Promise<void> {
+  ): Promise<boolean> {
     this.cancelled = false;
 
     let phase: OtaPhase = 'idle';
@@ -225,10 +229,14 @@ export class OtaSession {
         );
       }
 
-      // One byte of every write is the sequence number, so the payload is one
-      // less than what the link can carry.
+      // Each write must fit BOTH the link (ATT payload = MTU − 3) and whatever
+      // the module says it can take; one byte of that is the sequence number.
+      // maxChunk is a hard ceiling, never a floor — an earlier `Math.max(19, …)`
+      // sat outside the min and so produced over-size frames whenever the module
+      // advertised a maxChunk below 20.
       const mtu = this.device.mtu ?? 23;
-      const chunkSize = Math.max(19, Math.min(mtu - 3, info.maxChunk) - 1);
+      const frameCap = Math.min(mtu - 3, info.maxChunk);
+      const chunkSize = Math.max(1, frameCap - 1);
       const windowBytes = info.windowBytes;
 
       // ---- 2. announce the image ----
@@ -259,7 +267,7 @@ export class OtaSession {
         if (this.cancelled) {
           await writeControl(otaAbort());
           setPhase('idle');
-          return;
+          return false;
         }
 
         const windowEnd = Math.min(offset + windowBytes, image.length);
@@ -277,11 +285,22 @@ export class OtaSession {
         }
         seq = status.nextSeq;
 
-        if (OTA_RESUMABLE_ERRS.includes(status.error)) {
+        // A window only counts as delivered if the module reports MORE bytes in
+        // flash than before. Treating "no error" as progress was enough to hang
+        // the transfer forever: a module replying RECEIVING/NONE with an
+        // unchanged `flashed` reset the retry counter, so the same window was
+        // retransmitted indefinitely with the progress bar frozen. A stall is
+        // now counted exactly like a resumable error.
+        const resumable = OTA_RESUMABLE_ERRS.includes(status.error);
+        const stalled = status.flashed <= offset;
+        if (resumable || stalled) {
           if (++retries > MAX_RETRIES) {
             throw new OtaError(
-              `Lost too many chunks (${OTA_ERR_MESSAGE[status.error]}). Move the ` +
-                'phone closer to the module and try again.',
+              resumable
+                ? `Lost too many chunks (${OTA_ERR_MESSAGE[status.error]}). Move the ` +
+                  'phone closer to the module and try again.'
+                : 'The module stopped writing to flash. Move the phone closer, ' +
+                  'power-cycle the module, and try again.',
             );
           }
           // The module discarded whatever it had queued; its flashed count is
@@ -321,6 +340,7 @@ export class OtaSession {
         /* expected: the module is already on its way down */
       }
       setPhase('done');
+      return true;
     } catch (e) {
       phase = 'failed';
       const message = e instanceof Error ? e.message : String(e);
