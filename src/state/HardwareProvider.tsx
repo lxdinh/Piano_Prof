@@ -17,6 +17,7 @@ import React, {
 import { Device } from 'react-native-ble-plx';
 
 import { HwFacade, HwStatus } from '../lesson1/hal';
+import { loadAnchors } from '../ble/calibration';
 
 export interface HardwareAPI {
   /** The shared facade — subscribe with `hw.onNoteOn(…)` etc. and keep the
@@ -47,6 +48,11 @@ export function HardwareProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<HwStatus>(hw.backend.status);
 
   useEffect(() => hw.onStatus(setStatus), [hw]);
+
+  // Restore a previous calibration before any frame can be sent — otherwise the
+  // first lesson after a restart lights the wrong keys until the learner
+  // recalibrates. The HAL reads these anchors synchronously on every frame.
+  useEffect(() => { void loadAnchors(); }, []);
 
   // The only place the radio is ever torn down.
   useEffect(() => () => hw.dispose(), [hw]);

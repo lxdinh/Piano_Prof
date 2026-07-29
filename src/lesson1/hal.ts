@@ -19,9 +19,10 @@ import {
   BLE_CHAR_DEVICE_STATUS, BLE_OTA_SERVICE_UUID,
 } from '../ble/constants';
 import {
-  cmdSetMultiChunked, cmdSetBrightness,
+  cmdSetMultiChunked, cmdSetBrightness, cmdSetSingle, cmdClearAll,
   parseNoteEvent, parseDeviceStatus, DeviceStatus,
 } from '../ble/protocol';
+import { currentLedIndex } from '../ble/calibration';
 import { base64ToBytes, bytesToBase64 } from '../ble/base64';
 import {
   noteToMidi, midiToNote, noteToLedIndex, WRONG_FLASH_MS,
@@ -290,6 +291,14 @@ export abstract class PianoBackend {
   setBrightness(v: number) { this.leds.setBrightness(v); }
   /** Send one enveloped frame (midi → rgb) to the board. Sim backend: no-op. */
   protected txFrame(_frame: Map<number, [number, number, number]>) {}
+  /**
+   * Light ONE physical LED by index, bypassing the note→LED mapping — pass null
+   * to clear. Calibration cannot go through the usual note-based path, because
+   * discovering that mapping is the whole point of calibrating.
+   */
+  async calibrateLight(_ledIndex: number | null): Promise<void> {}
+  /** LEDs the board reports driving, or null until it has said. */
+  get ledCount(): number | null { return null; }
 }
 
 /* SimulatorPiano — on-screen board, no hardware needed.
@@ -434,7 +443,12 @@ export class BLEPiano extends PianoBackend {
   protected txFrame(frame: Map<number, [number, number, number]>) {
     const seen = new Set<number>();
     frame.forEach((rgb, midi) => {
-      const idx = noteToLedIndex(midi);
+      // Where the strip PHYSICALLY sits, which is not necessarily `midi − 36`.
+      // Uncalibrated installs fall back to exactly that, so this changes nothing
+      // until the learner has actually calibrated. (noteToLedIndex still decides
+      // which notes are eligible for an LED at all — that is a keyboard-range
+      // question, not a mounting question.)
+      const idx = currentLedIndex(midi);
       if (idx < 0) return;
       seen.add(idx);
       const key = `${rgb[0]},${rgb[1]},${rgb[2]}`;
@@ -462,6 +476,25 @@ export class BLEPiano extends PianoBackend {
       }
     } catch { /* dropped write — the next frame refreshes state */ }
   }
+  /**
+   * Calibration target. Written straight to the strip rather than through the
+   * LedModel, so it is unaffected by the mapping being calibrated. The model is
+   * empty during calibration, so the 40 ms flush loop has nothing to overwrite
+   * it with; `lastSent` is reset so the next real frame redraws from scratch.
+   */
+  async calibrateLight(ledIndex: number | null) {
+    if (!this.charLed) return;
+    this.pending.clear();
+    this.lastSent.clear();
+    try {
+      await this.write(ledIndex == null
+        ? cmdClearAll()
+        : cmdSetSingle(ledIndex, 0x58, 0xcc, 0x02));
+    } catch { /* the learner can retry the step */ }
+  }
+
+  get ledCount(): number | null { return this.deviceStatus?.ledCount ?? null; }
+
   /** Board-side brightness (0..255), mirroring the LED-settings slider. */
   async setDeviceBrightness(level: number) {
     if (!this.charLed) return;
@@ -535,6 +568,10 @@ export class HwFacade {
   ledClear() { this.backend.ledClear(); }
   ledEffect(e: string, ns: string[]) { this.backend.ledEffect(e, ns); }
   setBrightness(v: number) { this.backend.setBrightness(v); }
+  /** Light one physical LED by index (calibration only); null clears. */
+  calibrateLight(i: number | null) { return this.backend.calibrateLight(i); }
+  /** LEDs the connected board drives, or null on the simulator / before status. */
+  get ledCount(): number | null { return this.backend.ledCount; }
   /** The live BLE device (null on the simulator) — used by the OTA screen. */
   get bleDevice(): Device | null {
     return this.backend instanceof BLEPiano ? this.backend.bleDevice : null;
