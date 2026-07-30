@@ -16,6 +16,7 @@ import {
 } from '../notifications/reminders';
 import { Audio } from 'expo-av';
 import { useAccount } from '../account/AccountProvider';
+import { getOmrServer } from '../omr/omrConfig';
 import { useT } from '../i18n/useT';
 
 const GOALS = [
@@ -67,6 +68,8 @@ export default function Settings() {
   const goalXp = activeProfile?.dailyGoalXp ?? 50;
   const [reminders, setReminders] = useState(false);
   const [reminderHour, setReminderHour] = useState(18);
+  const [omrServer, setOmrServerState] = useState<string | null>(null);
+  useEffect(() => { getOmrServer().then(setOmrServerState).catch(() => {}); }, []);
   useEffect(() => {
     isReminderOn().then(setReminders);
     getReminderHour().then(setReminderHour);
@@ -143,6 +146,13 @@ export default function Settings() {
               <LinkRow icon="bluetooth" label={tr('set.ledStrip')} value={led.connected ? tr('set.connected') : tr('set.notConnected')} onPress={() => go('pair')} />
               <LinkRow icon="sparkle" label={tr('set.ledThemesShort')} value={led.theme} onPress={() => go('ledSettings')} />
               <LinkRow icon="target" label={tr('set.recalibrate')} onPress={() => go('calibration')} />
+              {/* Empty is a valid, working state — importing falls back to the
+                  bundled demo score — so this says "Demo", not "Not set". */}
+              <LinkRow
+                icon="camera" label="Scan server"
+                value={omrServer ? 'Configured' : 'Demo'}
+                onPress={() => go('omrServer')}
+              />
             </Section>
 
             <Section title={tr('settings.account')}>

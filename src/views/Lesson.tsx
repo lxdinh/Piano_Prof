@@ -16,9 +16,11 @@ import Icon from '../ui/Icon';
 import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
 import Piano from '../ui/Piano';
+import PopupCard from '../ui/PopupCard';
 import { Segmented } from '../ui/atoms';
 import { LESSON_1, SongConfig, noteToMidi, KEY_LOW_MIDI, KEY_HIGH_MIDI, SHOW_LYRICS } from '../lesson1/data';
-import { HwFacade, HwStatus, SimulatorPiano, HwMode } from '../lesson1/hal';
+import { HwStatus, SimulatorPiano, HwMode } from '../lesson1/hal';
+import { useHardware } from '../state/HardwareProvider';
 import { LessonEngine, EngineUI, Speech, Cues, LS_NS, SongCtl } from '../lesson1/engine';
 import * as pianoEngine from '../audio/pianoEngine';
 
@@ -33,7 +35,7 @@ const CARD_W = 104;
 
 export default function Lesson() {
   const { colors } = useAppTheme();
-  const { completeItem } = useApp();
+  const { completeItem, loseHeart, activeProfile, premium } = useApp();
   const { params, go, back } = useRouter();
   const { isTablet } = useStage();
   const insets = useSafeAreaInsets();
@@ -43,8 +45,11 @@ export default function Lesson() {
 
   const [phase, setPhase] = useState<'start' | 'run' | 'complete'>('start');
   const [savedStep, setSavedStep] = useState(0);
-  const [mode, setMode] = useState<HwMode>('sim');
-  const [status, setStatus] = useState<HwStatus>({ state: 'sim', detail: '' });
+  // The facade is app-wide, so it may already be on a paired board — seed the
+  // toggle from it rather than assuming the simulator.
+  const { hw, connect } = useHardware();
+  const [mode, setMode] = useState<HwMode>(() => hw.mode);
+  const [status, setStatus] = useState<HwStatus>(() => hw.backend.status);
   const [bubble, setBubble] = useState('');
   const [talking, setTalking] = useState(false);
   const [mood, setMood] = useState('teach');
@@ -58,8 +63,11 @@ export default function Lesson() {
   const [completeXp, setCompleteXp] = useState(0);
   const [starsIn, setStarsIn] = useState(0);
 
-  const hwRef = useRef<HwFacade | null>(null);
   const engineRef = useRef<LessonEngine | null>(null);
+  // The engine is built once; this keeps its wrongAnswer hook pointing at the
+  // current profile's loseHeart without tearing the lesson down to rebind it.
+  const loseHeartRef = useRef(loseHeart);
+  useEffect(() => { loseHeartRef.current = loseHeart; }, [loseHeart]);
   const typeTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const typePausedRef = useRef(false);
   const moodTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -81,21 +89,23 @@ export default function Lesson() {
     }, 26);
   }), []);
 
-  // ── build hardware + engine once ──
+  // ── subscribe to the shared hardware + build the engine once ──
+  // The facade belongs to HardwareProvider; this screen only attaches listeners
+  // and must detach them on unmount, never dispose the radio.
   useEffect(() => {
-    const hw = new HwFacade();
-    hwRef.current = hw;
-    hw.onLed((snap) => {
-      const rec: Record<number, string> = {};
-      snap.forEach((c, m) => { rec[m] = c; });
-      setLedSnap(rec);
-    });
-    hw.onStatus((s) => setStatus(s));
-    hw.onNoteOn((n) => {
-      setDowns((d) => ({ ...d, [noteToMidi(n)]: true }));
-      if (hw.mode === 'sim') pianoEngine.playMidi(noteToMidi(n), 0.5).catch(() => {});
-    });
-    hw.onNoteOff((n) => setDowns((d) => { const nd = { ...d }; delete nd[noteToMidi(n)]; return nd; }));
+    const offs = [
+      hw.onLed((snap) => {
+        const rec: Record<number, string> = {};
+        snap.forEach((c, m) => { rec[m] = c; });
+        setLedSnap(rec);
+      }),
+      hw.onStatus((s) => setStatus(s)),
+      hw.onNoteOn((n) => {
+        setDowns((d) => ({ ...d, [noteToMidi(n)]: true }));
+        if (hw.mode === 'sim') pianoEngine.playMidi(noteToMidi(n), 0.5).catch(() => {});
+      }),
+      hw.onNoteOff((n) => setDowns((d) => { const nd = { ...d }; delete nd[noteToMidi(n)]; return nd; })),
+    ];
 
     const ui: EngineUI = {
       KB: {
@@ -182,6 +192,10 @@ export default function Lesson() {
         };
       },
       awardXP: (amount, total) => setXpTotal(total),
+      // A wrong quiz answer is what a heart actually costs. `loseHeart` is a
+      // no-op for Premium, so the unlimited-hearts perk needs no branch here.
+      // Called through a ref so that rebinding it never rebuilds the engine.
+      wrongAnswer: () => loseHeartRef.current(),
       completeScreen: (xp) => { setCompleteXp(xp); setPhase('complete'); },
       hideComplete: () => setPhase((p) => (p === 'complete' ? 'run' : p)),
       prefLyrics: () => SHOW_LYRICS,
@@ -196,12 +210,13 @@ export default function Lesson() {
 
     return () => {
       engineRef.current?.stop();
-      hw.dispose();
+      offs.forEach((off) => off());
+      hw.ledClear();
       Speech.cancel();
       if (typeTimer.current) clearInterval(typeTimer.current);
       pianoEngine.stopAll().catch(() => {});
     };
-  }, [typeText]);
+  }, [typeText, hw]);
 
   // complete: staggered stars + write rewards to the profile (once per finish)
   useEffect(() => {
@@ -217,7 +232,7 @@ export default function Lesson() {
 
   const switchMode = (m: HwMode) => {
     setMode(m);
-    hwRef.current?.setMode(m);
+    hw.setMode(m);
     setDowns({});
   };
 
@@ -226,8 +241,17 @@ export default function Lesson() {
     engineRef.current?.start(from);
   };
 
-  const sim = hwRef.current?.backend as SimulatorPiano | undefined;
+  const sim = hw.backend as SimulatorPiano | undefined;
   const isSim = mode === 'sim';
+  const hearts = activeProfile?.hearts ?? 5;
+
+  // Out of hearts stops the lesson. Leaving unmounts this screen, and the
+  // cleanup already stops the engine and detaches its listeners, so there is
+  // nothing to tear down here. Premium never reaches zero.
+  useEffect(() => {
+    if (premium || phase !== 'run' || hearts > 0) return;
+    go('upsell', { reason: 'hearts' });
+  }, [premium, phase, hearts, go]);
 
   const pillColor = isSim || status.state === 'connected' ? colors.green : status.state === 'connecting' ? colors.gold : colors.streak;
   const pillLabel = isSim ? 'Simulator' : status.state === 'connected' ? (status.detail || 'Connected') : status.state === 'connecting' ? 'Connecting…' : 'Not connected';
@@ -250,7 +274,11 @@ export default function Lesson() {
         <Pressable onPress={() => engineRef.current?.skip()} hitSlop={8}><Icon name="play" size={18} color={colors.inkFaint} /></Pressable>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 2, borderColor: 'rgba(0,0,0,0.06)' }}>
           <Text style={{ fontSize: 14 }}>❤️</Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: '#C81E1E' }}>5</Text>
+          {/* Was hardcoded to "5", so it read full however many the learner had
+              actually spent — the one place hearts are supposed to be visible. */}
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 14, color: '#C81E1E' }}>
+            {premium ? '∞' : hearts}
+          </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 2, borderColor: 'rgba(0,0,0,0.06)' }}>
           <Text style={{ fontSize: 14 }}>⚡</Text>
@@ -415,9 +443,9 @@ export default function Lesson() {
 
       {/* ── start overlay ── */}
       {phase === 'start' && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,16,10,0.5)', alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ width: 520, maxWidth: '92%', backgroundColor: colors.surface, borderRadius: 26, borderWidth: 2, borderColor: colors.line, padding: 24, alignItems: 'center', gap: 8 }}>
-            <Maestro mood="welcome-piano" size={100} bg="#EAF8DC" ring={5} ringColor="#fff" float />
+        <PopupCard width={520}>
+          <>
+            <Maestro mood="welcome-piano" size={isTablet ? 100 : 76} bg="#EAF8DC" ring={5} ringColor="#fff" float />
             <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: colors.gold, textTransform: 'uppercase', letterSpacing: 2 }}>Lesson 1</Text>
             <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink }}>First Touch → First Songs</Text>
             <Text style={{ fontFamily: Fonts.family.heavy, fontSize: 14, color: colors.inkSoft }}>Middle C · the 7 notes · 4 chords · 3 real songs</Text>
@@ -433,7 +461,7 @@ export default function Lesson() {
                   {status.state === 'connected' ? (status.detail || 'Connected') : status.state === 'connecting' ? 'Connecting…' : status.state === 'error' ? status.detail : 'Board not connected'}
                 </Text>
                 <PPButton label={status.state === 'connected' ? 'Reconnect' : 'Connect board'} size="sm" variant="sky"
-                  onPress={() => hwRef.current?.connect().catch(() => {})} />
+                  onPress={() => connect().catch(() => {})} />
               </View>
             ) : (
               <Text style={{ fontFamily: Fonts.family.heavy, fontSize: 12, color: colors.inkFaint, textAlign: 'center' }}>
@@ -443,23 +471,27 @@ export default function Lesson() {
             <PPButton label={savedStep > 0 ? `Resume · Section ${savedStep + 1}` : 'Start lesson'} size="lg" variant="green"
               onPress={() => startLesson(savedStep)} style={{ marginTop: 6 }} />
             <Text style={{ fontFamily: Fonts.family.heavy, fontSize: 11, color: colors.inkFaint }}>🔊 Sound on — the professor talks you through it.</Text>
-          </View>
-        </View>
+          </>
+        </PopupCard>
       )}
 
       {/* ── complete overlay ── */}
       {phase === 'complete' && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        // Same treatment as the start popup: it was a full-bleed opaque layer
+        // whose content also overran the phone canvas, so the stats row and the
+        // buttons could sit off-screen with no way to scroll to them.
+        <PopupCard width={580}>
+          <>
           <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.gold, letterSpacing: 2, textTransform: 'uppercase' }}>Lesson complete</Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontSize: 32, color: colors.ink }}>Lesson 1 · First Songs</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: isTablet ? 32 : 24, color: colors.ink }}>Lesson 1 · First Songs</Text>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginVertical: 6 }}>
             {[0, 1, 2].map((i) => (
               <View key={i} style={{ marginTop: i === 1 ? -10 : 4, opacity: starsIn > i ? 1 : 0, transform: [{ scale: starsIn > i ? 1 : 0.2 }] }}>
-                <Icon name="star" size={i === 1 ? 72 : 56} color="#F5B800" />
+                <Icon name="star" size={(i === 1 ? 72 : 56) * (isTablet ? 1 : 0.7)} color="#F5B800" />
               </View>
             ))}
           </View>
-          <Maestro mood="trophy" size={104} bg="#FFE38A" ring={5} ringColor="#fff" float />
+          <Maestro mood="trophy" size={isTablet ? 104 : 76} bg="#FFE38A" ring={5} ringColor="#fff" float />
           <View style={{ flexDirection: 'row', gap: 12, marginVertical: 12 }}>
             {[['⚡', `+${completeXp} XP`, 'Earned', '#F5B800'], ['🎵', '3', 'Songs played', '#2E84AD'], ['🎹', '4', 'Chords learned', '#58CC02']].map(([e, v, l, c], i) => (
               <View key={i} style={{ minWidth: 110, alignItems: 'center', backgroundColor: colors.surface, borderRadius: 18, borderWidth: 2, borderColor: colors.line, borderBottomWidth: 5, paddingVertical: 12, paddingHorizontal: 16 }}>
@@ -473,7 +505,8 @@ export default function Lesson() {
             <PPButton label="Replay lesson" size="md" variant="ghost" onPress={() => { setXpTotal(0); if (engineRef.current) { engineRef.current.xp = 0; } startLesson(0); }} />
             <PPButton label="Back to home" size="md" variant="gold" onPress={() => go('home')} />
           </View>
-        </View>
+          </>
+        </PopupCard>
       )}
     </View>
   );

@@ -44,8 +44,10 @@ jobs:
         run: npm install
 
       # ── Quality gate ─────────────────────────────────────────────
-      # Fail fast on type errors, test failures, or lint before spending
-      # EAS build credits. A red gate blocks the build below.
+      # Deliberately duplicated with quality.yml. That workflow gates every
+      # branch and PR, but it runs in PARALLEL with this one — so it cannot stop
+      # this job from spending EAS build credits on a commit that is already
+      # red. These few Actions-minutes are much cheaper than a wasted build.
       - name: Typecheck · Test · Lint
         run: |
           npm run typecheck

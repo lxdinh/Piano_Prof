@@ -17,7 +17,6 @@ import * as pianoEngine from '../audio/pianoEngine';
 import * as haptics from '../feedback/haptics';
 
 export const LS_NS = 'pp_lesson1_';
-const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /* ── cues (Synth port): voice + piano only by default; chime always on ── */
 export const Cues = {
@@ -122,6 +121,17 @@ export interface EngineUI {
   showFollow(n: number): FollowCtl;
   showSong(seg: SongConfig, title: string, showLyrics: boolean): SongCtl;
   awardXP(amount: number, total: number): void;
+  /**
+   * A GRADED mistake — the learner picked a wrong answer, not just fumbled a
+   * key. The engine deliberately knows nothing about hearts or any other
+   * economy; it reports the event and the screen decides what it costs.
+   *
+   * Wrong keys are intentionally NOT reported here. They arrive as a stream —
+   * a learner feeling for a chord can hit four wrong notes in a second — and
+   * already get their own red-flash-and-retry feedback. Charging for those
+   * would empty a five-heart budget in one bar.
+   */
+  wrongAnswer(): void;
   completeScreen(xp: number): void;
   hideComplete(): void;
   prefLyrics(): boolean;
@@ -146,11 +156,18 @@ export class LessonEngine {
   private resumeFn: (() => void) | null = null;
   private trail: { step: number; seg: number }[] = [];
 
+  // The facade outlives this engine (it belongs to HardwareProvider), so these
+  // have to come back off in stop() — otherwise a second lesson would be graded
+  // by every engine ever constructed.
+  private offs: (() => void)[] = [];
+
   constructor(lesson: Lesson1, hal: HwFacade, ui: EngineUI) {
     this.L = lesson; this.hal = hal; this.ui = ui;
-    hal.onNoteOn((note, vel, t) => this.noteOn(note, vel, t));
-    hal.onNoteOff((note, _relVel, _t, durMs) => this.noteOff(note, durMs));
-    hal.onPedal((down) => { this.pedalDown = down; });
+    this.offs = [
+      hal.onNoteOn((note, vel, t) => this.noteOn(note, vel, t)),
+      hal.onNoteOff((note, _relVel, _t, durMs) => this.noteOff(note, durMs)),
+      hal.onPedal((down) => { this.pedalDown = down; }),
+    ];
   }
   private noteOn(note: string, vel = 100, t = Date.now()) {
     this.held.set(note, t);
@@ -169,7 +186,12 @@ export class LessonEngine {
   }
 
   start(step = 0) { void this.gotoStep(step); }
-  stop() { this.run++; Speech.cancel(); Backing.stop(); this.hal.ledClear(); }
+  stop() {
+    this.run++; Speech.cancel(); Backing.stop(); this.hal.ledClear();
+    this.cancelWaits();
+    this.offs.forEach((off) => off());
+    this.offs = [];
+  }
 
   async gotoStep(i: number, fromSeg = 0) {
     const tk = ++this.run;
@@ -227,7 +249,31 @@ export class LessonEngine {
     waiter.init?.();
     return this.skippable(p, onSkip);
   }
-  private sleep(ms: number, onSkip?: () => void) { return this.skippable(delay(ms), onSkip); }
+  /**
+   * Pending waits, so `stop()` can actually stop. `delay()` alone is a bare
+   * setTimeout with no handle: a lesson abandoned mid-`sleep` left timers
+   * running for up to 1.7s after the screen was gone. Cancelling RESOLVES the
+   * promise rather than dropping it, so the awaiting step unwinds, sees its run
+   * token is stale, and returns — instead of hanging on a promise forever.
+   */
+  private waits = new Set<{ timer: ReturnType<typeof setTimeout>; resolve: () => void }>();
+
+  private delay(ms: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const entry = {
+        timer: setTimeout(() => { this.waits.delete(entry); resolve(); }, ms),
+        resolve,
+      };
+      this.waits.add(entry);
+    });
+  }
+
+  private cancelWaits() {
+    this.waits.forEach((w) => { clearTimeout(w.timer); w.resolve(); });
+    this.waits.clear();
+  }
+
+  private sleep(ms: number, onSkip?: () => void) { return this.skippable(this.delay(ms), onSkip); }
   private gate(): Promise<void> {
     return this.paused ? new Promise((r) => { this.resumeFn = r; }) : Promise.resolve();
   }
@@ -626,15 +672,18 @@ export class LessonEngine {
     void this.ui.typeText(seg.question);
     void Speech.speak(seg.question);
     this.ui.mascotTalking(true);
-    setTimeout(() => this.ui.mascotTalking(false), Speech.estimate(seg.question));
+    // Tracked, so leaving mid-question cancels it. Cancelling resolves, which
+    // just turns the talking indicator off — exactly what stopping should do.
+    void this.delay(Speech.estimate(seg.question)).then(() => this.ui.mascotTalking(false));
     let api: QuizCtl | null = null;
     await this.waitSegment((done) => {
       api = this.ui.showQuiz(seg.options, (idx) => {
         if (idx === seg.answer) {
           api?.correct(idx); Cues.chime(); this.ui.mood('cheer', 1400);
-          setTimeout(done, 750);
+          void this.delay(750).then(done);
         } else {
           api?.wrong(idx, seg.onWrong?.label ?? 'Incorrect'); Cues.wrong(); this.ui.mood('nervous', 1100);
+          this.ui.wrongAnswer();
         }
       });
       return {};

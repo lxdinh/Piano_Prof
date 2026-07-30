@@ -1,10 +1,9 @@
 // Piano Professor — Paywall: gold pitch panel + plan selector.
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../theme/AppTheme';
-import { useApp } from '../state/AppState';
 import { useRouter } from '../nav/Router';
 import { Fonts } from '../theme/tokens';
 import Icon from '../ui/Icon';
@@ -12,6 +11,8 @@ import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
 import { Segmented } from '../ui/atoms';
 import { PLANS } from '../data/content';
+import { useBilling } from '../billing/BillingProvider';
+import { BillingPeriod, PlanId } from '../billing/types';
 
 const BENEFITS = [
   'Unlimited hearts — never stop mid-lesson',
@@ -22,20 +23,57 @@ const BENEFITS = [
 
 export default function Paywall() {
   const { colors } = useAppTheme();
-  const { setPremium } = useApp();
-  const { go, back } = useRouter();
+  const { go, back, toast } = useRouter();
   const insets = useSafeAreaInsets();
-  const [cycle, setCycle] = useState('annual');
-  const [planId, setPlanId] = useState('family');
+  const [cycle, setCycle] = useState<BillingPeriod>('annual');
+  const [planId, setPlanId] = useState<PlanId>('family');
+  const [busy, setBusy] = useState<'buy' | 'restore' | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const price = (monthly: number) => (cycle === 'annual' ? monthly : monthly * 1.6);
+  const { products, purchase, restore, live } = useBilling();
 
-  const startTrial = () => {
-    setPremium(true);
-    // Straight to the welcome moment (gems + 7-day plan) rather than dropping
-    // the buyer back where they were — the immediate win is what converts a
-    // purchase into practice.
-    go('premiumWelcome');
+  /** Store-priced product for a plan at the selected cycle, if the store has it. */
+  const productFor = (id: string) =>
+    products.find((p) => p.planId === id && p.period === cycle);
+
+  // Fall back to the static copy only when the store hasn't answered — never
+  // invent a price we might charge differently.
+  const fallbackPrice = (monthly: number) =>
+    `$${(cycle === 'annual' ? monthly : monthly * 1.6).toFixed(2)}`;
+
+  const selected = productFor(planId);
+  const trialDays = selected?.trialDays ?? null;
+
+  const buy = async () => {
+    if (!selected) {
+      setError('That plan isn’t available from the store right now. Try again in a moment.');
+      return;
+    }
+    setError(null);
+    setBusy('buy');
+    const res = await purchase(selected.productId);
+    setBusy(null);
+    if (res.ok) {
+      // Straight to the welcome moment (gems + 7-day plan) rather than dropping
+      // the buyer back where they were — the immediate win is what converts a
+      // purchase into practice.
+      go('premiumWelcome');
+      return;
+    }
+    if (res.cancelled) return; // backing out is not an error
+    setError(res.message);
+  };
+
+  // Both stores require a visible restore path, and it is the only way someone
+  // who already pays gets their subscription back on a new device.
+  const restorePurchases = async () => {
+    setError(null);
+    setBusy('restore');
+    const res = await restore();
+    setBusy(null);
+    if (!res.ok) { setError(res.message); return; }
+    if (res.entitlement) { toast('Subscription restored 🎉'); back(); }
+    else setError('No previous purchase found on this account.');
   };
 
   return (
@@ -61,13 +99,13 @@ export default function Paywall() {
       {/* plans */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 26, gap: 14, paddingBottom: insets.bottom + 26 }}>
         <Segmented
-          value={cycle} onChange={setCycle}
+          value={cycle} onChange={(v) => setCycle(v as BillingPeriod)}
           options={[{ value: 'annual', label: 'Annual · save 37%' }, { value: 'monthly', label: 'Monthly' }]}
         />
         {PLANS.map((p) => {
           const on = planId === p.id;
           return (
-            <Pressable key={p.id} onPress={() => setPlanId(p.id)}
+            <Pressable key={p.id} onPress={() => setPlanId(p.id as PlanId)}
               style={{
                 flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, borderRadius: 20,
                 backgroundColor: on ? colors.selGold : colors.surface,
@@ -86,16 +124,51 @@ export default function Paywall() {
                 <Text style={{ fontFamily: Fonts.family.bold, fontSize: 13, color: colors.inkSoft }}>{p.blurb}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontFamily: Fonts.family.black, fontSize: 22, color: colors.ink }}>${price(p.monthly).toFixed(2)}</Text>
-                <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>/month</Text>
+                {/* Store-localised price when we have one — it knows the user's
+                    currency and tax; our own arithmetic does not. */}
+                <Text style={{ fontFamily: Fonts.family.black, fontSize: 22, color: colors.ink }}>
+                  {productFor(p.id)?.priceLabel ?? fallbackPrice(p.monthly)}
+                </Text>
+                <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>
+                  {cycle === 'annual' ? '/year' : '/month'}
+                </Text>
               </View>
             </Pressable>
           );
         })}
-        <PPButton label="Start 7-day free trial" size="lg" variant="green" full onPress={startTrial} />
+        {error && (
+          <Text style={{ textAlign: 'center', fontFamily: Fonts.family.bold, fontSize: 13, color: colors.error }}>
+            {error}
+          </Text>
+        )}
+
+        {busy === 'buy' ? (
+          <ActivityIndicator color={colors.green} style={{ paddingVertical: 14 }} />
+        ) : (
+          <PPButton
+            // Only promise a trial the store actually offers on this product.
+            label={trialDays ? `Start ${trialDays}-day free trial` : 'Subscribe'}
+            size="lg" variant="green" full onPress={buy} disabled={busy != null}
+          />
+        )}
+
+        <PPButton
+          label="Restore purchases" size="md" variant="ghost" full
+          onPress={restorePurchases} disabled={busy != null}
+        />
+
         <Text style={{ textAlign: 'center', fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>
-          Cancel anytime. No charge until the trial ends.
+          {trialDays
+            ? 'Cancel anytime. No charge until the trial ends.'
+            : 'Cancel anytime in your store account settings.'}
         </Text>
+
+        {!live && (
+          // Never let a tester believe a real sale happened.
+          <Text style={{ textAlign: 'center', fontFamily: Fonts.family.bold, fontSize: 11, color: colors.gold }}>
+            Test mode — no store is configured, so nothing is charged.
+          </Text>
+        )}
       </ScrollView>
     </View>
   );

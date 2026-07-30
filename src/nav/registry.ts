@@ -24,6 +24,7 @@ import Pair from '../views/Pair';
 import Calibration from '../views/Calibration';
 import LedSettings from '../views/LedSettings';
 import Settings from '../views/Settings';
+import OmrServer from '../views/OmrServer';
 import Diploma from '../views/Diploma';
 import Account from '../views/Account';
 import SignIn from '../views/SignIn';
@@ -58,6 +59,7 @@ export const registry: ScreenRegistry = {
   calibration: Calibration,
   ledSettings: LedSettings,
   settings: Settings,
+  omrServer: OmrServer,
   diploma: Diploma,
   account: Account,
   signIn: SignIn,
