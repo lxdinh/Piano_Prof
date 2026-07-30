@@ -16,6 +16,7 @@ import Icon from '../ui/Icon';
 import Maestro from '../ui/Maestro';
 import PPButton from '../ui/PPButton';
 import Piano from '../ui/Piano';
+import PopupCard from '../ui/PopupCard';
 import { Segmented } from '../ui/atoms';
 import { LESSON_1, SongConfig, noteToMidi, KEY_LOW_MIDI, KEY_HIGH_MIDI, SHOW_LYRICS } from '../lesson1/data';
 import { HwStatus, SimulatorPiano, HwMode } from '../lesson1/hal';
@@ -442,9 +443,9 @@ export default function Lesson() {
 
       {/* ── start overlay ── */}
       {phase === 'start' && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,16,10,0.5)', alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ width: 520, maxWidth: '92%', backgroundColor: colors.surface, borderRadius: 26, borderWidth: 2, borderColor: colors.line, padding: 24, alignItems: 'center', gap: 8 }}>
-            <Maestro mood="welcome-piano" size={100} bg="#EAF8DC" ring={5} ringColor="#fff" float />
+        <PopupCard width={520}>
+          <>
+            <Maestro mood="welcome-piano" size={isTablet ? 100 : 76} bg="#EAF8DC" ring={5} ringColor="#fff" float />
             <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: colors.gold, textTransform: 'uppercase', letterSpacing: 2 }}>Lesson 1</Text>
             <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink }}>First Touch → First Songs</Text>
             <Text style={{ fontFamily: Fonts.family.heavy, fontSize: 14, color: colors.inkSoft }}>Middle C · the 7 notes · 4 chords · 3 real songs</Text>
@@ -470,23 +471,27 @@ export default function Lesson() {
             <PPButton label={savedStep > 0 ? `Resume · Section ${savedStep + 1}` : 'Start lesson'} size="lg" variant="green"
               onPress={() => startLesson(savedStep)} style={{ marginTop: 6 }} />
             <Text style={{ fontFamily: Fonts.family.heavy, fontSize: 11, color: colors.inkFaint }}>🔊 Sound on — the professor talks you through it.</Text>
-          </View>
-        </View>
+          </>
+        </PopupCard>
       )}
 
       {/* ── complete overlay ── */}
       {phase === 'complete' && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        // Same treatment as the start popup: it was a full-bleed opaque layer
+        // whose content also overran the phone canvas, so the stats row and the
+        // buttons could sit off-screen with no way to scroll to them.
+        <PopupCard width={580}>
+          <>
           <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.gold, letterSpacing: 2, textTransform: 'uppercase' }}>Lesson complete</Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontSize: 32, color: colors.ink }}>Lesson 1 · First Songs</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: isTablet ? 32 : 24, color: colors.ink }}>Lesson 1 · First Songs</Text>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginVertical: 6 }}>
             {[0, 1, 2].map((i) => (
               <View key={i} style={{ marginTop: i === 1 ? -10 : 4, opacity: starsIn > i ? 1 : 0, transform: [{ scale: starsIn > i ? 1 : 0.2 }] }}>
-                <Icon name="star" size={i === 1 ? 72 : 56} color="#F5B800" />
+                <Icon name="star" size={(i === 1 ? 72 : 56) * (isTablet ? 1 : 0.7)} color="#F5B800" />
               </View>
             ))}
           </View>
-          <Maestro mood="trophy" size={104} bg="#FFE38A" ring={5} ringColor="#fff" float />
+          <Maestro mood="trophy" size={isTablet ? 104 : 76} bg="#FFE38A" ring={5} ringColor="#fff" float />
           <View style={{ flexDirection: 'row', gap: 12, marginVertical: 12 }}>
             {[['⚡', `+${completeXp} XP`, 'Earned', '#F5B800'], ['🎵', '3', 'Songs played', '#2E84AD'], ['🎹', '4', 'Chords learned', '#58CC02']].map(([e, v, l, c], i) => (
               <View key={i} style={{ minWidth: 110, alignItems: 'center', backgroundColor: colors.surface, borderRadius: 18, borderWidth: 2, borderColor: colors.line, borderBottomWidth: 5, paddingVertical: 12, paddingHorizontal: 16 }}>
@@ -500,7 +505,8 @@ export default function Lesson() {
             <PPButton label="Replay lesson" size="md" variant="ghost" onPress={() => { setXpTotal(0); if (engineRef.current) { engineRef.current.xp = 0; } startLesson(0); }} />
             <PPButton label="Back to home" size="md" variant="gold" onPress={() => go('home')} />
           </View>
-        </View>
+          </>
+        </PopupCard>
       )}
     </View>
   );
