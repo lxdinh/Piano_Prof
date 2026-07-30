@@ -13,6 +13,8 @@ import { applyClaim } from '../data/quests';
 import { applyPurchase, canBuy, ShopItem } from '../data/shop';
 import { applyChestOpen, canOpenChest, chestTier } from '../data/chest';
 import * as trustedTime from '../services/trustedTime';
+import { useBilling } from '../billing/BillingProvider';
+import { resolveSeats } from '../billing/entitlement';
 
 /** Premium perk: Double XP on every lesson. */
 export const PREMIUM_XP_MULTIPLIER = 2;
@@ -47,8 +49,15 @@ export interface AppState {
   buyShopItem: (id: ShopItem['id']) => boolean;
   loseHeart: () => void;
   refillHearts: () => void;
+  /**
+   * Does the ACTIVE profile have paid access? Derived from the store
+   * entitlement and which profiles hold its seats — it is no longer a flag any
+   * screen can set, because a button that grants Premium is not a business
+   * model. Purchase through `useBilling()`.
+   */
   premium: boolean;
-  setPremium: (v: boolean) => void;
+  /** Profile ids covered by the subscription (empty when not subscribed). */
+  seatHolders: string[];
   led: LedState;
   setLed: (patch: Partial<LedState>) => void;
   muted: boolean;
@@ -65,7 +74,9 @@ const newId = () => `p${Date.now().toString(36)}${(idSeq++).toString(36)}`;
 interface Persisted {
   profiles: Profile[];
   activeId: string | null;
-  premium: boolean;
+  /** Legacy. Written by builds where Premium was a self-granted local flag;
+   *  still parsed so old payloads don't break, never read for access. */
+  premium?: boolean;
 }
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
@@ -76,7 +87,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [profiles, setProfiles] = useState<Profile[]>(() =>
     (__DEV__ ? JSON.parse(JSON.stringify(PROFILES_SEED)) as Profile[] : []));
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [premium, setPremium] = useState(false);
+  // Premium is READ from billing, never written here. The old local boolean
+  // survived a reinstall, synced between devices and could be flipped by any
+  // screen — none of which a real subscription does.
+  const { seats, assigned } = useBilling();
   const [led, setLedState] = useState<LedState>({ connected: false, brightness: 80, theme: 'rainbow', calibrated: false });
   const [muted, setMuted] = useState(false);
   const [ambient, setAmbient] = useState(true);
@@ -97,7 +111,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
             setProfiles(p.profiles.map((pr) => applyHeartRefill(pr, now, sus)));
           }
           if (p.activeId) setActiveId(p.activeId);
-          if (typeof p.premium === 'boolean') setPremium(p.premium);
+          // A persisted `premium` from an older build is intentionally NOT
+          // restored — it was device-local and self-granted. The store is the
+          // only thing that decides paid access now.
         }
       } catch {
         /* ignore — fall back to seed */
@@ -111,14 +127,23 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // persist
   useEffect(() => {
     if (!hydrated.current) return;
-    const data: Persisted = { profiles, activeId, premium };
+    const data: Persisted = { profiles, activeId };
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data)).catch(() => {});
-  }, [profiles, activeId, premium]);
+  }, [profiles, activeId]);
 
   const activeProfile = useMemo(
     () => profiles.find((p) => p.id === activeId) ?? null,
     [profiles, activeId],
   );
+
+  // Who the subscription covers. Seats fill from explicit assignment first, then
+  // household order, so a fresh purchase is useful before anyone assigns
+  // anything — and an Individual plan covers exactly one profile, not all five.
+  const seatHolders = useMemo(
+    () => resolveSeats(profiles.map((p) => p.id), assigned, seats),
+    [profiles, assigned, seats],
+  );
+  const premium = activeId != null && seatHolders.includes(activeId);
 
   const setActive = useCallback((id: string) => setActiveId(id), []);
 
@@ -144,10 +169,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setProfiles((ps) => ps.map((p) => (p.id === activeId ? { ...p, ...patch } : p)));
   }, [activeId]);
 
-  const importAll = useCallback((next: Profile[], nextActive: string | null, nextPremium: boolean) => {
+  // `nextPremium` is accepted for wire compatibility with the sync blob but
+  // deliberately ignored: entitlement comes from the store, not from whatever a
+  // synced device once believed. Restoring a backup must not mint a
+  // subscription — that is what "Restore purchases" is for.
+  const importAll = useCallback((next: Profile[], nextActive: string | null, _nextPremium: boolean) => {
     if (Array.isArray(next) && next.length) setProfiles(next);
     setActiveId(nextActive ?? null);
-    setPremium(nextPremium);
   }, []);
 
   const completeItem = useCallback((itemId: string, stars: number, xp: number) => {
@@ -230,9 +258,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     ready, profiles, activeId, activeProfile,
     setActive, addProfile, updateProfile, removeProfile, updateActive, importAll,
     completeItem, claimQuest, openChest, buyShopItem, loseHeart, refillHearts,
-    premium, setPremium, led, setLed, muted, setMuted, ambient, setAmbient,
+    premium, seatHolders, led, setLed, muted, setMuted, ambient, setAmbient,
   }), [ready, profiles, activeId, activeProfile, setActive, addProfile, updateProfile,
-    removeProfile, updateActive, importAll, completeItem, claimQuest, openChest, buyShopItem, loseHeart, refillHearts, premium, led, setLed, muted, ambient]);
+    removeProfile, updateActive, importAll, completeItem, claimQuest, openChest, buyShopItem, loseHeart, refillHearts, premium, seatHolders, led, setLed, muted, ambient]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

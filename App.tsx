@@ -12,6 +12,7 @@ import { Baloo2_700Bold, Baloo2_800ExtraBold } from '@expo-google-fonts/baloo-2'
 
 import { AppThemeProvider } from './src/theme/AppTheme';
 import { AppStateProvider } from './src/state/AppState';
+import { BillingProvider } from './src/billing/BillingProvider';
 import { HardwareProvider } from './src/state/HardwareProvider';
 import { AccountProvider } from './src/account/AccountProvider';
 import { RouterProvider } from './src/nav/Router';
@@ -80,14 +81,17 @@ function App() {
   return (
     <SafeAreaProvider>
       <AppThemeProvider>
-        <AppStateProvider>
-          <AccountProvider>
-            {/* Above the router on purpose: the BLE link must survive `go()`. */}
-            <HardwareProvider>
-              <Root />
-            </HardwareProvider>
-          </AccountProvider>
-        </AppStateProvider>
+        {/* Above AppState: premium gates XP and hearts from inside it. */}
+        <BillingProvider>
+          <AppStateProvider>
+            <AccountProvider>
+              {/* Above the router on purpose: the BLE link must survive `go()`. */}
+              <HardwareProvider>
+                <Root />
+              </HardwareProvider>
+            </AccountProvider>
+          </AppStateProvider>
+        </BillingProvider>
       </AppThemeProvider>
     </SafeAreaProvider>
   );
