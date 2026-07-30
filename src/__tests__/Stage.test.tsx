@@ -107,10 +107,19 @@ describe('Stage — the scaled child fits the padded content box', () => {
     expect(m.visualW).toBeCloseTo(1600 - EDGE_GUTTER * 2, 5);
   });
 
-  it('scales to fill the height exactly — the app does not letterbox', () => {
+  it('fills BOTH axes — the app does not letterbox', () => {
+    // This used to assert `scale === box.h / canvas.h`, i.e. that height alone
+    // decided the scale. That rule collapsed the logical width on any screen
+    // squarer than the canvas, so the scale now follows whichever dimension is
+    // tighter. What must stay true either way is that the child covers the box.
     const m = mount({ w: 800, h: 400 });
-    expect(m.scale).toBeCloseTo(400 / 394, 6);
+    expect(m.visualW).toBeCloseTo(800 - EDGE_GUTTER * 2, 5);
     expect(m.visualH).toBeCloseTo(400, 5);
+  });
+
+  it('never renders the canvas smaller than it was authored', () => {
+    const m = mount({ w: 800, h: 400 });
+    expect(m.logicalW).toBeGreaterThanOrEqual(852 - 0.5);
   });
 });
 
@@ -120,10 +129,14 @@ describe('Stage — degenerate boxes', () => {
     expect((r.toJSON() as any).children).toBeNull();
   });
 
-  it('does not produce a negative width when the insets exceed the screen', () => {
+  it('renders nothing rather than something negative when insets eat the screen', () => {
+    // Gutters wider than the display leave no content box at all. Drawing a
+    // zero- or negative-width canvas would be worse than drawing none.
     mockInsets = { top: 0, bottom: 0, left: 300, right: 300 };
-    const m = mount({ w: 400, h: 400 });
-    expect(m.logicalW).toBeGreaterThanOrEqual(0);
-    expect(m.visualW).toBeGreaterThanOrEqual(0);
+    const r = render(<Stage><Text>content</Text></Stage>);
+    fireEvent(r.UNSAFE_getAllByType(View)[0], 'layout', {
+      nativeEvent: { layout: { width: 400, height: 400, x: 0, y: 0 } },
+    });
+    expect((r.toJSON() as any).children).toBeNull();
   });
 });

@@ -100,6 +100,14 @@ export default function PPButton({
             {icon}
             <Text
               numberOfLines={1}
+              // Labels are translated into ten languages and short English words
+              // expand hard: "Skip" → "Überspringen", "Root" → "Fondamentale",
+              // "Gems" → "Edelsteine" — up to 3× the characters the button was
+              // sized for. numberOfLines={1} alone turned those into "Übersp…".
+              // Shrinking the glyphs keeps the whole word, and 0.7 is the floor
+              // at which button type is still comfortably readable.
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
               style={{
                 // Buttons are display type — chunky Baloo, not body Nunito.
                 color: textColor ?? (isGhost ? theme.inkSoft : pal[3]), fontSize: sz.fs, fontFamily: Fonts.family.display,

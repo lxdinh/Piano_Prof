@@ -41,8 +41,14 @@ function RailButton({ icon, label, active, onPress, color, iconSize, showLabel, 
       }}
     >
       <Icon name={icon} size={iconSize} color={active ? colors.skyDeep : color} />
+      {/* Tab labels are the tightest text in the app and the most translated:
+          "Practice" becomes "Luyện tập" / "S'exercer" / "Einstellungen". At a
+          fixed 11px those ellipsised into nonsense, so let them shrink. */}
       {showLabel && (
-        <Text numberOfLines={1} style={{ fontSize: 11, fontFamily: Fonts.family.bold, color: active ? colors.skyDeep : color }}>
+        <Text
+          numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}
+          style={{ fontSize: 11, fontFamily: Fonts.family.bold, color: active ? colors.skyDeep : color }}
+        >
           {label}
         </Text>
       )}
@@ -134,11 +140,19 @@ export default function Shell({ active, children, scroll = true, title, sub }: {
           gap: 10, borderBottomWidth: 2, borderBottomColor: colors.line,
         }}>
           <Maestro mood={p?.avatar ?? 'cool'} size={avatarSz} bg={p?.bg ?? colors.surface2} fit="head" ring={2.5} ringColor={colors.sky} onPress={() => go('who')} />
-          <View>
-            <Text numberOfLines={1} style={{ fontFamily: Fonts.family.black, fontSize: titleSz, color: colors.ink }}>
+          {/* flexShrink so a long greeting yields space to the stat chips on a
+              narrow canvas instead of pushing them off the row. */}
+          <View style={{ flexShrink: 1 }}>
+            <Text
+              numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}
+              style={{ fontFamily: Fonts.family.black, fontSize: titleSz, color: colors.ink }}
+            >
               {title ?? (p ? `${tr('home.hi')} ${p.name}!` : 'Piano Professor')}
             </Text>
-            <Text numberOfLines={1} style={{ fontFamily: Fonts.family.bold, fontSize: 11.5, color: colors.inkFaint, marginTop: 2 }}>
+            <Text
+              numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}
+              style={{ fontFamily: Fonts.family.bold, fontSize: 11.5, color: colors.inkFaint, marginTop: 2 }}
+            >
               {sub ?? tr('home.ready')}
             </Text>
           </View>
