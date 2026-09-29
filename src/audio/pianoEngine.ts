@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 import { PIANO_SAMPLES, SAMPLE_MIN_MIDI, SAMPLE_MAX_MIDI } from './pianoSampleMap';
 
 /**
@@ -21,14 +21,25 @@ async function ensureMode() {
   if (configured) return;
   configured = true;
   try {
+    // Full config — an incomplete mode (missing interruptionMode*) can leave
+    // Android media output unconfigured, which is a common "no sound in the
+    // release build" cause. This routes to the media stream and ducks others.
     await Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
       staysActiveInBackground: false,
       shouldDuckAndroid: true,
+      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+      interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+      playThroughEarpieceAndroid: false,
     });
   } catch {
     // best-effort; playback still works without explicit mode on most devices
   }
+}
+
+/** Initialize the audio session early (call at app startup). */
+export async function initAudio(): Promise<void> {
+  await ensureMode();
 }
 
 /** Clamp a requested MIDI note into the sampled range, preserving pitch class. */
@@ -103,12 +114,9 @@ export async function playChord(midis: number[], rollMs = 0, volume = 0.85): Pro
  */
 export async function preloadCore(): Promise<void> {
   await ensureMode();
-  const order: number[] = [];
-  for (let m = 48; m <= 72; m++) order.push(m); // C3..C5 first
-  for (let m = SAMPLE_MIN_MIDI; m <= SAMPLE_MAX_MIDI; m++) {
-    if (!order.includes(m)) order.push(m);
-  }
-  for (const m of order) {
+  // Warm just the core two octaves (C3..C5) so first taps are instant; the rest
+  // load lazily on demand, keeping startup light.
+  for (let m = 48; m <= 72; m++) {
     // serialize a touch so we don't spike memory/IO all at once
     // eslint-disable-next-line no-await-in-loop
     await getSound(m);

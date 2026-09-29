@@ -1,0 +1,162 @@
+// Piano Professor — piano keyboard + LED strip (RN port of ds-piano.jsx).
+// White keys flex evenly; black keys are absolutely positioned by measured
+// width. `lit` maps MIDI → glow color (LED guidance). onPlay fires per press.
+import React, { useState } from 'react';
+import { View, Text, Pressable, LayoutChangeEvent, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Fonts } from '../theme/tokens';
+import * as haptics from '../feedback/haptics';
+
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+export const isBlack = (m: number) => [1, 3, 6, 8, 10].includes(((m % 12) + 12) % 12);
+export const midiName = (m: number) => NOTE_NAMES[((m % 12) + 12) % 12];
+
+function buildKeys(low: number, high: number) {
+  const all: number[] = [];
+  for (let m = low; m <= high; m++) all.push(m);
+  const whites = all.filter((m) => !isBlack(m));
+  const blacks = all.filter(isBlack).map((m) => ({ midi: m, leftWhite: whites.indexOf(m - 1) }));
+  return { whites, blacks };
+}
+
+const KEY_GAP = 2; // px between white keys — geometry below must match
+
+// Gap-aware geometry shared by the LED strip and the black keys, so dots and
+// black keys stay centred on key boundaries across the whole width.
+function keyGeometry(width: number, whiteCount: number) {
+  const kw = (width - (whiteCount - 1) * KEY_GAP) / whiteCount;
+  const whiteCenter = (i: number) => i * (kw + KEY_GAP) + kw / 2;
+  const boundaryCenter = (leftWhite: number) => (leftWhite + 1) * (kw + KEY_GAP) - KEY_GAP / 2;
+  return { kw, whiteCenter, boundaryCenter };
+}
+
+export function LedStrip({ low, high, lit, width }: {
+  low: number; high: number; lit: Record<number, string>; width: number;
+}) {
+  const { whites, blacks } = buildKeys(low, high);
+  const { whiteCenter, boundaryCenter } = keyGeometry(width, whites.length);
+  const Dot = ({ x, c }: { x: number; c?: string }) => (
+    <View style={{
+      position: 'absolute', top: 6, left: x - 6,
+      width: 12, height: 12, borderRadius: 6,
+      backgroundColor: c || '#2a241c',
+      shadowColor: c || '#000', shadowOpacity: c ? 0.9 : 0, shadowRadius: c ? 6 : 0, shadowOffset: { width: 0, height: 0 },
+      elevation: c ? 6 : 0,
+    }} />
+  );
+  return (
+    <View style={{ height: 24, marginHorizontal: 5, marginBottom: 4, borderRadius: 8, backgroundColor: '#201a14', overflow: 'hidden' }}>
+      {whites.map((m, i) => <Dot key={`w${m}`} x={whiteCenter(i)} c={lit[m]} />)}
+      {blacks.map((b) => <Dot key={`b${b.midi}`} x={boundaryCenter(b.leftWhite)} c={lit[b.midi]} />)}
+    </View>
+  );
+}
+
+interface Props {
+  low?: number; high?: number;
+  lit?: Record<number, string>;
+  labels?: Record<number, string>;
+  onPlay?: (midi: number) => void;
+  /** True key-hold events (multi-touch chords). When set, onPlay is not used. */
+  onPressIn?: (midi: number) => void;
+  onPressOut?: (midi: number) => void;
+  /** Externally-driven held keys (e.g. professor demo playback). */
+  downs?: Record<number, boolean>;
+  /** Show C2…C7 octave markers on the C keys. */
+  octaveLabels?: boolean;
+  height?: number;
+  led?: boolean;
+  interactive?: boolean;
+  hideNoteNames?: boolean;
+}
+
+export default function Piano({
+  low = 55, high = 84, lit = {}, labels = {}, onPlay, onPressIn, onPressOut,
+  downs = {}, octaveLabels = false,
+  height = 200, led = true, interactive = true, hideNoteNames = false,
+}: Props) {
+  const { whites, blacks } = buildKeys(low, high);
+  const [w, setW] = useState(0);
+  const [pressed, setPressed] = useState<Record<number, boolean>>({});
+  const onLayout = (e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width);
+  const innerW = Math.max(0, w - 10); // container has 5px horizontal padding
+  const { kw, boundaryCenter } = keyGeometry(innerW, whites.length);
+  const blackW = kw * 0.62;
+  const keyH = height - (led ? 28 : 0) - 8;
+
+  const hit = (m: number) => {
+    if (!interactive) return;
+    haptics.tap();
+    setPressed((p) => ({ ...p, [m]: true }));
+    setTimeout(() => setPressed((p) => { const n = { ...p }; delete n[m]; return n; }), 200);
+    onPlay?.(m);
+  };
+
+  return (
+    <View style={{ width: '100%' }}>
+      {led && w > 0 && <LedStrip low={low} high={high} lit={lit} width={innerW} />}
+      <View onLayout={onLayout} style={{
+        height: keyH + 8, borderRadius: 16, overflow: 'hidden',
+        backgroundColor: '#2f271e', paddingHorizontal: 5, paddingBottom: 6,
+      }}>
+        {/* felt */}
+        <View style={{ height: 6, backgroundColor: '#a52a2a', borderBottomLeftRadius: 3, borderBottomRightRadius: 3, marginBottom: 2 }} />
+        <View style={{ height: keyH, position: 'relative' }}>
+          {/* white keys */}
+          <View style={{ flexDirection: 'row', height: '100%', gap: 2 }}>
+            {whites.map((m) => {
+              const c = lit[m]; const isP = pressed[m] || downs[m];
+              const octLabel = octaveLabels && m % 12 === 0 ? `C${Math.floor(m / 12) - 1}` : null;
+              return (
+                <Pressable
+                  key={m} onPress={() => hit(m)}
+                  onPressIn={onPressIn && interactive ? () => { haptics.tap(); onPressIn(m); } : undefined}
+                  onPressOut={onPressOut && interactive ? () => onPressOut(m) : undefined}
+                  style={{
+                    flex: 1, borderTopLeftRadius: 3, borderTopRightRadius: 3, borderBottomLeftRadius: 8, borderBottomRightRadius: 8,
+                    backgroundColor: c ? c : isP ? '#CDEFAC' : '#fffef9', overflow: 'hidden',
+                    justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 8,
+                    shadowColor: c || '#000', shadowOpacity: c ? 0.7 : 0, shadowRadius: c ? 10 : 0, elevation: c ? 5 : 0,
+                    transform: isP ? [{ translateY: 2 }] : undefined,
+                  }}>
+                  {c ? <LinearGradient colors={['#ffffff', c]} style={StyleSheet.absoluteFill} pointerEvents="none" /> : null}
+                  {(labels[m] || (c && !hideNoteNames)) ? (
+                    <Text style={{ fontSize: 13, fontFamily: Fonts.family.black, color: c ? '#2a6b00' : '#B6AC8C' }}>
+                      {labels[m] ?? midiName(m)}
+                    </Text>
+                  ) : octLabel ? (
+                    <Text style={{ fontSize: 10, fontFamily: Fonts.family.black, color: isP ? '#46A302' : '#C9BFA2' }}>{octLabel}</Text>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
+          {/* black keys */}
+          {w > 0 && blacks.map((b) => {
+            const c = lit[b.midi]; const isP = pressed[b.midi] || downs[b.midi];
+            const center = boundaryCenter(b.leftWhite);
+            return (
+              <Pressable
+                key={b.midi} onPress={() => hit(b.midi)}
+                onPressIn={onPressIn && interactive ? () => { haptics.tap(); onPressIn(b.midi); } : undefined}
+                onPressOut={onPressOut && interactive ? () => onPressOut(b.midi) : undefined}
+                style={{
+                  position: 'absolute', top: 0, height: '62%',
+                  left: center - blackW / 2, width: blackW,
+                  borderTopLeftRadius: 2, borderTopRightRadius: 2, borderBottomLeftRadius: 6, borderBottomRightRadius: 6,
+                  backgroundColor: c ? c : isP ? '#58CC02' : '#161616', overflow: 'hidden',
+                  justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 6,
+                  shadowColor: c || '#000', shadowOpacity: c ? 0.8 : 0.5, shadowRadius: c ? 8 : 3, elevation: 6,
+                  transform: isP ? [{ translateY: 2 }] : undefined,
+                }}>
+                {c && !hideNoteNames && (
+                  <Text style={{ fontSize: 9, fontFamily: Fonts.family.black, color: '#fff' }}>{midiName(b.midi)}</Text>
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    </View>
+  );
+}

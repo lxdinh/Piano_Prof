@@ -56,18 +56,25 @@ export const Fonts = {
   xl:   22,
   '2xl': 28,
   '3xl': 34,
-  weight: {
-    bold:  '800' as const,
-    black: '900' as const,
-    heavy: '700' as const,
-  },
-  // Nunito family names loaded in App.tsx (@expo-google-fonts/nunito). Use these
-  // so text actually renders in Nunito — matching the legacy web UI — instead of
-  // the system default. Pair each with the matching numeric weight above.
+  // TYPE SYSTEM — a two-family pairing, the way Clash Royale/CoC do it:
+  //   · DISPLAY (Baloo 2) — chunky, rounded, playful. Titles, numbers, buttons,
+  //     stat chips: anything that should feel like a game.
+  //   · BODY (Nunito) — friendly humanist sans that stays readable in long
+  //     descriptions. Both have rounded humanist skeletons, so they harmonize
+  //     instead of fighting each other.
+  //
+  // CRITICAL (Android): NEVER pair these with a `fontWeight`. Each name below is
+  // a single static font file that already encodes its weight; adding
+  // fontWeight makes Android fail to resolve the family and silently fall back
+  // to the system font — which is exactly what made the UI look generic before.
   family: {
-    heavy: 'Nunito_700Bold',
+    // DISPLAY (Baloo 2) — headings, numbers, buttons, stat chips.
+    black: 'Baloo2_800ExtraBold',
+    display: 'Baloo2_800ExtraBold',
+    displayBold: 'Baloo2_700Bold',
+    // BODY (Nunito) — labels, descriptions, anything read as a sentence.
     bold:  'Nunito_800ExtraBold',
-    black: 'Nunito_900Black',
+    heavy: 'Nunito_700Bold',
   },
 } as const;
 

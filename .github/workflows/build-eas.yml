@@ -43,6 +43,17 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # ── Quality gate ─────────────────────────────────────────────
+      # Deliberately duplicated with quality.yml. That workflow gates every
+      # branch and PR, but it runs in PARALLEL with this one — so it cannot stop
+      # this job from spending EAS build credits on a commit that is already
+      # red. These few Actions-minutes are much cheaper than a wasted build.
+      - name: Typecheck · Test · Lint
+        run: |
+          npm run typecheck
+          npm test -- --ci
+          npm run lint
+
       # ── EAS CLI ──────────────────────────────────────────────────
       - name: Install EAS CLI
         run: npm install -g eas-cli
