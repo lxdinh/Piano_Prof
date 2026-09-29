@@ -5,9 +5,17 @@
 // the bundled demo score, so import → review → play stays exercisable in
 // development and in the test suite with no server to deploy.
 //
-// Two sources, deliberately. A build-time default lets a shipped app point at
-// your deployed service; the Settings override lets you point a debug build at
-// a laptop on the LAN without a rebuild. The override wins when both are set.
+// Two sources, deliberately.
+//
+// 1. OMR_CONFIG.serverUrl is the PRODUCTION address, baked into the build.
+//    Run backend/omr/deploy.sh (Cloud Run); it prints the exact line to paste
+//    below. Learners never see or set this — the shipped app just works.
+// 2. The Settings override is a DEVELOPER facility for pointing a build at a
+//    laptop on the LAN without a rebuild. It lives behind Developer options
+//    (Settings → tap the version row seven times → Scan server) so it cannot
+//    be tripped over. The override wins when both are set.
+//
+// With neither set, the Import screen shows the bundled demo score.
 //
 // See docs/OMR_SETUP.md and backend/omr/README.md.
 
@@ -15,7 +23,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const OVERRIDE_KEY = 'pp.omr.serverUrl';
 
-/** Build-time default, e.g. 'https://pp-omr-xxxx.run.app'. Empty = unset. */
+/**
+ * Build-time default — the deployed service's HTTPS address, e.g.
+ * 'https://pp-omr-xxxx-uc.a.run.app'. backend/omr/deploy.sh prints the line to
+ * paste here. Empty = nothing deployed yet; the app falls back to the demo score.
+ */
 export const OMR_CONFIG = {
   serverUrl: '',
 };
@@ -37,7 +49,7 @@ export async function getOmrServer(): Promise<string | null> {
   return normalize(OMR_CONFIG.serverUrl);
 }
 
-/** Set (or clear, with an empty string) the Settings override. */
+/** Set (or clear, with an empty string) the developer override from Settings. */
 export async function setOmrServer(url: string): Promise<void> {
   const next = normalize(url);
   if (next) await AsyncStorage.setItem(OVERRIDE_KEY, next);

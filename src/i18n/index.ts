@@ -63,6 +63,21 @@ const EXTRA: Record<string, Record<string, string>> = {
   'set.scanServer': { en: 'Scan server' },
   'set.devEnabled': { en: 'Developer options enabled' },
   'set.devDisabled': { en: 'Developer options hidden' },
+  'import.subtitle': { en: 'Maestro reads the chords and lights your keys.' },
+  'import.retry': { en: 'Try again' },
+  'import.pageProgress': { en: 'Page {x} / {y}' },
+  'import.summary': { en: '{bars} bars · {bpm} BPM · {pages}' },
+  'import.pageOne': { en: '1 page' },
+  'import.demo': { en: 'Demo' },
+  'import.moveUp': { en: 'Move page {n} up' },
+  'import.moveDown': { en: 'Move page {n} down' },
+  'songs.openFailed': { en: 'Could not open that song.' },
+  'songs.removed': { en: 'Removed from My songs' },
+  'review.notFound': { en: 'Song not found' },
+  'review.notFoundHint': { en: 'This import is no longer in memory. Go back and import it again.' },
+  'review.saveFailed': { en: 'Could not save this song.' },
+  'player.notFound': { en: 'Song not found' },
+  'player.notFoundHint': { en: 'This import is no longer in memory. Open it again from Import or My songs.' },
 };
 
 export function t(key: string, lang = 'en', vars?: Record<string, string | number>): string {

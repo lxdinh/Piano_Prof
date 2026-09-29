@@ -18,7 +18,7 @@ import PPButton from '../ui/PPButton';
 import Piano from '../ui/Piano';
 import PopupCard from '../ui/PopupCard';
 import { Segmented } from '../ui/atoms';
-import { LESSON_1, SongConfig, noteToMidi, KEY_LOW_MIDI, KEY_HIGH_MIDI, SHOW_LYRICS } from '../lesson1/data';
+import { LESSON_1, Lesson1, SongConfig, noteToMidi, KEY_LOW_MIDI, KEY_HIGH_MIDI, SHOW_LYRICS } from '../lesson1/data';
 import { HwStatus, SimulatorPiano, HwMode } from '../lesson1/hal';
 import { useHardware } from '../state/HardwareProvider';
 import { LessonEngine, EngineUI, Speech, Cues, LS_NS, SongCtl } from '../lesson1/engine';
@@ -42,6 +42,11 @@ export default function Lesson() {
   const kbH = isTablet ? 300 : 168; // keyboard grows on the roomy tablet canvas
   const awardedRef = useRef(false);
   const itemId: string = params.item?.id ?? 'e1'; // "Pop Chords I" — Lesson 1 default
+  // A generated song course arrives as params.lesson (see songLessonGenerator);
+  // without one this screen is Lesson 1. Each course resumes under its own key.
+  const lesson: Lesson1 = params.lesson ?? LESSON_1;
+  const custom = Boolean(params.lesson);
+  const resumeKey = custom ? `pp_course_${itemId}_step` : LS_NS + 'step';
 
   const [phase, setPhase] = useState<'start' | 'run' | 'complete'>('start');
   const [savedStep, setSavedStep] = useState(0);
@@ -201,10 +206,10 @@ export default function Lesson() {
       prefLyrics: () => SHOW_LYRICS,
     };
 
-    engineRef.current = new LessonEngine(LESSON_1, hw, ui);
+    engineRef.current = new LessonEngine(lesson, hw, ui, resumeKey);
 
-    AsyncStorage.getItem(LS_NS + 'step').then((v) => {
-      const s = Math.min(Math.max(parseInt(v ?? '0', 10) || 0, 0), LESSON_1.steps.length - 1);
+    AsyncStorage.getItem(resumeKey).then((v) => {
+      const s = Math.min(Math.max(parseInt(v ?? '0', 10) || 0, 0), lesson.steps.length - 1);
       setSavedStep(s);
     }).catch(() => {});
 
@@ -216,7 +221,7 @@ export default function Lesson() {
       if (typeTimer.current) clearInterval(typeTimer.current);
       pianoEngine.stopAll().catch(() => {});
     };
-  }, [typeText, hw]);
+  }, [typeText, hw, lesson, resumeKey]);
 
   // complete: staggered stars + write rewards to the profile (once per finish)
   useEffect(() => {
@@ -262,7 +267,7 @@ export default function Lesson() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 8 }}>
         <Pressable onPress={back} hitSlop={10}><Icon name="close" size={24} color={colors.inkFaint} /></Pressable>
         <View style={{ flex: 1, flexDirection: 'row', gap: 5 }}>
-          {LESSON_1.steps.map((s, i) => {
+          {lesson.steps.map((s, i) => {
             const fill = i < progressSt.step ? 1 : i === progressSt.step ? progressSt.seg / Math.max(1, progressSt.total) : 0;
             return (
               <Pressable key={i} onPress={() => engineRef.current?.gotoStep(i)} style={{ flex: 1, height: 12, borderRadius: 999, backgroundColor: colors.line, overflow: 'hidden' }}>
@@ -446,9 +451,9 @@ export default function Lesson() {
         <PopupCard width={520}>
           <>
             <Maestro mood="welcome-piano" size={isTablet ? 100 : 76} bg="#EAF8DC" ring={5} ringColor="#fff" float />
-            <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: colors.gold, textTransform: 'uppercase', letterSpacing: 2 }}>Lesson 1</Text>
-            <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink }}>First Touch → First Songs</Text>
-            <Text style={{ fontFamily: Fonts.family.heavy, fontSize: 14, color: colors.inkSoft }}>Middle C · the 7 notes · 4 chords · 3 real songs</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 12, color: colors.gold, textTransform: 'uppercase', letterSpacing: 2 }}>{custom ? 'Song course' : 'Lesson 1'}</Text>
+            <Text style={{ fontFamily: Fonts.family.black, fontSize: 26, color: colors.ink }}>{custom ? params.item?.title ?? 'Your song' : 'First Touch → First Songs'}</Text>
+            <Text style={{ fontFamily: Fonts.family.heavy, fontSize: 14, color: colors.inkSoft }}>{custom ? params.item?.sub ?? '' : 'Middle C · the 7 notes · 4 chords · 3 real songs'}</Text>
             <Segmented
               value={mode}
               onChange={(v) => switchMode(v as HwMode)}
@@ -482,8 +487,8 @@ export default function Lesson() {
         // buttons could sit off-screen with no way to scroll to them.
         <PopupCard width={580}>
           <>
-          <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.gold, letterSpacing: 2, textTransform: 'uppercase' }}>Lesson complete</Text>
-          <Text style={{ fontFamily: Fonts.family.black, fontSize: isTablet ? 32 : 24, color: colors.ink }}>Lesson 1 · First Songs</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: 16, color: colors.gold, letterSpacing: 2, textTransform: 'uppercase' }}>{custom ? 'Course complete' : 'Lesson complete'}</Text>
+          <Text style={{ fontFamily: Fonts.family.black, fontSize: isTablet ? 32 : 24, color: colors.ink }}>{custom ? params.item?.title ?? 'Your song' : 'Lesson 1 · First Songs'}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginVertical: 6 }}>
             {[0, 1, 2].map((i) => (
               <View key={i} style={{ marginTop: i === 1 ? -10 : 4, opacity: starsIn > i ? 1 : 0, transform: [{ scale: starsIn > i ? 1 : 0.2 }] }}>
@@ -493,7 +498,10 @@ export default function Lesson() {
           </View>
           <Maestro mood="trophy" size={isTablet ? 104 : 76} bg="#FFE38A" ring={5} ringColor="#fff" float />
           <View style={{ flexDirection: 'row', gap: 12, marginVertical: 12 }}>
-            {[['⚡', `+${completeXp} XP`, 'Earned', '#F5B800'], ['🎵', '3', 'Songs played', '#2E84AD'], ['🎹', '4', 'Chords learned', '#58CC02']].map(([e, v, l, c], i) => (
+            {(custom
+              ? [['⚡', `+${completeXp} XP`, 'Earned', '#F5B800'], ['📖', `${lesson.steps.length}`, 'Steps', '#2E84AD'], ['🎵', '1', 'Song learned', '#58CC02']]
+              : [['⚡', `+${completeXp} XP`, 'Earned', '#F5B800'], ['🎵', '3', 'Songs played', '#2E84AD'], ['🎹', '4', 'Chords learned', '#58CC02']]
+            ).map(([e, v, l, c], i) => (
               <View key={i} style={{ minWidth: 110, alignItems: 'center', backgroundColor: colors.surface, borderRadius: 18, borderWidth: 2, borderColor: colors.line, borderBottomWidth: 5, paddingVertical: 12, paddingHorizontal: 16 }}>
                 <Text style={{ fontSize: 22 }}>{e}</Text>
                 <Text style={{ fontFamily: Fonts.family.black, fontSize: 20, color: c as string }}>{v}</Text>

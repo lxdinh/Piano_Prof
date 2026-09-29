@@ -1,14 +1,17 @@
 """
 Piano Professor — self-hosted OMR service (FREE, no per-scan cost).
 
-A tiny FastAPI wrapper around `oemer` (https://github.com/BreezeWhite/oemer),
-an open-source deep-learning Optical Music Recognition engine. The Flutter app
-POSTs a sheet-music image (or PDF page) to /omr and gets MusicXML back — the
-exact contract `mobile/lib/omr/omr_service.dart` expects.
+A small FastAPI wrapper around an open-source Optical Music Recognition
+engine (homr by default, oemer as a fallback) with photo cleanup before
+recognition and a musical sanity pass after it. The Piano Professor app
+(src/omr/omrClient.ts) POSTs every page of a song to /omr/score and gets
+one merged MusicXML document back; /omr takes a single image or PDF.
 
 Run locally:   uvicorn app:app --host 0.0.0.0 --port 8000
-Or build the Docker image (see Dockerfile) and deploy to Cloud Run / a VM.
-Then set the URL in the app: Profile → OMR scan server.
+Deploy:        ./deploy.sh <gcp-project>   (Cloud Run; prints the URL)
+The shipped app has the address baked into src/omr/omrConfig.ts; the
+Settings override lives under Developer options (tap the version row
+seven times). With no address set, the Import screen shows the demo score.
 """
 import os
 import re

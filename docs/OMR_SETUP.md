@@ -2,8 +2,9 @@
 
 The app ships with an **offline demo score**, so importing works end to end —
 pick pages, review the detected key and chords, play along — before any server
-exists. Point it at a scan server and the same flow reads your own sheet music.
-No app code changes; the client switches automatically once an address is set.
+exists. Give it a scan server and the same flow reads your own sheet music.
+The client switches automatically once an address is set; with none, the
+Import screen shows the demo score.
 
 ## Why self-hosted
 
@@ -27,32 +28,44 @@ curl localhost:8000/health          # {"ok":true,"engine":"homr"}
 Model weights are baked into the image at build time (`homr --init`), so the
 first scan is not slowed by a download.
 
-Deploy to Cloud Run when you want it off your laptop:
+Deploy to Cloud Run when you want it off your laptop — one command, needs the
+`gcloud` CLI:
 
 ```bash
-gcloud run deploy pp-omr --source backend/omr --region us-central1 \
-    --allow-unauthenticated --memory 4Gi --cpu 4 --timeout 900
+backend/omr/deploy.sh <gcp-project-id>      # optional second arg: region (default us-central1)
 ```
 
+It builds the image on Cloud Build, deploys `pp-omr` (4 vCPU, 4 GiB, 900 s
+timeout, public), then prints the service URL, the exact `serverUrl:` line to
+paste into the app, and runs a health check. The first deploy is slow (10-15
+minutes: model weights go into the image); later ones are quicker.
+
 Scaled to zero it costs nothing idle, at the price of a container cold start on
-the first scan of a session. A page takes roughly a minute on CPU, so set
-`--timeout` for the longest song you expect, not the shortest.
+the first scan of a session. A page takes roughly a minute on CPU, so the
+timeout is sized for the longest song you expect, not the shortest.
 
 ## 2. Point the app at it
 
-**Settings → Scan server** → enter the address → **Test**. The test hits
-`/health` and reports what answered, which is worth doing before wondering why a
-scan hangs.
+The shipped app has the address **baked in**. Paste the line `deploy.sh`
+printed into `OMR_CONFIG.serverUrl` in `src/omr/omrConfig.ts`, rebuild, and
+every install scans against your service with nothing for learners to set up.
+
+For pointing a build somewhere else without a rebuild — your laptop on the
+LAN, a staging deploy — there is a developer override. It is hidden so no
+learner trips over it: **Settings → tap the version row at the bottom seven
+times** (a toast confirms "Developer options enabled") **→ Developer options →
+Scan server** → enter the address → **Test**. The test hits `/health` and
+reports what answered, which is worth doing before wondering why a scan hangs.
+Debug builds (`__DEV__`) always show the row.
 
 - On a phone testing against your laptop, use the LAN address
   (`http://192.168.1.x:8000`) — `localhost` is the phone.
 - Android blocks plaintext HTTP to arbitrary hosts in release builds. Use HTTPS
   for anything but local debugging.
-- Leave it empty to go back to the demo score.
-
-For a shipped build you can instead set `OMR_CONFIG.serverUrl` in
-`src/omr/omrConfig.ts`; the Settings value overrides it, so a debug build can
-point elsewhere without a rebuild.
+- The override beats the baked-in address. Leave it empty to fall back to
+  `OMR_CONFIG.serverUrl` — and with no address anywhere, to the demo score.
+- Seven more taps on the version row hide the developer section again; the
+  saved override still applies until it is cleared.
 
 ## 3. What good input looks like
 

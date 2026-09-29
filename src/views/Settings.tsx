@@ -1,5 +1,5 @@
 // Piano Professor — Settings: language, goal, sound, appearance, hardware, account.
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../theme/AppTheme';
@@ -15,14 +15,21 @@ import {
   isReminderOn, setReminder, getReminderHour, formatHour, REMINDER_HOURS,
 } from '../notifications/reminders';
 import { Audio } from 'expo-av';
+import Constants from 'expo-constants';
 import { useAccount } from '../account/AccountProvider';
 import { getOmrServer } from '../omr/omrConfig';
+import { DEV_TAPS_NEEDED, isDevOptionsEnabled, revealTaps, setDevOptionsEnabled } from '../services/devOptions';
 import { useT } from '../i18n/useT';
 
 const GOALS = [
   { key: 'goal.casual', xp: 20 }, { key: 'goal.regular', xp: 50 },
   { key: 'goal.serious', xp: 100 }, { key: 'goal.intense', xp: 150 },
 ];
+
+/** Shown on the About row; app.json's value, with a fallback for tests. */
+const APP_VERSION = Constants.expoConfig?.version ?? '0.6.0';
+/** Taps on the version row further apart than this start a fresh count. */
+const TAP_WINDOW_MS = 2000;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { colors } = useAppTheme();
@@ -74,6 +81,35 @@ export default function Settings() {
     isReminderOn().then(setReminders);
     getReminderHour().then(setReminderHour);
   }, []);
+
+  // Developer options hide behind the usual gesture: seven taps on the
+  // version row. Learners never need the scan-server override — the shipped
+  // build has the address baked into OMR_CONFIG.serverUrl.
+  const [devOptions, setDevOptions] = useState(false);
+  useEffect(() => { isDevOptionsEnabled().then(setDevOptions).catch(() => {}); }, []);
+  const taps = useRef({ count: 0, at: 0 });
+  const onVersionTap = useCallback(async () => {
+    const now = Date.now();
+    const t = taps.current;
+    t.count = now - t.at > TAP_WINDOW_MS ? 1 : t.count + 1;
+    t.at = now;
+    if (!revealTaps(t.count, DEV_TAPS_NEEDED)) return;
+    t.count = 0;
+    const next = !devOptions;
+    setDevOptions(next);
+    await setDevOptionsEnabled(next);
+    toast(next ? tr('set.devEnabled') : tr('set.devDisabled'));
+  }, [devOptions, toast, tr]);
+
+  // Empty is a valid, working state — importing falls back to the bundled
+  // demo score — so this says "Demo", not "Not set".
+  const scanServerRow = (
+    <LinkRow
+      icon="camera" label={tr('set.scanServer')}
+      value={omrServer ? 'Configured' : 'Demo'}
+      onPress={() => go('omrServer')}
+    />
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
@@ -146,13 +182,9 @@ export default function Settings() {
               <LinkRow icon="bluetooth" label={tr('set.ledStrip')} value={led.connected ? tr('set.connected') : tr('set.notConnected')} onPress={() => go('pair')} />
               <LinkRow icon="sparkle" label={tr('set.ledThemesShort')} value={led.theme} onPress={() => go('ledSettings')} />
               <LinkRow icon="target" label={tr('set.recalibrate')} onPress={() => go('calibration')} />
-              {/* Empty is a valid, working state — importing falls back to the
-                  bundled demo score — so this says "Demo", not "Not set". */}
-              <LinkRow
-                icon="camera" label="Scan server"
-                value={omrServer ? 'Configured' : 'Demo'}
-                onPress={() => go('omrServer')}
-              />
+              {/* Dev builds keep the scan-server row where it always was; once
+                  developer options are on it lives in its own section below. */}
+              {__DEV__ && !devOptions && scanServerRow}
             </Section>
 
             <Section title={tr('settings.account')}>
@@ -170,8 +202,22 @@ export default function Settings() {
                 }}
               />
             </Section>
+
+            {devOptions && (
+              <Section title={tr('set.developer')}>
+                {scanServerRow}
+              </Section>
+            )}
           </View>
         </View>
+
+        {/* About. Deliberately quiet: it is a version label first, and the
+            seven-tap developer toggle second. */}
+        <Pressable onPress={onVersionTap} hitSlop={8} style={{ alignSelf: 'center', marginTop: 26, paddingVertical: 8, paddingHorizontal: 16 }}>
+          <Text style={{ fontFamily: Fonts.family.bold, fontSize: 12, color: colors.inkFaint }}>
+            {`Piano Professor v${APP_VERSION}`}
+          </Text>
+        </Pressable>
       </ScrollView>
     </View>
   );

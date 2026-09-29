@@ -141,6 +141,8 @@ interface Waiter { init?(): void; down?(note: string, t: number): void; up?(note
 
 export class LessonEngine {
   L: Lesson1; hal: HwFacade; ui: EngineUI;
+  /** AsyncStorage key the resume position lives under — one per lesson/course. */
+  resumeKey: string;
   stepIdx = 0; run = 0; xp = 0;
   paused = false;
   private waiter: Waiter | null = null;
@@ -161,8 +163,8 @@ export class LessonEngine {
   // by every engine ever constructed.
   private offs: (() => void)[] = [];
 
-  constructor(lesson: Lesson1, hal: HwFacade, ui: EngineUI) {
-    this.L = lesson; this.hal = hal; this.ui = ui;
+  constructor(lesson: Lesson1, hal: HwFacade, ui: EngineUI, resumeKey = LS_NS + 'step') {
+    this.L = lesson; this.hal = hal; this.ui = ui; this.resumeKey = resumeKey;
     this.offs = [
       hal.onNoteOn((note, vel, t) => this.noteOn(note, vel, t)),
       hal.onNoteOff((note, _relVel, _t, durMs) => this.noteOff(note, durMs)),
@@ -203,7 +205,7 @@ export class LessonEngine {
     this.ui.clearStage(); this.ui.hideComplete(); this.ui.mascotTalking(false);
     this.stepIdx = i;
     this.trail = this.trail.filter((e) => e.step < i || (e.step === i && e.seg < fromSeg));
-    AsyncStorage.setItem(LS_NS + 'step', String(i)).catch(() => {});
+    AsyncStorage.setItem(this.resumeKey, String(i)).catch(() => {});
     const step = this.L.steps[i];
     for (let s = 0; s < fromSeg; s++) { // jumping mid-step: rebuild LED state instantly
       const sg = step.segments[s];
@@ -301,7 +303,7 @@ export class LessonEngine {
       case 'nextButton': return this.nextButton();
       case 'awardXP': return this.awardXP(seg.amount);
       case 'lessonCompleteScreen':
-        AsyncStorage.removeItem(LS_NS + 'step').catch(() => {});
+        AsyncStorage.removeItem(this.resumeKey).catch(() => {});
         this.ui.completeScreen(this.xp);
         return;
     }
@@ -596,7 +598,7 @@ export class LessonEngine {
   private async songDemo(seg: SongConfig, tk: number) {
     const chart = seg.chart;
     const showLyrics = seg.displayMode === 'lyrics' && this.ui.prefLyrics();
-    const ctrl = this.ui.showSong(seg, `Demo · ${SONG_TITLES[seg.song] ?? 'Song'}`, showLyrics);
+    const ctrl = this.ui.showSong(seg, `Demo · ${SONG_TITLES[seg.song] ?? seg.song}`, showLyrics);
     const barMs = (60000 / SONG_BPM) * SONG_BEATS;
     this.ui.mood('conduct', 0);
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -628,7 +630,7 @@ export class LessonEngine {
   private async playAlong(seg: SongConfig, tk: number) {
     const chart = seg.chart;
     const showLyrics = seg.displayMode === 'lyrics' && this.ui.prefLyrics();
-    const ctrl = this.ui.showSong(seg, SONG_TITLES[seg.song] ?? 'Song', showLyrics);
+    const ctrl = this.ui.showSong(seg, SONG_TITLES[seg.song] ?? seg.song, showLyrics);
     const barMs = (60000 / SONG_BPM) * SONG_BEATS;
     const look = seg.ledLookAheadMs || 500;
     this.ui.mood('conduct', 0);

@@ -18,6 +18,7 @@ recognition.
   range, quantizes onsets/durations to a 16th + triplet grid (stops OMR duration drift), and
   rebuilds notation. Best-effort: unparseable engine output passes through unchanged.
 - `Dockerfile` — builds the service with model weights baked in (`homr --init`).
+- `deploy.sh` — one-command Cloud Run deploy; prints the address to paste into the app.
 
 Env vars: `OMR_ENGINE` (`homr` default; `oemer` if you build it into the image),
 `OMR_PREPROCESS` (`1` default; `0` disables photo cleanup),
@@ -31,18 +32,39 @@ docker run -p 8000:8000 pp-omr
 # test:
 curl -F "file=@some_sheet.png" http://localhost:8000/omr -o out.musicxml
 ```
-Then in the app: **Profile → OMR scan server** → enter your URL (e.g. `http://<your-LAN-ip>:8000`
-for local testing, or your deployed HTTPS URL). Leave it blank to use the offline demo score.
+Then point a debug build at it from the app's hidden developer menu: **Settings → tap the
+version row at the bottom seven times → Developer options → Scan server** → enter
+`http://<your-LAN-ip>:8000` → **Test**. (`localhost` would be the phone.) Leave it blank to use
+the offline demo score.
 
-## Deploy (pick one)
-- **Google Cloud Run** (simplest, scales to zero):
-  ```bash
-  gcloud run deploy pp-omr --source backend/omr --region us-central1 \
-      --allow-unauthenticated --memory 4Gi --cpu 4 --timeout 900
-  ```
-  (homr runs on onnxruntime — CPU works; more vCPUs = faster pages. Model weights are baked
-  into the image, so even the first request is fast.)
-- **A small VM / Fly.io / Render**: build the image and run it; put it behind HTTPS.
+## Deploy
+
+**Google Cloud Run** (simplest, scales to zero) — one command:
+
+```bash
+backend/omr/deploy.sh <gcp-project-id>            # optional second arg: region (default us-central1)
+```
+
+It requires the `gcloud` CLI (logged in once with `gcloud auth login`), builds the image on
+Cloud Build from this directory, deploys it as `pp-omr` with 4 vCPU / 4 GiB / 900 s timeout,
+then prints the service URL, the exact `serverUrl:` line to paste into
+`src/omr/omrConfig.ts`, and runs a `curl …/health` check. The first deploy builds the model
+weights into the image and takes 10-15 minutes; later ones are quicker.
+
+(homr runs on onnxruntime — CPU works; more vCPUs = faster pages. Model weights are baked into
+the image, so even the first request after a cold start is a container start, not a download.)
+
+Other hosts (**a small VM / Fly.io / Render**): build the image and run it; put it behind HTTPS.
+
+## Wiring the app
+
+The app ships with the address **baked in**: `OMR_CONFIG.serverUrl` in `src/omr/omrConfig.ts`.
+Paste the line `deploy.sh` prints there, rebuild, and every install scans against your service
+with nothing for learners to configure.
+
+The **Scan server** field in Settings is a developer override (it beats the baked-in address)
+and is hidden behind Developer options — tap the version row seven times to show it. With no
+address set anywhere, the Import screen shows the bundled demo score instead of scanning.
 
 ## Notes / limits
 - Best input: a **clear photo or PNG/JPG** of *typeset* sheet music. Handwriting is still weak
