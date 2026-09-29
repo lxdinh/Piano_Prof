@@ -13,6 +13,8 @@ import CoursePath from '../views/CoursePath';
 import Songs from '../views/Songs';
 import SongPreview from '../views/SongPreview';
 import ImportSheet from '../views/ImportSheet';
+import ReviewScore from '../views/ReviewScore';
+import SongPlayer from '../views/SongPlayer';
 import Practice from '../views/Practice';
 import ProfileView from '../views/ProfileView';
 import Paywall from '../views/Paywall';
@@ -40,6 +42,8 @@ export const registry: ScreenRegistry = {
   songs: Songs,
   songPreview: SongPreview,
   import: ImportSheet,
+  reviewScore: ReviewScore,
+  songPlayer: SongPlayer,
   practice: Practice,
   profile: ProfileView,
   createProfile: CreateProfile,

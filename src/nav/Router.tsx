@@ -12,7 +12,7 @@ import Stage from './Stage';
 import RewardPopup, { Reward, RewardKind } from '../ui/RewardPopup';
 
 // Screens where the relaxed background piano should stay quiet.
-const AMBIENT_QUIET = new Set(['lesson', 'practice']);
+const AMBIENT_QUIET = new Set(['lesson', 'practice', 'songPlayer', 'reviewScore']);
 
 export type ScreenName = string;
 export type ScreenParams = Record<string, any>;
