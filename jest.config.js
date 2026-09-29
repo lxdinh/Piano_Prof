@@ -22,6 +22,8 @@ const ui = {
   preset: 'jest-expo',
   testMatch: ['**/__tests__/**/*.test.tsx'],
   setupFiles: ['<rootDir>/jest.setup.ui.js'],
+      // Cold CI runners transform React Native on the first render of a suite; 5s is too tight.
+      testTimeout: 20000,
 };
 
 module.exports = { projects: [logic, ui] };
