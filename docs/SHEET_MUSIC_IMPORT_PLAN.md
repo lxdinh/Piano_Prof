@@ -161,6 +161,34 @@ The app only ever speaks to the server through one whole-song endpoint. Every en
 
 ## 6. Phased plan
 
+### Status (updated 2026-09-30)
+
+**Phase 0 decided and Phase 1 built** on branch `claude/jolly-turing-8imx09`, based on the July rebuild with
+chords-first as the default result of a scan. What is in the branch now:
+
+- Import screen is real: pick and order pages (camera, photo library, PDF), read them through the scan server, and
+  show the detected chords and key with Play / Review / Learn A-to-Z. With no server address set it shows the bundled
+  demo score and says so.
+- Review screen renders the recognised score as engraved notation (needs internet for the notation library), with
+  title and tempo edits that are saved with the song.
+- Song Player: falling notes over the piano, audio, metronome, speed, seek, and the LED strip lit per hand in sync.
+- Learn A-to-Z: the course generator now emits the Lesson 1 engine's own segments and the Lesson screen runs it.
+  A test drives a generated course through the real engine with simulated key presses to completion.
+- My songs shelf on the Songs tab, backed by an on-device library.
+- Scan-server field moved behind Developer options (tap the version row seven times). `backend/omr/deploy.sh` deploys
+  the server to Cloud Run and prints the address to paste into `src/omr/omrConfig.ts`.
+- Checks: typecheck and lint clean, 44 test suites, 526 tests.
+
+**Not done in Phase 1, on purpose or by constraint:**
+
+- The server is not deployed. Running `deploy.sh` needs your Google Cloud account; the Docker image build has not been
+  proven end to end (this sandbox could not reach PyPI through Docker). Budget 10 to 15 minutes for the first run.
+- No device testing. Layout was reasoned for the 852×394 landscape canvas and covered by component tests, not viewed on
+  a phone. Adding react-native-webview changes the native fingerprint, so a new EAS build is required.
+- Known small gaps left for Phase 2/3: the library's index is not rebuilt if it gets corrupted; long-press delete on
+  My songs has no confirmation; play-along tempo in a course uses the engine's fixed 104 BPM.
+
+
 Sizes are relative (S = days, M = a couple of weeks, L = more). Each phase ends with something you can demo.
 
 | Phase | What | Size | You can demo |
