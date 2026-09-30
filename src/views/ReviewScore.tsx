@@ -20,7 +20,7 @@ import { getImportedSong, registerImportedSong, ImportedSong } from '../omr/impo
 import { parseMusicXmlScore } from '../omr/musicxmlScore';
 import { analyzeSong } from '../omr/analyzeSong';
 import { generateSongLesson } from '../omr/songLessonGenerator';
-import { renameLocalSong, saveLocalSong } from '../omr/songLibrary';
+import { saveLocalSong } from '../omr/songLibrary';
 
 export const TEMPO_MIN = 30;
 export const TEMPO_MAX = 240;
@@ -142,9 +142,8 @@ export default function ReviewScore() {
     if (!updated) return;
     setSaving(true);
     try {
-      await saveLocalSong(updated);
-      await renameLocalSong(updated.id, updated.title);
-      toast(tr('review.saved'));
+      const ok = await saveLocalSong(updated);
+      toast(tr(ok ? 'review.saved' : 'review.saveFailed'));
     } catch {
       toast(tr('review.saveFailed'));
     } finally {

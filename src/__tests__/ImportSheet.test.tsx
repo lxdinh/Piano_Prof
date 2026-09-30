@@ -256,7 +256,8 @@ describe('ImportSheet — no server configured', () => {
     expect(mockGo).toHaveBeenCalledWith('songPlayer', { songId: expect.any(String) });
     const { songId } = mockGo.mock.calls[0][1];
     expect(getImportedSong(songId)?.title).toBe(DEMO_SCORE_TITLE);
-    expect(mockSave).toHaveBeenCalledWith(expect.objectContaining({ id: songId, pageCount: 1 }));
+    // The bundled demo is a stand-in, not the learner's music: it must not land in My songs.
+    expect(mockSave).not.toHaveBeenCalled();
   });
 });
 

@@ -6,7 +6,7 @@
 // check the notation, or take the generated A→Z lesson. With no scan server
 // configured the bundled demo score stands in, so the whole flow stays
 // walkable before backend/omr is deployed (see src/omr/omrConfig.ts).
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -237,6 +237,9 @@ export default function ImportSheet() {
   const tr = useT();
 
   const [phase, setPhase] = useState<Phase>('pick');
+  // A scan can outlive the screen (back during 'scanning'); ignore its result then.
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
   const [pages, setPages] = useState<PickedImage[]>([]);
   const [progress, setProgress] = useState<OmrProgress | null>(null);
   const [error, setError] = useState('');
@@ -278,6 +281,7 @@ export default function ImportSheet() {
     try {
       xml = await runOmrScore(pages, setProgress);
     } catch (e) {
+      if (!alive.current) return;
       if (!(e instanceof OmrNotConfiguredError)) {
         fail(e instanceof OmrError ? e.message : tr('import.failed'));
         return;
@@ -286,6 +290,7 @@ export default function ImportSheet() {
       isDemo = true;
       toast(tr('import.demoNotice'));
     }
+    if (!alive.current) return;
 
     let score;
     try {
@@ -303,7 +308,8 @@ export default function ImportSheet() {
       id: newSongId(), title, xml, score, pageCount: Math.max(pages.length, 1),
     };
     registerImportedSong(song);
-    void saveLocalSong(song).catch(() => undefined);
+    // The bundled demo is a stand-in, not the learner's music: keep it out of My songs.
+    if (!isDemo) void saveLocalSong(song).catch(() => undefined);
     setResult({ song, analysis, isDemo });
     setPhase('done');
   };

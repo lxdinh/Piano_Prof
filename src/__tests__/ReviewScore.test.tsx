@@ -9,7 +9,7 @@ const mockGo = jest.fn();
 const mockBack = jest.fn();
 const mockToast = jest.fn();
 let mockParams: Record<string, unknown> = { songId: 'song-test' };
-const mockSaveLocalSong = jest.fn<Promise<void>, [unknown]>(async () => {});
+const mockSaveLocalSong = jest.fn<Promise<boolean>, [unknown]>(async () => true);
 const mockRenameLocalSong = jest.fn<Promise<void>, [string, string]>(async () => {});
 const mockGenerateSongLesson: jest.Mock = jest.fn();
 
@@ -156,10 +156,10 @@ describe('ReviewScore — the screen', () => {
     fireEvent.changeText(r.getByTestId('title-input'), '  New title ');
     fireEvent.press(r.getByText('Save'));
 
-    await waitFor(() => expect(mockRenameLocalSong).toHaveBeenCalledWith('song-test', 'New title'));
+    await waitFor(() => expect(mockToast).toHaveBeenCalledWith('Saved to My songs'));
     expect(mockSaveLocalSong).toHaveBeenCalledTimes(1);
     expect(mockSaveLocalSong.mock.calls[0][0]).toEqual(expect.objectContaining({ id: 'song-test', title: 'New title' }));
-    expect(mockToast).toHaveBeenCalledWith('Saved to My songs');
+    expect(mockRenameLocalSong).not.toHaveBeenCalled(); // saveLocalSong already writes the title
     // …and the in-memory handoff the player reads sees the same title.
     expect(getImportedSong('song-test')?.title).toBe('New title');
   });
@@ -168,7 +168,16 @@ describe('ReviewScore — the screen', () => {
     const r = render(<ReviewScore />);
     fireEvent.changeText(r.getByTestId('title-input'), '   ');
     fireEvent.press(r.getByText('Save'));
-    await waitFor(() => expect(mockRenameLocalSong).toHaveBeenCalledWith('song-test', 'Test song'));
+    await waitFor(() => expect(mockSaveLocalSong).toHaveBeenCalledTimes(1));
+    expect(mockSaveLocalSong.mock.calls[0][0]).toEqual(expect.objectContaining({ id: 'song-test', title: 'Test song' }));
+  });
+
+  it('reports a failed write instead of claiming the song was saved', async () => {
+    mockSaveLocalSong.mockResolvedValueOnce(false);
+    const r = render(<ReviewScore />);
+    fireEvent.press(r.getByText('Save'));
+    await waitFor(() => expect(mockToast).toHaveBeenCalledWith('Could not save this song.'));
+    expect(mockToast).not.toHaveBeenCalledWith('Saved to My songs');
   });
 
   it('Play applies the edits and opens the player on this song', () => {

@@ -1,5 +1,5 @@
 // Piano Professor — Songs / Songbook tab: featured hero + song shelves.
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '../theme/AppTheme';
@@ -77,8 +77,12 @@ function MySongsShelf() {
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
+  const opening = useRef(false);
   const open = async (id: string) => {
+    if (opening.current) return;
+    opening.current = true;
     const song = await loadLocalSong(id).catch(() => null);
+    opening.current = false;
     if (!song) {
       toast(tr('songs.openFailed'));
       refresh();

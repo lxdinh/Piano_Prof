@@ -18,6 +18,8 @@ export interface LocalSongMeta {
   pageCount: number;
   /** ISO timestamp */
   createdAt: string;
+  /** Tempo the learner settled on in Review; re-applied on load. */
+  tempoBpm?: number;
 }
 
 const DOC_DIR = FileSystem.documentDirectory;
@@ -95,7 +97,7 @@ export async function listLocalSongs(): Promise<LocalSongMeta[]> {
 }
 
 /** Persist a converted song (insert or update by id). Best-effort; never throws. */
-export async function saveLocalSong(song: ImportedSong): Promise<void> {
+export async function saveLocalSong(song: ImportedSong): Promise<boolean> {
   try {
     await writeXml(song.id, song.xml);
     const list = await readIndex();
@@ -104,13 +106,16 @@ export async function saveLocalSong(song: ImportedSong): Promise<void> {
       title: song.title,
       pageCount: song.pageCount,
       createdAt: new Date().toISOString(),
+      tempoBpm: Math.round(song.score.tempoBpm),
     };
     const i = list.findIndex((m) => m.id === song.id);
     if (i >= 0) list[i] = { ...meta, createdAt: list[i].createdAt };
     else list.push(meta);
     await writeIndex(list);
+    return true;
   } catch {
     /* persistence is best-effort; the in-memory registry still works */
+    return false;
   }
 }
 
@@ -122,7 +127,7 @@ export async function loadLocalSong(id: string): Promise<ImportedSong | null> {
     if (!meta) return null;
     const xml = await readXml(id);
     if (xml == null) return null;
-    return { id, title: meta.title, xml, score: parseMusicXmlScore(xml), pageCount: meta.pageCount ?? 1 };
+    return { id, title: meta.title, xml, score: parseMusicXmlScore(xml, meta.tempoBpm), pageCount: meta.pageCount ?? 1 };
   } catch {
     return null;
   }

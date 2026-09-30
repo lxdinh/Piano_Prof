@@ -22,8 +22,8 @@ const ui = {
   preset: 'jest-expo',
   testMatch: ['**/__tests__/**/*.test.tsx'],
   setupFiles: ['<rootDir>/jest.setup.ui.js'],
-      // Cold CI runners transform React Native on the first render of a suite; 5s is too tight.
-      testTimeout: 20000,
 };
 
-module.exports = { projects: [logic, ui] };
+// testTimeout is root-only in Jest. Cold CI runners transform React Native on the
+// first render of a UI suite; jest's 5s default is too tight for that.
+module.exports = { projects: [logic, ui], testTimeout: 20000 };

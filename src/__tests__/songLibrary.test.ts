@@ -83,6 +83,15 @@ describe('songLibrary on expo-file-system', () => {
     expect(loaded!.pageCount).toBe(2);
   });
 
+  it('remembers the tempo the learner settled on and re-applies it on load', async () => {
+    const s = song('slow', 'Slow', 4);
+    const slowed = { ...s, score: parseMusicXmlScore(s.xml, 72) };
+    await saveLocalSong(slowed);
+    expect((await listLocalSongs())[0].tempoBpm).toBe(72);
+    const loaded = await loadLocalSong('slow');
+    expect(loaded!.score.tempoBpm).toBe(72);
+  });
+
   it('keeps the original createdAt when a song is saved again', async () => {
     jest.useFakeTimers({ now: new Date('2026-09-01T10:00:00Z') });
     await saveLocalSong(song('s1', 'First', 4));
@@ -120,7 +129,7 @@ describe('songLibrary on expo-file-system', () => {
 
   it('never rejects when the disk write throws', async () => {
     (fs.writeAsStringAsync as jest.Mock).mockRejectedValueOnce(new Error('disk full'));
-    await expect(saveLocalSong(song('s1', 'One', 4))).resolves.toBeUndefined();
+    await expect(saveLocalSong(song('s1', 'One', 4))).resolves.toBe(false);
     expect(await listLocalSongs()).toEqual([]);
   });
 
