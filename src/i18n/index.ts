@@ -78,6 +78,18 @@ const EXTRA: Record<string, Record<string, string>> = {
   'review.saveFailed': { en: 'Could not save this song.' },
   'player.notFound': { en: 'Song not found' },
   'player.notFoundHint': { en: 'This import is no longer in memory. Open it again from Import or My songs.' },
+  // Phase 2: file import + catalog
+  'import.file': { en: 'Import a file' },
+  'import.fileSub': { en: 'MusicXML or MIDI from MuseScore, Flat, Noteflight…' },
+  'import.fileUnsupported': { en: 'That file is not MusicXML or MIDI.' },
+  'import.fileUnreadable': { en: 'Could not read that file.' },
+  'import.catalogMatch': { en: 'We already have "{title}" in the catalog, note-perfect.' },
+  'import.openCatalog': { en: 'Open the catalog version' },
+  'songs.catalog': { en: 'Sheet music library' },
+  'songs.catalogSub': { en: 'Public-domain pieces, note-perfect, ready to play with lights.' },
+  'catalog.play': { en: 'Play with lights' },
+  'catalog.learn': { en: 'Learn A→Z' },
+  'catalog.review': { en: 'See the score' },
 };
 
 export function t(key: string, lang = 'en', vars?: Record<string, string | number>): string {
