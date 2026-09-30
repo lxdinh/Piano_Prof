@@ -68,7 +68,12 @@ jest.mock('../omr/pickImage', () => ({
   capturePhoto: jest.fn(),
   pickPagesFromLibrary: jest.fn(),
   pickPdf: jest.fn(),
+  pickScoreFile: jest.fn(),
 }));
+jest.mock('../omr/importFile', () => {
+  const actual = jest.requireActual('../omr/importFile');
+  return { ImportFileError: actual.ImportFileError, readScoreFile: jest.fn() };
+});
 jest.mock('../omr/songLibrary', () => ({
   listLocalSongs: jest.fn(async () => []),
   saveLocalSong: jest.fn(async () => {}),
@@ -83,7 +88,9 @@ import ImportSheet, { collapseChords, titleFromXml } from '../views/ImportSheet'
 // eslint-disable-next-line import/first
 import { OmrError, OmrNotConfiguredError, runOmrScore } from '../omr/omrClient';
 // eslint-disable-next-line import/first
-import { capturePhoto, pickPagesFromLibrary, pickPdf } from '../omr/pickImage';
+import { capturePhoto, pickPagesFromLibrary, pickPdf, pickScoreFile } from '../omr/pickImage';
+// eslint-disable-next-line import/first
+import { ImportFileError, readScoreFile } from '../omr/importFile';
 // eslint-disable-next-line import/first
 import { saveLocalSong } from '../omr/songLibrary';
 // eslint-disable-next-line import/first
@@ -101,6 +108,8 @@ const mockRun = runOmrScore as jest.MockedFunction<typeof runOmrScore>;
 const mockCapture = capturePhoto as jest.MockedFunction<typeof capturePhoto>;
 const mockLibrary = pickPagesFromLibrary as jest.MockedFunction<typeof pickPagesFromLibrary>;
 const mockPdf = pickPdf as jest.MockedFunction<typeof pickPdf>;
+const mockPickFile = pickScoreFile as jest.MockedFunction<typeof pickScoreFile>;
+const mockReadFile = readScoreFile as jest.MockedFunction<typeof readScoreFile>;
 const mockSave = saveLocalSong as jest.MockedFunction<typeof saveLocalSong>;
 const mockGenerate = generateSongLesson as jest.MockedFunction<typeof generateSongLesson>;
 
@@ -108,6 +117,7 @@ const page = (n: number): PickedImage => ({
   uri: `file:///page${n}.jpg`, mimeType: 'image/jpeg', fileName: `page${n}.jpg`,
 });
 const PDF: PickedImage = { uri: 'file:///score.pdf', mimeType: 'application/pdf', fileName: 'score.pdf' };
+const MXL: PickedImage = { uri: 'file:///cache/two.mxl', mimeType: 'application/vnd.recordare.musicxml', fileName: 'two.mxl' };
 
 // ── A score with a KNOWN chord structure (same builder as analyzeSong.test.ts) ─
 
@@ -191,10 +201,11 @@ describe('ImportSheet — helpers', () => {
 });
 
 describe('ImportSheet — picking pages', () => {
-  it('starts on the two tiles and never scans with nothing picked', async () => {
+  it('starts on the three tiles and never scans with nothing picked', async () => {
     mockCapture.mockResolvedValue(null); // learner dismissed the camera
     const r = render(<ImportSheet />);
     expect(r.getByText('import.title')).toBeTruthy();
+    expect(r.getByText('import.file')).toBeTruthy();
     await pressAsync(r, 'import.photo');
     expect(r.queryByText('import.read')).toBeNull();
     expect(mockRun).not.toHaveBeenCalled();
@@ -364,5 +375,67 @@ describe('ImportSheet — Learn A→Z', () => {
       item: { id: expect.stringMatching(/^course-/), title: 'Two Chords', sub: '4 bars', kind: 'song' },
       lesson: expect.objectContaining({ steps: expect.any(Array) }),
     });
+  });
+});
+
+describe('ImportSheet — importing a file', () => {
+  it('reads a MusicXML/MIDI file straight into the result, as one page', async () => {
+    mockPickFile.mockResolvedValue(MXL);
+    mockReadFile.mockResolvedValue(twoChordSong('From File'));
+    const r = render(<ImportSheet />);
+    await pressAsync(r, 'import.file');
+
+    await r.findByText(/^import\.detectedN /);
+    expect(mockReadFile).toHaveBeenCalledWith(MXL);
+    expect(mockRun).not.toHaveBeenCalled();
+    expect(r.getAllByText('C').length).toBeGreaterThan(0);
+    expect(r.getAllByText('G').length).toBeGreaterThan(0);
+    expect(r.getByText('import.detectedN 4 C major')).toBeTruthy();
+    expect(r.getByText('From File')).toBeTruthy();
+    expect(r.getByText('import.summary 4 100 import.pageOne')).toBeTruthy();
+    expect(mockSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'From File', pageCount: 1 }));
+  });
+
+  it('shows the reading copy while the file converts', async () => {
+    mockPickFile.mockResolvedValue(MXL);
+    let finish: (xml: string) => void = () => {};
+    mockReadFile.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    const r = render(<ImportSheet />);
+    await pressAsync(r, 'import.file');
+    await r.findByText('import.reading');
+    await act(async () => { finish(twoChordSong()); });
+    await r.findByText(/^import\.detectedN /);
+  });
+
+  it('explains a file that is not a score, and one that cannot be read', async () => {
+    mockPickFile.mockResolvedValue({ ...MXL, fileName: 'photo.png' });
+    mockReadFile.mockRejectedValue(new ImportFileError('unsupported'));
+    const r = render(<ImportSheet />);
+    await pressAsync(r, 'import.file');
+    await r.findByText('import.fileUnsupported');
+    expect(mockSave).not.toHaveBeenCalled();
+
+    fireEvent.press(r.getByText('import.retry'));
+    mockReadFile.mockRejectedValue(new ImportFileError('unreadable'));
+    await pressAsync(r, 'import.file');
+    await r.findByText('import.fileUnreadable');
+  });
+
+  it('uses the generic message when the converted score does not parse', async () => {
+    mockPickFile.mockResolvedValue(MXL);
+    mockReadFile.mockRejectedValue(new Error('corrupt MIDI'));
+    const r = render(<ImportSheet />);
+    await pressAsync(r, 'import.file');
+    await r.findByText('import.failed');
+    expect(r.queryByText(/corrupt MIDI/)).toBeNull();
+  });
+
+  it('stays on the tiles when the picker is cancelled', async () => {
+    mockPickFile.mockResolvedValue(null);
+    const r = render(<ImportSheet />);
+    await pressAsync(r, 'import.file');
+    expect(r.getByText('import.fileSub')).toBeTruthy();
+    expect(mockReadFile).not.toHaveBeenCalled();
+    expect(r.queryByText('import.reading')).toBeNull();
   });
 });

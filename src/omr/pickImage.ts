@@ -67,3 +67,32 @@ function toPicked(res: ImagePicker.ImagePickerResult): PickedImage | null {
     fileName: a.fileName ?? `sheet-${Date.now()}.jpg`,
   };
 }
+
+// MIME types a score file may arrive under; the wildcard goes last, since pickers
+// often report octet-stream (or nothing) for MusicXML and MIDI.
+const SCORE_FILE_TYPES = [
+  'application/vnd.recordare.musicxml+xml',
+  'application/vnd.recordare.musicxml',
+  'application/xml',
+  'text/xml',
+  'audio/midi',
+  'audio/x-midi',
+  'application/x-midi',
+  'application/octet-stream',
+  '*/*',
+];
+
+/** Pick a MusicXML (.musicxml/.xml/.mxl) or MIDI (.mid/.midi) file to import without scanning. */
+export async function pickScoreFile(): Promise<PickedImage | null> {
+  const res = await DocumentPicker.getDocumentAsync({
+    type: SCORE_FILE_TYPES,
+    copyToCacheDirectory: true,
+  });
+  if (res.canceled || !res.assets?.length) return null;
+  const a = res.assets[0];
+  return {
+    uri: a.uri,
+    mimeType: a.mimeType ?? 'application/octet-stream',
+    fileName: a.name ?? `score-${Date.now()}`,
+  };
+}

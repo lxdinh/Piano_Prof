@@ -6,6 +6,8 @@
 // check the notation, or take the generated A→Z lesson. With no scan server
 // configured the bundled demo score stands in, so the whole flow stays
 // walkable before backend/omr is deployed (see src/omr/omrConfig.ts).
+// A MusicXML or MIDI file skips the scanner and joins the same tail
+// (see src/omr/importFile.ts).
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,7 +22,8 @@ import PPButton from '../ui/PPButton';
 import ScrollFit from '../ui/ScrollFit';
 import { useT } from '../i18n/useT';
 import { OmrError, OmrNotConfiguredError, OmrProgress, runOmrScore } from '../omr/omrClient';
-import { PickedImage, capturePhoto, pickPagesFromLibrary, pickPdf } from '../omr/pickImage';
+import { PickedImage, capturePhoto, pickPagesFromLibrary, pickPdf, pickScoreFile } from '../omr/pickImage';
+import { ImportFileError, readScoreFile } from '../omr/importFile';
 import { DEMO_SCORE_TITLE, DEMO_SCORE_XML } from '../omr/demoScore';
 import { parseMusicXmlScore } from '../omr/musicxmlScore';
 import { MeasureChord, SongAnalysis, analyzeSong } from '../omr/analyzeSong';
@@ -79,7 +82,7 @@ function PickCard({ icon, title, sub, onPress }: { icon: IconName; title: string
   const { colors } = useAppTheme();
   return (
     <Pressable onPress={onPress} style={{
-      width: 240, alignItems: 'center', gap: 8, paddingVertical: 22, borderRadius: 22,
+      flex: 1, maxWidth: 240, alignItems: 'center', gap: 8, paddingVertical: 22, borderRadius: 22,
       backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.line, borderBottomWidth: 6,
     }}>
       <View style={{ width: 60, height: 60, borderRadius: 18, backgroundColor: colors.selSky, alignItems: 'center', justifyContent: 'center' }}>
@@ -271,6 +274,31 @@ export default function ImportSheet() {
 
   const fail = (message: string) => { setError(message); setPhase('error'); };
 
+  // The common tail of every import: MusicXML in, a registered song and the
+  // chord summary out. Shared by the scanner and the file path.
+  const finishWithXml = (xml: string, pageCount: number, isDemo: boolean) => {
+    let score;
+    try {
+      score = parseMusicXmlScore(xml);
+    } catch {
+      fail(tr('import.failed'));
+      return;
+    }
+    if (score.events.length === 0) { fail(tr('import.noNotes')); return; }
+    const analysis = analyzeSong(score, xml);
+    // The demo XML's own <work-title> reads "Sunrise (demo OMR output)" — the
+    // curated label is the one a learner should see.
+    const title = isDemo ? DEMO_SCORE_TITLE : (titleFromXml(xml) ?? FALLBACK_TITLE);
+    const song: ImportedSong = {
+      id: newSongId(), title, xml, score, pageCount: Math.max(pageCount, 1),
+    };
+    registerImportedSong(song);
+    // The bundled demo is a stand-in, not the learner's music: keep it out of My songs.
+    if (!isDemo) void saveLocalSong(song).catch(() => undefined);
+    setResult({ song, analysis, isDemo });
+    setPhase('done');
+  };
+
   const read = async () => {
     if (pages.length === 0) return; // runOmrScore must never see an empty list
     setProgress(null);
@@ -291,27 +319,36 @@ export default function ImportSheet() {
       toast(tr('import.demoNotice'));
     }
     if (!alive.current) return;
+    finishWithXml(xml, pages.length, isDemo);
+  };
 
-    let score;
+  // A MusicXML/MIDI file needs no scan: read it, convert, and join the tail.
+  // A cancelled picker leaves the tiles as they were.
+  const importFile = async () => {
+    let file: PickedImage | null;
     try {
-      score = parseMusicXmlScore(xml);
+      file = await pickScoreFile();
     } catch {
-      fail(tr('import.failed'));
+      toast(tr('import.failed'));
       return;
     }
-    if (score.events.length === 0) { fail(tr('import.noNotes')); return; }
-    const analysis = analyzeSong(score, xml);
-    // The demo XML's own <work-title> reads "Sunrise (demo OMR output)" — the
-    // curated label is the one a learner should see.
-    const title = isDemo ? DEMO_SCORE_TITLE : (titleFromXml(xml) ?? FALLBACK_TITLE);
-    const song: ImportedSong = {
-      id: newSongId(), title, xml, score, pageCount: Math.max(pages.length, 1),
-    };
-    registerImportedSong(song);
-    // The bundled demo is a stand-in, not the learner's music: keep it out of My songs.
-    if (!isDemo) void saveLocalSong(song).catch(() => undefined);
-    setResult({ song, analysis, isDemo });
-    setPhase('done');
+    if (!file || !alive.current) return;
+    setProgress(null);
+    setPhase('scanning');
+    let xml: string;
+    try {
+      xml = await readScoreFile(file);
+    } catch (e) {
+      if (!alive.current) return;
+      if (e instanceof ImportFileError) {
+        fail(tr(e.reason === 'unsupported' ? 'import.fileUnsupported' : 'import.fileUnreadable'));
+      } else {
+        fail(tr('import.failed'));
+      }
+      return;
+    }
+    if (!alive.current) return;
+    finishWithXml(xml, 1, false);
   };
 
   const reset = () => {
@@ -340,9 +377,10 @@ export default function ImportSheet() {
             <Text style={{ fontFamily: Fonts.family.bold, fontSize: 15, color: colors.inkSoft }}>
               {tr('import.subtitle')}
             </Text>
-            <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
+            <View style={{ flexDirection: 'row', gap: 16, marginTop: 4, alignSelf: 'stretch', justifyContent: 'center' }}>
               <PickCard icon="camera" title={tr('import.photo')} sub={tr('import.photoSub')} onPress={addPhoto} />
               <PickCard icon="image" title={tr('import.upload')} sub={tr('import.uploadSub')} onPress={addLibrary} />
+              <PickCard icon="book" title={tr('import.file')} sub={tr('import.fileSub')} onPress={() => { void importFile(); }} />
             </View>
             <PPButton
               label={tr('import.pdf')} size="sm" variant="ghost" onPress={addPdf}
